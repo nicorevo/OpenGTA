@@ -1,0 +1,37 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets & Environment
+.env
+.env.*
+*.pem
+*.key
+secrets/
+.venv
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+codesync/data/
+
+# Logs
+*.log
+logs/
+
+# Pre-commit
+.cache/
