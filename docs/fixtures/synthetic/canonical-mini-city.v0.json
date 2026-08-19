@@ -1,0 +1,217 @@
+{
+  "schema": "open-gta-canonical-fixture-v0",
+  "id": "synthetic-mini-city",
+  "origin": {
+    "latitude": 0.0,
+    "longitude": 0.0
+  },
+  "bounds": {
+    "minX": -120,
+    "minY": -120,
+    "maxX": 120,
+    "maxY": 120
+  },
+  "buildings": [
+    {
+      "id": "synthetic:building:a",
+      "kind": "building",
+      "footprint": {
+        "outer": [
+          [
+            -85,
+            20
+          ],
+          [
+            -45,
+            20
+          ],
+          [
+            -45,
+            65
+          ],
+          [
+            -85,
+            65
+          ]
+        ],
+        "holes": []
+      },
+      "buildingType": "residential",
+      "sourceLevels": 3
+    },
+    {
+      "id": "synthetic:building:b",
+      "kind": "building",
+      "footprint": {
+        "outer": [
+          [
+            35,
+            25
+          ],
+          [
+            90,
+            25
+          ],
+          [
+            90,
+            70
+          ],
+          [
+            35,
+            70
+          ]
+        ],
+        "holes": [
+          [
+            [
+              50,
+              40
+            ],
+            [
+              75,
+              40
+            ],
+            [
+              75,
+              55
+            ],
+            [
+              50,
+              55
+            ]
+          ]
+        ]
+      },
+      "buildingType": "historic",
+      "sourceHeightMeters": 12
+    },
+    {
+      "id": "synthetic:building:c",
+      "kind": "building",
+      "footprint": {
+        "outer": [
+          [
+            -75,
+            -75
+          ],
+          [
+            -35,
+            -75
+          ],
+          [
+            -35,
+            -30
+          ],
+          [
+            -75,
+            -30
+          ]
+        ],
+        "holes": []
+      },
+      "buildingType": "commercial"
+    },
+    {
+      "id": "synthetic:building:d",
+      "kind": "building",
+      "footprint": {
+        "outer": [
+          [
+            35,
+            -80
+          ],
+          [
+            80,
+            -80
+          ],
+          [
+            80,
+            -35
+          ],
+          [
+            55,
+            -35
+          ],
+          [
+            55,
+            -55
+          ],
+          [
+            35,
+            -55
+          ]
+        ],
+        "holes": []
+      },
+      "buildingType": "industrial",
+      "sourceLevels": 2
+    }
+  ],
+  "roads": [
+    {
+      "id": "synthetic:road:east-west",
+      "kind": "road",
+      "centerline": [
+        [
+          -120,
+          0
+        ],
+        [
+          120,
+          0
+        ]
+      ],
+      "roadClass": "residential",
+      "widthMeters": 8,
+      "oneWay": false,
+      "surface": "asphalt"
+    },
+    {
+      "id": "synthetic:road:north-south",
+      "kind": "road",
+      "centerline": [
+        [
+          0,
+          -120
+        ],
+        [
+          0,
+          120
+        ]
+      ],
+      "roadClass": "secondary",
+      "widthMeters": 9,
+      "oneWay": false,
+      "surface": "asphalt"
+    }
+  ],
+  "landAreas": [
+    {
+      "id": "synthetic:land:park",
+      "kind": "land",
+      "area": {
+        "outer": [
+          [
+            -115,
+            75
+          ],
+          [
+            -20,
+            75
+          ],
+          [
+            -20,
+            115
+          ],
+          [
+            -115,
+            115
+          ]
+        ],
+        "holes": []
+      },
+      "landClass": "park"
+    }
+  ],
+  "waterAreas": []
+}

@@ -1,87 +1,132 @@
 # OpenGTA Web
 
-OpenGTA Web è un motore e una sandbox geospaziale browser-first: trasforma
-una zona urbana reale, descritta da dati OpenStreetMap, in un ambiente 3D
-top-down riconoscibile, esplorabile e guidabile.
+OpenGTA Web è un motore e una sandbox geospaziale browser-first che trasforma
+zone urbane reali, descritte principalmente da dati OpenStreetMap, in un mondo
+di gioco **2D top-down** riconoscibile, esplorabile e guidabile, con effetti
+fake-2.5D leggeri.
 
-Il progetto punta a rendere giocabile una città senza costruirne manualmente la
-mappa. Il primo risultato sarà una validazione tecnica della guida e della
-generazione urbana, non un gioco completo in stile GTA.
+## Visione finale
 
-## Stato del progetto
+Due modalità, un solo core:
 
-Il repository è nella fase di definizione e revisione tecnica. Contiene la
-baseline di prodotto, una bozza architetturale da valutare e l'infrastruttura di
-processo per lo sviluppo assistito da agenti. Non contiene ancora codice
-applicativo, dipendenze, build o test eseguibili.
+1. **Preprocessed World Mode** — zone già elaborate/ottimizzate e distribuite
+   come pacchetti statici, adatte anche a client meno potenti.
+2. **Open World Runtime Mode** — coordinate arbitrarie, acquisizione e
+   compilazione progressiva nel browser, con AI visiva opzionale
+   preferibilmente client-side.
 
-Le tecnologie citate nella bozza, tra cui Three.js, Rapier, Overpass, Nominatim
-e le alternative di networking, sono candidate: non sono decisioni
-architetturali accettate.
+## Stato del repository al handoff
 
-## Prima validazione
+Il repository applicativo deriva da uno scaffold AI-SDLC e contiene già:
 
-Il primo prototipo deve verificare un unico percorso verticale:
+- `AGENTS.md`;
+- `.opencode/agents`;
+- `.opencode/skills`;
+- standard e policy di progetto.
 
-1. caricare una zona urbana prefissata da dati OpenStreetMap;
-2. convertirla in una scena top-down riconoscibile;
-3. consentire la guida di un veicolo;
-4. gestire collisioni stabili con l'ambiente;
-5. mantenere prestazioni fluide su un PC di fascia media, secondo metriche e
-   hardware di riferimento ancora da definire.
+Al momento del handoff non è stato ancora scritto codice applicativo OpenGTA.
 
-Il progetto è pensato per una persona o un team molto piccolo e procederà per
-incrementi verificabili, iniziando dal browser desktop.
+Il planning pack porta il progetto fino al punto in cui la prossima attività
+richiede il repository eseguibile reale.
 
-## Evoluzioni previste
+## Da dove partire
 
-Questi elementi sono parte della visione, ma non della prima validazione:
+### Umano: applicazione ZIP
 
-- selezione arbitraria di città o coordinate;
-- streaming e cache alla scala di un'intera città;
-- texture regionali generate offline con AI;
-- supporto mobile e controlli touch;
-- multiplayer con prediction e reconciliation;
-- pedoni, traffico e sistemi di gameplay completi.
+Leggere:
 
-Le evoluzioni future verranno considerate nella revisione architetturale senza
-anticiparne l'implementazione.
+`docs/execution/overlay-existing-repository.md`
 
-## Documentazione
+### Codex: dopo l'overlay
 
-- [Intento confermato](docs/intent/open-gta-web.md): fonte corrente per
-  obiettivo, vincoli, perimetro e ricostruzione del contesto.
-- [Bozza city-scale](docs/idea/OpenGTA%20Web%20City%20Scale%20Idea.md): proposta
-  tecnica da analizzare; i suoi valori e le sue tecnologie sono ipotesi.
-- [Istruzioni per gli agenti](AGENTS.md): regole operative e routing delle
-  skill.
-- [Standard di codice](CODING-STANDARDS.md): convenzioni che valgono prima e
-  dopo la scelta dello stack.
-- [Sicurezza](SECURITY.md): confini di fiducia e requisiti minimi del progetto.
+Iniziare da:
 
-Le decisioni tecniche costose da invertire verranno registrate come ADR soltanto
-dopo la valutazione delle alternative e delle conseguenze.
+`docs/handoff/CODEX-START-HERE.md`
 
-## Metodo di revisione tecnica
+e seguire:
 
-Ogni proposta della bozza riceverà uno dei seguenti giudizi:
+`docs/handoff/CODEX-EXECUTION-QUEUE.md`
 
-- valida;
-- valida con condizioni o misurazioni;
-- da rinviare;
-- da sostituire.
+## Decisioni
 
-Per ogni scelta verranno indicati motivazione, rischi, alternative, dipendenze e
-la prova minima necessaria per validarla.
+Vista sintetica:
+
+`docs/DECISIONS.md`
+
+## Fonte di verità
+
+Ordine:
+
+```text
+AGENTS.md
+→ relevant .opencode instructions
+→ docs/intent/open-gta-web.md
+→ docs/architecture/
+→ docs/adr/
+→ docs/specs/
+→ docs/execution/ and docs/handoff/
+→ implementation
+```
+
+La vecchia bozza tecnica è conservata come ipotesi storica:
+
+`docs/idea/OpenGTA Web City Scale Idea.md`
+
+## V0 già definito
+
+V0 usa:
+
+- fixture reale fissa: Lecce centro, ~600 × 600 m;
+- WGS84 + piano metrico locale validato;
+- TypeScript strict;
+- Vite 8-class tooling;
+- Vitest 4-class tests;
+- PixiJS v8 / WebGL;
+- Rapier 2D;
+- un veicolo arcade;
+- collisioni 2D;
+- fake-2.5D;
+- nessuna AI, streaming o multiplayer.
+
+Le tecnologie sono accettate **per il prototipo** e rimangono sostituibili dopo
+evidenza misurata.
+
+## Documentazione chiave
+
+### Architecture
+
+- `docs/architecture/product-architecture-principles.md`
+- `docs/architecture/dual-world-pipeline.md`
+- `docs/architecture/2d-rendering-model.md`
+- `docs/architecture/world-model.md`
+- `docs/architecture/coordinate-system.md`
+- `docs/architecture/world-compiler.md`
+- `docs/architecture/data-acquisition-strategy.md`
+
+### Specs
+
+- `docs/specs/canonical-world-v0-contract.md`
+- `docs/specs/osm-normalization-v0.md`
+- `docs/specs/road-generation-v0.md`
+- `docs/specs/building-fake-2_5d-v0.md`
+- `docs/specs/compiled-chunk-v0-contract.md`
+- `docs/specs/vehicle-controller-v0.md`
+- `docs/specs/debug-overlay-v0.md`
+
+### Testing
+
+- `docs/testing/v0-test-strategy.md`
+- `docs/testing/benchmark-protocol-v0.md`
+
+### Handoff
+
+- `docs/handoff/PRE-CODE-COMPLETE.md`
+- `docs/handoff/CODEX-START-HERE.md`
+- `docs/handoff/CODEX-EXECUTION-QUEUE.md`
 
 ## Comandi di sviluppo
 
-Non sono ancora definiti: il repository non possiede uno stack applicativo o
-un ambiente di test. Questa sezione e `AGENTS.md` dovranno essere aggiornati
-nello stesso incremento che introdurrà lo scaffolding eseguibile.
+Non esistono ancora al momento del planning handoff.
 
-## Licenza
-
-Il codice del repository è distribuito con licenza [MIT](LICENSE). Licenze,
-policy d'uso e obblighi di attribuzione relativi a dati, servizi e asset esterni
-dovranno essere verificati separatamente prima di integrarli.
+Codex li introdurrà nel primo scaffold e aggiornerà questa sezione rispettando
+il `AGENTS.md` e le policy già presenti.

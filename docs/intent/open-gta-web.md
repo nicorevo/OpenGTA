@@ -2,136 +2,301 @@
 
 ## Stato
 
-Baseline di prodotto confermata il 2026-08-19. Questo documento serve a
-ricostruire il contesto nelle sessioni future; non è una specifica tecnica e
-non costituisce accettazione delle tecnologie proposte nella bozza originale.
+Baseline di prodotto aggiornata il 2026-08-19.
 
-Documento di origine:
-[`../idea/OpenGTA Web City Scale Idea.md`](../idea/OpenGTA%20Web%20City%20Scale%20Idea.md).
+Questo documento è la fonte corrente per l'intento di prodotto. Non è una
+specifica tecnica e non costituisce accettazione automatica delle tecnologie
+proposte nella bozza originaria o nei documenti di valutazione.
+
+La baseline precedente è conservata in:
+
+`docs/archive/open-gta-web.baseline-before-dual-mode-2d.md`
+
+La bozza tecnica originaria resta disponibile in:
+
+`docs/idea/OpenGTA Web City Scale Idea.md`
 
 ## Obiettivo
 
-OpenGTA Web è un motore e una sandbox geospaziale browser-first che trasformano
-una zona urbana reale, descritta da dati OpenStreetMap, in un ambiente 3D
-top-down riconoscibile, esplorabile e guidabile.
+OpenGTA Web è un motore e una sandbox geospaziale **browser-first** che
+trasformano zone urbane reali, descritte principalmente da dati OpenStreetMap,
+in un ambiente di gioco **2D top-down riconoscibile, esplorabile e guidabile**.
+
+Il riferimento percettivo è la leggibilità dei primi GTA top-down.
+
+Il mondo deve apparire ricco e riconoscibile dall'alto senza richiedere una
+simulazione tridimensionale completa.
+
+La profondità visiva può essere suggerita mediante effetti **fake-2.5D**
+economici, purché non obblighino il motore, la fisica o il modello geografico a
+diventare realmente 3D.
 
 Il valore distintivo è permettere al giocatore di guidare in una
-rappresentazione stilizzata di una città reale senza costruire manualmente la
-mappa. Il primo risultato non deve essere un gioco completo in stile GTA:
-missioni, combattimento, progressione, economia e altri sistemi di gameplay non
-sono ancora definiti.
+rappresentazione stilizzata di una città reale senza costruirne manualmente la
+mappa.
+
+Il primo risultato non deve essere un gioco completo in stile GTA. Missioni,
+combattimento, progressione, economia e altri sistemi di gameplay non sono
+ancora definiti.
+
+## Due modalità finali del prodotto
+
+Il prodotto finale deve supportare due modalità che condividono lo stesso core.
+
+### 1. Preprocessed World Mode
+
+L'utente sceglie una zona già elaborata e ottimizzata.
+
+Il processo offline può preparare, dove utile:
+
+- geometrie;
+- collisioni;
+- indici spaziali;
+- texture;
+- texture atlas;
+- asset visivi;
+- livelli di dettaglio;
+- static baking;
+- metadati;
+- eventuale arricchimento AI.
+
+Il client deve principalmente scaricare, decodificare e visualizzare i
+pacchetti necessari.
+
+Questa modalità esiste anche per supportare browser e dispositivi meno
+performanti.
+
+### 2. Open World Runtime Mode
+
+L'utente può scegliere coordinate geografiche arbitrarie.
+
+Il browser deve poter:
+
+1. acquisire i dati geografici necessari;
+2. normalizzarli;
+3. convertirli nel modello canonico del mondo;
+4. compilare progressivamente l'area necessaria;
+5. renderizzarla;
+6. preparare collisioni e dati runtime.
+
+L'eventuale elaborazione AI per l'aspetto visivo deve essere preferibilmente
+eseguita lato client quando ciò è sostenibile, in modo da evitare costi server
+permanenti elevati.
+
+La modalità Open World deve comunque essere utilizzabile **senza AI**.
+
+## Un solo motore
+
+Le due modalità non devono diventare due engine separati.
+
+Il principio architetturale è:
+
+```text
+sorgente geografica
+    -> normalizzazione
+    -> Canonical World Model
+    -> World Compiler
+    -> CompiledChunk / World Package
+    -> runtime condiviso
+```
+
+Una volta ottenuto il mondo compilato, rendering, fisica e gameplay non devono
+dipendere dal fatto che il contenuto sia stato:
+
+- pre-elaborato offline;
+- compilato nel browser;
+- recuperato da cache locale.
+
+## Principio 2D-first
+
+Il modello canonico del mondo è 2D-first.
+
+```text
+WORLD MODEL  = 2D-first
+GAMEPLAY     = 2D-first
+PHYSICS      = prevalentemente 2D
+COLLISIONS   = prevalentemente planari
+RENDERING    = 2D + fake-2.5D opzionale
+HEIGHT / Z   = principalmente metadato visivo
+```
+
+Gli edifici sono innanzitutto footprint/poligoni 2D.
+
+L'altezza può essere suggerita tramite:
+
+- tetto traslato;
+- falsa facciata;
+- ombra semplice o pre-baked;
+- sprite stratificati;
+- piccoli offset;
+- parallasse leggero;
+- altre tecniche economiche misurate.
+
+Una vera mesh 3D non è il default.
+
+## AI e verità del mondo
+
+L'AI non definisce la struttura geografica autorevole.
+
+Devono essere deterministici, quando i dati lo consentono:
+
+- coordinate;
+- footprint degli edifici;
+- topologia stradale;
+- aree d'acqua e terreno;
+- collisioni;
+- identificatori e struttura spaziale.
+
+L'AI può essere un livello opzionale di arricchimento visivo, ad esempio per:
+
+- texture;
+- palette;
+- facciate;
+- tetti;
+- variazioni regionali;
+- dettagli decorativi.
 
 ## Problema da risolvere
 
-Come possiamo trasformare una zona urbana reale in un mondo di gioco top-down
-immediatamente esplorabile, mantenendo caricamento e simulazione compatibili
-con un browser desktop?
+Come trasformare dati urbani reali in un mondo top-down immediatamente
+riconoscibile e guidabile, mantenendo:
+
+- costi infrastrutturali bassi;
+- caricamento progressivo;
+- compatibilità browser;
+- degradazione sui client meno potenti;
+- possibilità futura di coordinate arbitrarie.
 
 ## Vincoli di esecuzione
 
 - Il progetto deve essere affrontabile da una persona o da un team molto
   piccolo.
 - Lo sviluppo procede per incrementi verificabili.
-- Il primo target è un browser desktop su un PC di fascia media.
-- Le prestazioni dovranno essere espresse con metriche e hardware di riferimento
-  prima dell'implementazione; "fluido" non e ancora un requisito misurabile.
+- Il primo target è browser desktop su PC di fascia media.
+- Il design deve evitare costi server permanenti non necessari.
+- Le prestazioni devono essere misurate; "fluido" non è un requisito
+  sufficiente.
+- Il mondo canonico deve restare indipendente dal renderer e dal motore fisico.
+- Le skill e il routing agentico esistenti in `.opencode/` restano parte
+  dell'infrastruttura di processo e non vengono sostituiti da questa baseline.
 
 ## Prima validazione tecnica
 
-Il primo prototipo deve dimostrare un solo percorso verticale:
+Il primo prototipo deve dimostrare un percorso verticale ridotto:
 
-1. caricare una zona urbana prefissata da dati OpenStreetMap;
-2. convertirla in una scena top-down riconoscibile;
-3. consentire la guida di un veicolo;
-4. gestire collisioni stabili con l'ambiente;
-5. mantenere prestazioni fluide su un PC medio, secondo metriche ancora da
-   definire.
-
-Questa validazione viene prima dell'estensione geografica e delle funzionalità
-di gioco avanzate.
+1. caricare una zona urbana prefissata da un fixture geografico locale;
+2. trasformarla in coordinate locali coerenti;
+3. creare un Canonical World Model 2D;
+4. compilarlo in dati runtime;
+5. renderizzare strade ed edifici in top-down;
+6. dimostrare almeno un effetto fake-2.5D economico;
+7. consentire la guida di un singolo veicolo;
+8. gestire collisioni 2D stabili;
+9. produrre metriche prestazionali ripetibili.
 
 ## Fuori dal primo prototipo
 
-Le seguenti capacità sono evoluzioni previste, ma non appartengono alla prima
-validazione:
-
 - selezione arbitraria di città o coordinate;
-- streaming alla scala di un'intera città;
-- cache persistente dei settori;
-- grafica regionale tramite texture generate offline con AI;
-- supporto mobile e controlli touch;
-- multiplayer, prediction e reconciliation;
-- pedoni, traffico e sistemi di gameplay completi.
+- live acquisition da provider geografici;
+- streaming city-scale;
+- cache persistente definitiva;
+- AI runtime;
+- texture regionali definitive;
+- mobile;
+- multiplayer;
+- pedoni;
+- traffico;
+- missioni;
+- economia;
+- combattimento.
 
-Questi elementi restano nell'analisi tecnica: essere fuori dal prototipo non
-significa ignorarne l'impatto evolutivo sull'architettura.
+Questi elementi influenzano l'architettura futura ma non devono gonfiare il V0.
 
-## Comprensione del sistema futuro
+## Decisioni tecniche non ancora automaticamente accettate
 
-Il prodotto completo è composto da due livelli:
+Restano da valutare o confermare tramite ADR/esperimento:
 
-1. un motore geospaziale che acquisisce dati urbani, genera geometrie, gestisce
-   coordinate, caricamento spaziale, rendering, fisica e cache;
-2. una sandbox o un gioco che usa quel motore per veicoli, pedoni, traffico,
-   multiplayer e futuri sistemi di gameplay.
+- renderer;
+- backend WebGL/WebGPU;
+- motore fisico;
+- provider geografici;
+- proiezione definitiva;
+- dimensione e forma dei chunk;
+- finestra di streaming;
+- triangolazione/clipping;
+- worker topology;
+- formato `CompiledChunk`;
+- formato World Package;
+- cache persistente;
+- texture compression;
+- runtime AI;
+- multiplayer authority/transport/frequenza.
 
-Il flusso desiderato a regime è:
+I valori della bozza originaria, inclusi 150 m, griglia 3x3 e 30 Hz, restano
+ipotesi fino a misurazione.
+
+## Documenti architetturali
+
+Per i dettagli usare:
+
+- `docs/architecture/product-architecture-principles.md`
+- `docs/architecture/dual-world-pipeline.md`
+- `docs/architecture/2d-rendering-model.md`
+- `docs/architecture/world-model.md`
+- `docs/architecture/coordinate-system.md`
+- `docs/architecture/world-compiler.md`
+- `docs/architecture/chunk-streaming-cache.md`
+- `docs/architecture/client-ai-visual-pipeline.md`
+- `docs/architecture/performance-capability-tiers.md`
+- `docs/architecture/technology-evaluation.md`
+
+Gli ADR descrivono decisioni o proposte più ristrette e non possono
+contraddire questa baseline senza esplicito aggiornamento dell'intento.
+
+## Gerarchia documentale
 
 ```text
-Scelta della città o delle coordinate
-    -> acquisizione dei dati urbani
-    -> conversione in ambiente giocabile
-    -> caricamento dell'area vicina al giocatore
-    -> guida ed esplorazione top-down
-    -> funzionalità di gioco e multiplayer
+Intento di prodotto
+    ↓
+Principi architetturali
+    ↓
+ADR
+    ↓
+Piani di esecuzione
+    ↓
+Task Codex
+    ↓
+Codice
 ```
-
-La promessa di compatibilità globale deve essere intesa come obiettivo da
-verificare: qualità e completezza della scena dipenderanno dai dati disponibili
-per ciascuna area.
-
-## Decisioni tecniche non ancora accettate
-
-La bozza propone soluzioni plausibili, ma tutte le seguenti scelte devono essere
-analizzate prima di diventare decisioni o ADR:
-
-- adozione di Three.js e scelta del backend grafico effettivo;
-- Rapier e il modello fisico del veicolo;
-- Nominatim, Overpass e la strategia di acquisizione dei dati;
-- schema delle coordinate e strategia di precisione numerica;
-- dimensione dei chunk e finestra di caricamento;
-- triangolazione, estrusione e trattamento delle geometrie OSM;
-- confini tra main thread, geometry worker e physics worker;
-- formato, invalidazione e limiti della cache IndexedDB;
-- pipeline e licenze degli asset generati con AI;
-- modello di autorità, trasporto e frequenza del multiplayer;
-- strategia specifica per prestazioni e memoria su mobile.
-
-I valori presenti nella bozza, inclusi chunk da 150 metri, griglia 3x3 e
-sincronizzazione a 30 Hz, sono ipotesi da misurare e non requisiti confermati.
 
 ## Criterio per la revisione tecnica
 
-Ogni decisione della bozza deve ricevere uno dei seguenti giudizi:
+Ogni scelta significativa deve essere classificata come:
 
 - valida;
-- valida con condizioni o misurazioni;
+- valida con condizioni/misurazioni;
 - da rinviare;
 - da sostituire.
 
-Per ciascuna scelta vanno esplicitati motivazione, rischi, alternative,
-dipendenze e prova minima necessaria per validarla.
+Per ciascuna scelta vanno esplicitati:
 
-## Stato della bozza originale
+- motivazione;
+- rischi;
+- alternative;
+- dipendenze;
+- prova minima necessaria.
 
-La roadmap della bozza non prova lo stato dell'implementazione. In particolare,
-la "Fase 1" marcata come completata non e verificabile nel repository corrente,
-che al momento contiene documentazione e infrastruttura di processo, ma non il
-codice applicativo descritto.
+## Stato dell'implementazione
+
+Al momento della presente baseline il repository non contiene codice
+applicativo: contiene documentazione e infrastruttura di processo per lo
+sviluppo assistito da agenti.
+
+Non dedurre stato di implementazione dalla roadmap o dai documenti di analisi.
 
 ## Regola di aggiornamento
 
-Aggiornare questa baseline soltanto quando cambia l'intento di prodotto. Le
-decisioni architetturali confermate dovranno essere registrate separatamente in
-ADR, con alternative e conseguenze, senza trasformare retroattivamente le
-ipotesi di questa nota in decisioni già accettate.
+Aggiornare questa baseline soltanto quando cambia l'intento di prodotto.
+
+Le decisioni tecniche devono essere registrate separatamente senza trasformare
+retroattivamente ipotesi storiche in decisioni già accettate.

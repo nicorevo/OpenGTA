@@ -1,0 +1,18 @@
+{
+  "id": "lecce-sant-oronzo-v0",
+  "purpose": "OpenGTA V0 deterministic real-world fixture",
+  "centerWgs84": {
+    "latitude": 40.35316888888889,
+    "longitude": 18.17259
+  },
+  "nominalHalfExtentMeters": 300,
+  "bboxWgs84": {
+    "south": 40.350467194504084,
+    "west": 18.169058606423945,
+    "north": 40.35587058327369,
+    "east": 18.176121393576054
+  },
+  "projection": "WGS84 tangent-linear at fixture origin; see ADR-003",
+  "sourceTarget": "OpenStreetMap-derived raw feature data",
+  "licenseNote": "OSM-derived fixture data must carry ODbL attribution; this metadata file itself contains no OSM feature dataset."
+}
