@@ -1,0 +1,4 @@
+import RAPIER from "@dimforge/rapier2d-compat";
+import type { CollisionShape2D } from "../../world/compiler/compiled.ts";
+export interface PhysicsAdapter { readonly world: RAPIER.World; readonly colliderCount: () => number; }
+export async function createPhysicsAdapter(shapes: readonly CollisionShape2D[]): Promise<PhysicsAdapter> { await RAPIER.init(); const world = new RAPIER.World({ x: 0, y: 0 }); const body = world.createRigidBody(RAPIER.RigidBodyDesc.fixed()); for (const shape of shapes) { if (shape.kind === "polygon") { const vertices = shape.polygon.outer.flatMap((point) => [point.x, point.y]); const collider = RAPIER.ColliderDesc.convexHull(new Float32Array(vertices)); if (collider) world.createCollider(collider, body); } else if (shape.kind === "circle") world.createCollider(RAPIER.ColliderDesc.ball(shape.radiusMeters).setTranslation(shape.center.x, shape.center.y), body); } return { world, colliderCount: () => world.colliders.len() }; }

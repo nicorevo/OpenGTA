@@ -5,4 +5,4 @@ if (!root) {
   throw new Error("Application root was not found");
 }
 
-bootstrap(root);
+void bootstrap(root);
