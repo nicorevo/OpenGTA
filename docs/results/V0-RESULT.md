@@ -11,9 +11,8 @@ WGS84 → modello canonico → compilazione → scena PixiJS con effetto fake-2.
 Rapier 2D inizializzato e veicolo arcade controllato da tastiera.
 
 La collisione dinamica Rapier e la ricostruzione dei multipolygon edilizi sono
-state completate e coperte da test. Il benchmark steady-state di 30 secondi
-resta non automatizzato perché il server MCP DevTools non mantiene un target
-aperto; la scena è stata comunque verificata in Chrome headless.
+state completate e coperte da test. Il benchmark steady-state di 30 secondi è
+stato eseguito tramite Chrome DevTools MCP headless.
 
 ## Implementato
 
@@ -41,7 +40,6 @@ npm run build                       PASS (1.33 s, warning chunk > 500 KiB)
 npm audit --audit-level=high        PASS (0 vulnerabilità)
 curl http://127.0.0.1:5173/        PASS
 Chrome headless + screenshot        PASS (1280×720, scena visibile)
-Chrome DevTools MCP                 NON DISPONIBILE: target chiuso dal server
 Chrome DevTools MCP headless         PASS (canvas, F3, network e trace)
 ```
 
@@ -57,16 +55,18 @@ core logici: 8
 RAM: 30.9 GiB
 GPU: Intel Arc Graphics 130V/140V
 Node: v26.4.0
-Browser: Google Chrome installato; versione non rilevata
-devicePixelRatio/canvas: non rilevati in MCP
+Browser: Google Chrome 151.0.7922.137
+devicePixelRatio: 1
+canvas: 1280 × 720 px
+renderer: PixiJS WebGL con Chrome headless e GPU disabilitata
 ```
 
-La sessione MCP headless ha prodotto 812 frame osservati: 31,74 FPS, frame
-medio 31,51 ms, p95 33,40 ms, p99 50 ms, massimo 100 ms, 426 long frame e
-fisica media 0,196 ms. La trace DevTools è durata circa 5 secondi. Il profilo
-headless/software non raggiunge quindi la cadenza target di 60 Hz; il costo
-fisico resta basso e il collo di bottiglia osservato è il rendering/software
-WebGL. Non è ancora un campione steady-state di 30 secondi.
+Il campione MCP headless è durato circa 37,94 secondi, con 4.084 frame
+osservati: 32,73 FPS, frame medio 30,76 ms, mediana 33,30 ms, p95 33,40 ms,
+p99 50 ms, massimo 66,70 ms, 2.454 long frame e fisica media 0,171 ms.
+Il profilo headless/software non raggiunge quindi la cadenza target di 60 Hz;
+il costo fisico resta basso e il collo di bottiglia osservato è il
+rendering/software WebGL.
 
 ## Deviazioni e problemi noti
 
