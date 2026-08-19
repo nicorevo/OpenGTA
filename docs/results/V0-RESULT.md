@@ -26,6 +26,9 @@ stato eseguito tramite Chrome DevTools MCP headless.
 - PixiJS v8/WebGL adapter e scena top-down deterministica;
 - Rapier 2D adapter per colliders statici e veicolo dinamico;
 - controller veicolo arcade a passo fisso e input WASD/frecce;
+- camera top-down vehicle-follow con zoom locale;
+- sprite veicolo scalato sulle dimensioni metriche `4,2×1,8 m` e orientato
+  lungo l'asse fisico di marcia;
 - overlay F3 con dati regione, compilazione, colliders, warning e metriche;
 - metriche runtime per frame time, p95/p99, long frames e costo fisica;
 - favicon statico e smoke browser senza richieste 404;
@@ -77,6 +80,11 @@ normalizzatore e verificato in Chrome MCP sulla stessa area: la mappa ora resta
 contenuta nel quadrato V0, mentre la rete stradale rimane presente e leggibile.
 La zona non è stata ridotta: il problema principale era il mancato clipping,
 non l'assenza di dati stradali.
+
+La prima vista panoramica rendeva il veicolo sproporzionato e quasi immobile.
+La camera vehicle-follow mostra ora una finestra locale più utile alla guida;
+la grafica del veicolo usa la stessa proporzione del collider fisico, con un
+leggero fattore visivo per mantenerla riconoscibile.
 
 ## Deviazioni e problemi noti
 
