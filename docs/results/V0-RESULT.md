@@ -29,6 +29,8 @@ stato eseguito tramite Chrome DevTools MCP headless.
 - camera top-down vehicle-follow con zoom locale;
 - sprite veicolo scalato sulle dimensioni metriche `4,2×1,8 m` e orientato
   lungo l'asse fisico di marcia;
+- label compilate per vie e luoghi, con priorità e limite di densità nel
+  renderer;
 - overlay F3 con dati regione, compilazione, colliders, warning e metriche;
 - metriche runtime per frame time, p95/p99, long frames e costo fisica;
 - favicon statico e smoke browser senza richieste 404;
@@ -85,6 +87,10 @@ La prima vista panoramica rendeva il veicolo sproporzionato e quasi immobile.
 La camera vehicle-follow mostra ora una finestra locale più utile alla guida;
 la grafica del veicolo usa la stessa proporzione del collider fisico, con un
 leggero fattore visivo per mantenerla riconoscibile.
+
+Il fixture contiene 187 vie nominate e 36 luoghi/aree nominate. Il renderer
+mostra le label di luoghi prioritari e un sottoinsieme delle vie, orientandole
+lungo la geometria della strada per evitare di coprire l'intera scena.
 
 ## Deviazioni e problemi noti
 
