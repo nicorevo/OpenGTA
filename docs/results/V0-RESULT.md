@@ -1,7 +1,7 @@
 # OpenGTA Web V0 — Rapporto di esecuzione
 
 Data: 2026-08-19
-Commit di riferimento: `6b2e51addc17e1a86cde3a32694bfb9a98680219`
+Commit di riferimento: `312a835` (prima del commit del presente report)
 Fixture: Lecce centro, Piazza Sant'Oronzo, fixture OSM locale committato
 
 ## Risultato
@@ -10,10 +10,10 @@ Il percorso verticale è eseguibile in locale: fixture OSM → proiezione locale
 WGS84 → modello canonico → compilazione → scena PixiJS con effetto fake-2.5D,
 Rapier 2D inizializzato e veicolo arcade controllato da tastiera.
 
-La Definition of Done V0 non è ancora dichiarata soddisfatta: il veicolo usa
-attualmente il controller cinematico e la sua posizione non è ancora collegata
-a un corpo dinamico Rapier per la risoluzione delle collisioni; inoltre le
-relazioni multipolygon non sono ancora ricostruite dal normalizzatore.
+La collisione dinamica Rapier e la ricostruzione dei multipolygon edilizi sono
+state completate e coperte da test. Il benchmark steady-state di 30 secondi
+resta non automatizzato perché il server MCP DevTools non mantiene un target
+aperto; la scena è stata comunque verificata in Chrome headless.
 
 ## Implementato
 
@@ -24,7 +24,7 @@ relazioni multipolygon non sono ancora ricostruite dal normalizzatore.
 - fixture Overpass locale da 824 KiB con provenienza, hash query e nota ODbL;
 - compiler di terreno, strade, edifici, fake-depth e collisioni neutrali;
 - PixiJS v8/WebGL adapter e scena top-down deterministica;
-- Rapier 2D adapter per colliders statici;
+- Rapier 2D adapter per colliders statici e veicolo dinamico;
 - controller veicolo arcade a passo fisso e input WASD/frecce;
 - overlay F3 con dati regione, compilazione, colliders e warning;
 - test unitari e integrazione sul fixture reale senza rete.
@@ -34,11 +34,11 @@ relazioni multipolygon non sono ancora ricostruite dal normalizzatore.
 ```text
 npm install                         PASS
 npm run typecheck                   PASS
-npm run test:run                    PASS (6 file, 7 test)
+npm run test:run                    PASS (8 file, 9 test)
 npm run build                       PASS (1.33 s, warning chunk > 500 KiB)
 npm audit --audit-level=high        PASS (0 vulnerabilità)
 curl http://127.0.0.1:5173/        PASS
-Chrome headless --dump-dom         PASS (canvas e overlay presenti)
+Chrome headless + screenshot        PASS (1280×720, scena visibile)
 Chrome DevTools MCP                 NON DISPONIBILE: target chiuso dal server
 ```
 
@@ -60,14 +60,13 @@ devicePixelRatio/canvas: non rilevati in MCP
 
 Non è stato prodotto un campione steady-state di 30 secondi né un p95 frame
 time: il browser DevTools MCP necessario al protocollo non era disponibile.
-Non vengono quindi dichiarati benchmark FPS o collisioni browser.
+La collisione è verificata nel test Rapier deterministico; non viene spacciata
+per benchmark browser.
 
 ## Deviazioni e problemi noti
 
-- Il fixture contiene relazioni OSM, ma il primo normalizzatore le conserva
-  solo nel raw input e segnala/ignora la ricostruzione multipolygon.
-- Il controller veicolo aggiorna la grafica ma non è ancora un body Rapier
-  dinamico; la collisione fisica completa è il prossimo incremento obbligatorio.
+- Le relazioni multipolygon non edilizie restano fuori dal profilo V0; quelle
+  edilizie con anelli outer/inner sono ricostruite.
 - La normalizzazione usa un limite di 100.000 elementi e bounds V0 fissi; sono
   intenzionali per il prototipo bounded, non per Open World.
 - PixiJS e il fixture importato producono un bundle iniziale grande; il
