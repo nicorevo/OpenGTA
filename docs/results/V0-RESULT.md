@@ -1,7 +1,7 @@
 # OpenGTA Web V0 — Rapporto di esecuzione
 
 Data: 2026-08-19
-Commit di riferimento: `1c4ae86` (`feat: render prioritized place and street labels`)
+Commit di riferimento: `6dc8dbe` (`feat: add clean driving presentation mode`)
 Fixture: Lecce centro, Piazza Sant'Oronzo, fixture OSM locale committato
 
 ## Risultato
@@ -35,14 +35,15 @@ stato eseguito tramite Chrome DevTools MCP headless.
 - metriche runtime per frame time, p95/p99, long frames e costo fisica;
 - favicon statico e smoke browser senza richieste 404;
 - test unitari e integrazione sul fixture reale senza rete;
-- label di luoghi e vie prioritarie per orientamento/debug.
+- label di luoghi e vie prioritarie per orientamento/debug;
+- modalità guida pulita con label nascoste di default e toggle `L`.
 
 ## Verifiche eseguite
 
 ```text
 npm install                         PASS
 npm run typecheck                   PASS
-npm run test:run                    PASS (9 file, 13 test)
+npm run test:run                    PASS (10 file, 15 test)
 npm run build                       PASS (1.33 s, warning chunk > 500 KiB)
 npm audit --audit-level=high        PASS (0 vulnerabilità)
 curl http://127.0.0.1:5173/        PASS
@@ -94,8 +95,10 @@ mostra le label di luoghi prioritari e un sottoinsieme delle vie, orientandole
 lungo la geometria della strada per evitare di coprire l'intera scena.
 La revisione del riferimento GTA PS1 conferma però che queste informazioni
 appartengono alla modalità orientamento/debug, non alla schermata di guida
-principale. La prossima fetta post-V0 le renderà quindi disattivabili durante
-la guida, mantenendo invariato il contratto dei dati compilati.
+principale. La modalità guida parte ora senza label; `L` attiva e disattiva la
+vista orientamento senza modificare il contratto dei dati compilati. Le strade
+usano inoltre un bordo scuro deterministico per aumentare la separazione dagli
+edifici.
 
 ## Deviazioni e problemi noti
 
