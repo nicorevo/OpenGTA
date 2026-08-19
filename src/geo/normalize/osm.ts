@@ -1,5 +1,6 @@
 import type { GeoProjector } from "../coordinates/projector.ts";
 import { ringArea, type BuildingFeature, type LandAreaFeature, type Polygon2D, type RoadClass, type RoadFeature, type Vec2, type WaterFeature, type WorldRegion, type WorldWarning } from "../../world/model/types.ts";
+import { clipPolygonToBounds, clipPolylineToBounds } from "../../world/model/clip.ts";
 
 export interface RawOsmNode { readonly type: "node"; readonly id: number; readonly lat: number; readonly lon: number; readonly tags?: Record<string, string>; }
 export interface RawOsmWay { readonly type: "way"; readonly id: number; readonly nodes: readonly number[]; readonly tags?: Record<string, string>; }
@@ -37,5 +38,11 @@ export function normalizeOsm(raw: RawOsm, projector: GeoProjector, origin: World
     buildings.push({ id: `osm:relation:${relation.id}`, kind: "building", footprint: { outer: outer.outer, holes }, buildingType: tags.historic && !buildingTypes[buildingTag] ? "historic" : (buildingTypes[buildingTag] ?? "unknown"), source: { provider: "openstreetmap", sourceType: "relation", sourceId: String(relation.id) }, tags, sourceHeightMeters: parseMeasure(tags.height), sourceLevels: parsePositive(tags["building:levels"]), collisionPolicy: buildingTag === "roof" ? "passable" : "solid" });
   }
   for (const node of nodes.values()) { const tags = tagsOf(node.tags); if (tags.natural === "tree") trees.push({ id: `osm:node:${node.id}`, kind: "tree", position: projector.project({ latitude: node.lat, longitude: node.lon }), source: { provider: "openstreetmap", sourceType: "node", sourceId: String(node.id) }, tags }); }
-  return { id, geoOrigin: origin, bounds: { minX: -300, minY: -300, maxX: 300, maxY: 300 }, buildings, roads, landAreas, waterAreas, barriers, trees, warnings };
+  const bounds = { minX: -300, minY: -300, maxX: 300, maxY: 300 };
+  const clippedBuildings = buildings.flatMap((building) => { const footprint = clipPolygonToBounds(building.footprint, bounds); return footprint ? [{ ...building, footprint }] : []; });
+  const clippedRoads = roads.flatMap((road) => { const points = clipPolylineToBounds(road.centerline.points, bounds); return points.length >= 2 ? [{ ...road, centerline: { points } }] : []; });
+  const clippedLand = landAreas.flatMap((area) => { const polygon = clipPolygonToBounds(area.area, bounds); return polygon ? [{ ...area, area: polygon }] : []; });
+  const clippedWater = waterAreas.flatMap((water) => { const area = water.area ? clipPolygonToBounds(water.area, bounds) : undefined; const line = water.line ? clipPolylineToBounds(water.line.points, bounds) : undefined; return area || (line && line.length >= 2) ? [{ ...water, area, line: line ? { points: line } : undefined }] : []; });
+  const clippedTrees = trees.filter((tree) => tree.position.x >= bounds.minX && tree.position.x <= bounds.maxX && tree.position.y >= bounds.minY && tree.position.y <= bounds.maxY);
+  return { id, geoOrigin: origin, bounds, buildings: clippedBuildings, roads: clippedRoads, landAreas: clippedLand, waterAreas: clippedWater, barriers, trees: clippedTrees, warnings };
 }
