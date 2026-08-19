@@ -14,8 +14,8 @@ function closedPolygon(points: Vec2[]): Polygon2D | undefined { if (points.lengt
 function warning(warnings: WorldWarning[], code: string, message: string, featureId?: string): void { warnings.push({ code, message, featureId }); }
 
 export function normalizeOsm(raw: RawOsm, projector: GeoProjector, origin: WorldRegion["geoOrigin"], id = "osm-v0"): WorldRegion {
-  const nodes = new Map<number, RawOsmNode>(); const ways: RawOsmWay[] = []; const warnings: WorldWarning[] = [];
-  for (const element of raw.elements.slice(0, 100_000)) { if (element.type === "node") nodes.set(element.id, element); else if (element.type === "way") ways.push(element); }
+  const nodes = new Map<number, RawOsmNode>(); const ways: RawOsmWay[] = []; const relations: RawOsmRelation[] = []; const warnings: WorldWarning[] = [];
+  for (const element of raw.elements.slice(0, 100_000)) { if (element.type === "node") nodes.set(element.id, element); else if (element.type === "way") ways.push(element); else relations.push(element); }
   const buildings: BuildingFeature[] = []; const roads: RoadFeature[] = []; const landAreas: LandAreaFeature[] = []; const waterAreas: WaterFeature[] = []; const trees: WorldRegion["trees"][number][] = []; const barriers: WorldRegion["barriers"][number][] = [];
   const pointsFor = (way: RawOsmWay): Vec2[] | undefined => { const points = way.nodes.map((nodeId) => { const node = nodes.get(nodeId); return node ? projector.project({ latitude: node.lat, longitude: node.lon }) : undefined; }); if (points.some((point) => !point)) { warning(warnings, "missing-node", "way references a missing node", `osm:way:${way.id}`); return undefined; } return points as Vec2[]; };
   for (const way of ways) { const tags = tagsOf(way.tags); const featureId = `osm:way:${way.id}`; const points = pointsFor(way); if (!points) continue; const buildingTag = tags.building; const highway = tags.highway;
@@ -24,6 +24,17 @@ export function normalizeOsm(raw: RawOsm, projector: GeoProjector, origin: World
     const landClass = tags.leisure === "park" ? "park" : tags.landuse === "grass" ? "grass" : tags.landuse === "forest" || tags.natural === "wood" ? "forest" : tags.landuse === "industrial" ? "industrial" : tags.landuse === "residential" ? "residential" : tags.landuse === "commercial" || tags.landuse === "retail" ? "commercial" : tags.amenity === "parking" ? "parking" : undefined;
     if (landClass) { const area = closedPolygon([...points]); if (area) landAreas.push({ id: featureId, kind: "land", area, landClass, source: { provider: "openstreetmap", sourceType: "way", sourceId: String(way.id) }, tags }); }
     if (tags.natural === "water") { const area = closedPolygon([...points]); if (area) waterAreas.push({ id: featureId, kind: "water", area, waterClass: tags.water, source: { provider: "openstreetmap", sourceType: "way", sourceId: String(way.id) }, tags }); }
+  }
+  const waysById = new Map(ways.map((way) => [way.id, way]));
+  for (const relation of relations) {
+    const tags = tagsOf(relation.tags); const buildingTag = tags.building; if (!buildingTag) continue;
+    const outerMember = relation.members.find((member) => member.type === "way" && member.role === "outer");
+    if (!outerMember) { warning(warnings, "missing-relation-member", "building relation has no outer way", `osm:relation:${relation.id}`); continue; }
+    const outerWay = waysById.get(outerMember.ref); const outerPoints = outerWay ? pointsFor(outerWay) : undefined; const outer = outerPoints ? closedPolygon([...outerPoints]) : undefined;
+    if (!outer) { warning(warnings, "invalid-multipolygon", "building relation outer ring is invalid", `osm:relation:${relation.id}`); continue; }
+    const holes: Vec2[][] = [];
+    for (const member of relation.members.filter((candidate) => candidate.type === "way" && candidate.role === "inner")) { const way = waysById.get(member.ref); const points = way ? pointsFor(way) : undefined; const hole = points ? closedPolygon([...points]) : undefined; if (hole) { const holeRing = [...hole.outer]; if (ringArea(holeRing) > 0) holeRing.reverse(); holes.push(holeRing); } else warning(warnings, "invalid-multipolygon-hole", "building relation inner ring is invalid", `osm:relation:${relation.id}`); }
+    buildings.push({ id: `osm:relation:${relation.id}`, kind: "building", footprint: { outer: outer.outer, holes }, buildingType: tags.historic && !buildingTypes[buildingTag] ? "historic" : (buildingTypes[buildingTag] ?? "unknown"), source: { provider: "openstreetmap", sourceType: "relation", sourceId: String(relation.id) }, tags, sourceHeightMeters: parseMeasure(tags.height), sourceLevels: parsePositive(tags["building:levels"]), collisionPolicy: buildingTag === "roof" ? "passable" : "solid" });
   }
   for (const node of nodes.values()) { const tags = tagsOf(node.tags); if (tags.natural === "tree") trees.push({ id: `osm:node:${node.id}`, kind: "tree", position: projector.project({ latitude: node.lat, longitude: node.lon }), source: { provider: "openstreetmap", sourceType: "node", sourceId: String(node.id) }, tags }); }
   return { id, geoOrigin: origin, bounds: { minX: -300, minY: -300, maxX: 300, maxY: 300 }, buildings, roads, landAreas, waterAreas, barriers, trees, warnings };
