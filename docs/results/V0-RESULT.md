@@ -1,7 +1,7 @@
 # OpenGTA Web V0 — Rapporto di esecuzione
 
 Data: 2026-08-19
-Commit di riferimento: `312a835` (prima del commit del presente report)
+Commit di riferimento: `1c4ae86` (`feat: render prioritized place and street labels`)
 Fixture: Lecce centro, Piazza Sant'Oronzo, fixture OSM locale committato
 
 ## Risultato
@@ -34,14 +34,15 @@ stato eseguito tramite Chrome DevTools MCP headless.
 - overlay F3 con dati regione, compilazione, colliders, warning e metriche;
 - metriche runtime per frame time, p95/p99, long frames e costo fisica;
 - favicon statico e smoke browser senza richieste 404;
-- test unitari e integrazione sul fixture reale senza rete.
+- test unitari e integrazione sul fixture reale senza rete;
+- label di luoghi e vie prioritarie per orientamento/debug.
 
 ## Verifiche eseguite
 
 ```text
 npm install                         PASS
 npm run typecheck                   PASS
-npm run test:run                    PASS (8 file, 10 test)
+npm run test:run                    PASS (9 file, 13 test)
 npm run build                       PASS (1.33 s, warning chunk > 500 KiB)
 npm audit --audit-level=high        PASS (0 vulnerabilità)
 curl http://127.0.0.1:5173/        PASS
@@ -91,6 +92,10 @@ leggero fattore visivo per mantenerla riconoscibile.
 Il fixture contiene 187 vie nominate e 36 luoghi/aree nominate. Il renderer
 mostra le label di luoghi prioritari e un sottoinsieme delle vie, orientandole
 lungo la geometria della strada per evitare di coprire l'intera scena.
+La revisione del riferimento GTA PS1 conferma però che queste informazioni
+appartengono alla modalità orientamento/debug, non alla schermata di guida
+principale. La prossima fetta post-V0 le renderà quindi disattivabili durante
+la guida, mantenendo invariato il contratto dei dati compilati.
 
 ## Deviazioni e problemi noti
 
@@ -102,8 +107,9 @@ lungo la geometria della strada per evitare di coprire l'intera scena.
   codesplitting è rinviato a una misura browser reale.
 - Nessuno screenshot è stato conservato nel repository.
 
-## Decisione di stop
+## Decisione di stop della coda V0
 
-Stop alla coda V0 in base all’evidenza disponibile. Non sono state introdotte
-streaming, cache persistente, AI runtime, multiplayer, traffico, pedoni o
-mobile.
+La coda V0 è completata in base all’evidenza disponibile. Non sono state
+introdotte streaming, cache persistente, AI runtime, multiplayer, traffico,
+pedoni o mobile. Le successive rifiniture di presentazione gameplay sono una
+fase separata e non riaprono la coda tecnica V0.
