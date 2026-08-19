@@ -22,6 +22,7 @@ stato eseguito tramite Chrome DevTools MCP headless.
 - normalizzazione di nodi/way OSM con limiti, parsing misure e diagnostica;
 - fixture Overpass locale da 824 KiB con provenienza, hash query e nota ODbL;
 - compiler di terreno, strade, edifici, fake-depth e collisioni neutrali;
+- clipping di poligoni e centerline al box V0 `600 × 600 m`;
 - PixiJS v8/WebGL adapter e scena top-down deterministica;
 - Rapier 2D adapter per colliders statici e veicolo dinamico;
 - controller veicolo arcade a passo fisso e input WASD/frecce;
@@ -67,6 +68,15 @@ p99 50 ms, massimo 66,70 ms, 2.454 long frame e fisica media 0,171 ms.
 Il profilo headless/software non raggiunge quindi la cadenza target di 60 Hz;
 il costo fisico resta basso e il collo di bottiglia osservato è il
 rendering/software WebGL.
+
+## Verifica leggibilità geografica
+
+Il primo rendering mostrava geometrie OSM oltre il box nominale e una scena
+visivamente troppo estesa. Il clipping al bounding box è stato applicato nel
+normalizzatore e verificato in Chrome MCP sulla stessa area: la mappa ora resta
+contenuta nel quadrato V0, mentre la rete stradale rimane presente e leggibile.
+La zona non è stata ridotta: il problema principale era il mancato clipping,
+non l'assenza di dati stradali.
 
 ## Deviazioni e problemi noti
 
