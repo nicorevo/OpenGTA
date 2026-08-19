@@ -26,7 +26,8 @@ aperto; la scena è stata comunque verificata in Chrome headless.
 - PixiJS v8/WebGL adapter e scena top-down deterministica;
 - Rapier 2D adapter per colliders statici e veicolo dinamico;
 - controller veicolo arcade a passo fisso e input WASD/frecce;
-- overlay F3 con dati regione, compilazione, colliders e warning;
+- overlay F3 con dati regione, compilazione, colliders, warning e metriche;
+- metriche runtime per frame time, p95/p99, long frames e costo fisica;
 - test unitari e integrazione sul fixture reale senza rete.
 
 ## Verifiche eseguite
@@ -34,7 +35,7 @@ aperto; la scena è stata comunque verificata in Chrome headless.
 ```text
 npm install                         PASS
 npm run typecheck                   PASS
-npm run test:run                    PASS (8 file, 9 test)
+npm run test:run                    PASS (8 file, 10 test)
 npm run build                       PASS (1.33 s, warning chunk > 500 KiB)
 npm audit --audit-level=high        PASS (0 vulnerabilità)
 curl http://127.0.0.1:5173/        PASS
@@ -58,10 +59,12 @@ Browser: Google Chrome installato; versione non rilevata
 devicePixelRatio/canvas: non rilevati in MCP
 ```
 
-Non è stato prodotto un campione steady-state di 30 secondi né un p95 frame
-time: il browser DevTools MCP necessario al protocollo non era disponibile.
-La collisione è verificata nel test Rapier deterministico; non viene spacciata
-per benchmark browser.
+Le metriche runtime sono ora esposte tramite `window.__opengtaV0Metrics` e
+aggiornate nell'overlay F3; il parametro `?benchmark=1` abilita la raccolta
+continua. Non è stato completato un campione steady-state di 30 secondi perché
+il browser DevTools MCP non mantiene un target aperto e Chrome headless non ha
+fornito un modo affidabile per estrarre il risultato dopo il budget virtuale.
+La collisione è verificata nel test Rapier deterministico.
 
 ## Deviazioni e problemi noti
 
