@@ -28,6 +28,7 @@ aperto; la scena è stata comunque verificata in Chrome headless.
 - controller veicolo arcade a passo fisso e input WASD/frecce;
 - overlay F3 con dati regione, compilazione, colliders, warning e metriche;
 - metriche runtime per frame time, p95/p99, long frames e costo fisica;
+- favicon statico e smoke browser senza richieste 404;
 - test unitari e integrazione sul fixture reale senza rete.
 
 ## Verifiche eseguite
@@ -41,6 +42,7 @@ npm audit --audit-level=high        PASS (0 vulnerabilità)
 curl http://127.0.0.1:5173/        PASS
 Chrome headless + screenshot        PASS (1280×720, scena visibile)
 Chrome DevTools MCP                 NON DISPONIBILE: target chiuso dal server
+Chrome DevTools MCP headless         PASS (canvas, F3, network e trace)
 ```
 
 Il build principale risultante è circa 2.34 MB minificato (763.8 KiB gzip),
@@ -59,12 +61,12 @@ Browser: Google Chrome installato; versione non rilevata
 devicePixelRatio/canvas: non rilevati in MCP
 ```
 
-Le metriche runtime sono ora esposte tramite `window.__opengtaV0Metrics` e
-aggiornate nell'overlay F3; il parametro `?benchmark=1` abilita la raccolta
-continua. Non è stato completato un campione steady-state di 30 secondi perché
-il browser DevTools MCP non mantiene un target aperto e Chrome headless non ha
-fornito un modo affidabile per estrarre il risultato dopo il budget virtuale.
-La collisione è verificata nel test Rapier deterministico.
+La sessione MCP headless ha prodotto 812 frame osservati: 31,74 FPS, frame
+medio 31,51 ms, p95 33,40 ms, p99 50 ms, massimo 100 ms, 426 long frame e
+fisica media 0,196 ms. La trace DevTools è durata circa 5 secondi. Il profilo
+headless/software non raggiunge quindi la cadenza target di 60 Hz; il costo
+fisico resta basso e il collo di bottiglia osservato è il rendering/software
+WebGL. Non è ancora un campione steady-state di 30 secondi.
 
 ## Deviazioni e problemi noti
 
