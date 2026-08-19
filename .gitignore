@@ -1,37 +1,43 @@
-# Java
-target/
-*.class
-*.jar
-*.war
+# Dependencies
+node_modules/
 
-# Maven
-.mvn/wrapper/maven-wrapper.jar
+# Build and coverage
+dist/
+build/
+coverage/
+.vite/
+*.tsbuildinfo
 
-# IDE
+# Browser test artifacts
+playwright-report/
+test-results/
+
+# IDE and editors
 .idea/
 *.iml
 *.swp
 
-# OS
+# Operating systems
 .DS_Store
 Thumbs.db
 
-# Secrets & Environment
+# Secrets and local environment
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 secrets/
-.venv
+
+# Python-based project tooling
+.venv/
 __pycache__/
 .pytest_cache/
 *.py[cod]
 *.egg-info/
-codesync/data/
 
-# Logs
+# Logs and tool caches
 *.log
 logs/
-
-# Pre-commit
 .cache/
+.eslintcache

@@ -1,6 +1,4 @@
 {
- 
   "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "github.copilot.instructions": "Segui sempre il workflow di orchestrazione definito in .opencode/agents/AGENTS.md"
-
+  "github.copilot.instructions": "Segui AGENTS.md e il routing definito in .opencode/agents/AGENTS.md"
 }

@@ -1,12 +1,18 @@
 # Istruzioni per gli agenti
 
-Questo progetto usa le skill e le persone definite in `.opencode/`.
-Mantieni questo file specifico del progetto: descrive solo convenzioni,
-comandi e vincoli che l'agente deve conoscere sempre.
+OpenGTA Web è nella fase di definizione e revisione tecnica. Il progetto usa le
+skill e le persone definite in `.opencode/`; questo file contiene soltanto il
+contesto e i vincoli che un agente deve conoscere sempre.
 
 ## Regole operative
 
 - Leggi le istruzioni pertinenti prima di modificare il codice.
+- Prima di lavorare sul prodotto, leggi `docs/intent/open-gta-web.md`; consulta
+  la bozza city-scale solo per le decisioni tecniche pertinenti al task.
+- Tratta stack, librerie e valori numerici proposti nella bozza come ipotesi,
+  non come decisioni accettate.
+- Mantieni il primo prototipo limitato a una zona prefissata, browser desktop,
+  guida, collisioni e prestazioni misurabili su un PC di fascia media.
 - Attiva solo le skill necessarie all'intento e alla superficie modificata.
 - Per nuove feature chiarisci l'obiettivo, pianifica fette verificabili e usa
   TDD quando viene modificato il comportamento.
@@ -25,8 +31,10 @@ Per la mappatura tra intento, agente e skill consulta
 
 ## Convenzioni del progetto
 
-- Comandi di test, lint, build e avvio: documentali qui quando il progetto li
-  stabilisce.
+- Contesto prodotto confermato: `docs/intent/open-gta-web.md`.
+- Bozza tecnica da revisionare: `docs/idea/OpenGTA Web City Scale Idea.md`.
+- Nessun comando applicativo è ancora disponibile; documenta test, lint, build
+  e avvio qui e nel `README.md` quando verrà introdotto lo scaffolding.
 - Convenzioni generali: `CODING-STANDARDS.md`.
 - Requisiti di sicurezza: `SECURITY.md`.
 

@@ -1,60 +1,87 @@
-# AI-SDLC Template
+# OpenGTA Web
 
-Template per avviare nuovi progetti con skill, agenti e convenzioni per lo
-sviluppo assistito dall'AI. Il materiale operativo principale è in
-`.opencode/`.
+OpenGTA Web è un motore e una sandbox geospaziale browser-first: trasforma
+una zona urbana reale, descritta da dati OpenStreetMap, in un ambiente 3D
+top-down riconoscibile, esplorabile e guidabile.
 
-## Cosa viene usato nei nuovi progetti
+Il progetto punta a rendere giocabile una città senza costruirne manualmente la
+mappa. Il primo risultato sarà una validazione tecnica della guida e della
+generazione urbana, non un gioco completo in stile GTA.
 
-- `.opencode/skills/`: workflow caricati on demand, ad esempio specifiche,
-  TDD, debugging, sicurezza e code review;
-- `.opencode/agents/`: persone specializzate e routing degli intenti;
-- `.opencode/references/`: checklist consultate dalle skill;
-- `AGENTS.md`: regole specifiche del progetto, da completare con comandi e
-  convenzioni dello stack;
-- `CLAUDE.md` e `.opencode/copilot-instructions.md`: integrazioni minime con
-  gli strumenti AI compatibili.
+## Stato del progetto
 
-Le skill non devono essere caricate tutte in una sessione: l'agente sceglie
-quelle pertinenti al task.
+Il repository è nella fase di definizione e revisione tecnica. Contiene la
+baseline di prodotto, una bozza architetturale da valutare e l'infrastruttura di
+processo per lo sviluppo assistito da agenti. Non contiene ancora codice
+applicativo, dipendenze, build o test eseguibili.
 
-## Creare un nuovo progetto
+Le tecnologie citate nella bozza, tra cui Three.js, Rapier, Overpass, Nominatim
+e le alternative di networking, sono candidate: non sono decisioni
+architetturali accettate.
 
-Modalità non interattiva:
+## Prima validazione
 
-```bash
-python3 clona-ai-sdlc-template.py URL_TEMPLATE NOME_PROGETTO DESTINAZIONE
-```
+Il primo prototipo deve verificare un unico percorso verticale:
 
-Modalità interattiva:
+1. caricare una zona urbana prefissata da dati OpenStreetMap;
+2. convertirla in una scena top-down riconoscibile;
+3. consentire la guida di un veicolo;
+4. gestire collisioni stabili con l'ambiente;
+5. mantenere prestazioni fluide su un PC di fascia media, secondo metriche e
+   hardware di riferimento ancora da definire.
 
-```bash
-python3 clona-ai-sdlc-template.py
-```
+Il progetto è pensato per una persona o un team molto piccolo e procederà per
+incrementi verificabili, iniziando dal browser desktop.
 
-Il cloner usa la branch `opcl`, rimuove la cronologia Git del template,
-inizializza una nuova repository sulla branch `main` ed elimina gli artefatti
-interni al template che non servono al progetto applicativo.
+## Evoluzioni previste
 
-## Workflow consigliato
+Questi elementi sono parte della visione, ma non della prima validazione:
 
-1. Definisci l'obiettivo e i vincoli.
-2. Pianifica il lavoro in fette verificabili.
-3. Implementa con test pertinenti e modifiche incrementali.
-4. Verifica test, lint e comportamento runtime.
-5. Esegui review e controlli di sicurezza prima del merge.
+- selezione arbitraria di città o coordinate;
+- streaming e cache alla scala di un'intera città;
+- texture regionali generate offline con AI;
+- supporto mobile e controlli touch;
+- multiplayer con prediction e reconciliation;
+- pedoni, traffico e sistemi di gameplay completi.
 
-Per il routing dettagliato consulta `.opencode/agents/AGENTS.md`.
+Le evoluzioni future verranno considerate nella revisione architetturale senza
+anticiparne l'implementazione.
 
-## Convenzioni
+## Documentazione
 
-- `CODING-STANDARDS.md` raccoglie le convenzioni condivise.
-- `SECURITY.md` raccoglie i requisiti di sicurezza.
-- I comandi di verifica specifici vanno aggiunti ad `AGENTS.md` nel nuovo
-  progetto.
+- [Intento confermato](docs/intent/open-gta-web.md): fonte corrente per
+  obiettivo, vincoli, perimetro e ricostruzione del contesto.
+- [Bozza city-scale](docs/idea/OpenGTA%20Web%20City%20Scale%20Idea.md): proposta
+  tecnica da analizzare; i suoi valori e le sue tecnologie sono ipotesi.
+- [Istruzioni per gli agenti](AGENTS.md): regole operative e routing delle
+  skill.
+- [Standard di codice](CODING-STANDARDS.md): convenzioni che valgono prima e
+  dopo la scelta dello stack.
+- [Sicurezza](SECURITY.md): confini di fiducia e requisiti minimi del progetto.
 
-## Strumenti del repository template
+Le decisioni tecniche costose da invertire verranno registrate come ADR soltanto
+dopo la valutazione delle alternative e delle conseguenze.
 
-Il repository del template contiene anche strumenti di manutenzione e il
-servizio opzionale `codesync/`. Questi componenti servono allo sviluppo del
-template e non vengono copiati nei nuovi progetti dal cloner.
+## Metodo di revisione tecnica
+
+Ogni proposta della bozza riceverà uno dei seguenti giudizi:
+
+- valida;
+- valida con condizioni o misurazioni;
+- da rinviare;
+- da sostituire.
+
+Per ogni scelta verranno indicati motivazione, rischi, alternative, dipendenze e
+la prova minima necessaria per validarla.
+
+## Comandi di sviluppo
+
+Non sono ancora definiti: il repository non possiede uno stack applicativo o
+un ambiente di test. Questa sezione e `AGENTS.md` dovranno essere aggiornati
+nello stesso incremento che introdurrà lo scaffolding eseguibile.
+
+## Licenza
+
+Il codice del repository è distribuito con licenza [MIT](LICENSE). Licenze,
+policy d'uso e obblighi di attribuzione relativi a dati, servizi e asset esterni
+dovranno essere verificati separatamente prima di integrarli.
