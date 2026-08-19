@@ -126,7 +126,12 @@ evidenza misurata.
 
 ## Comandi di sviluppo
 
-Non esistono ancora al momento del planning handoff.
+Installazione e verifiche:
 
-Codex li introdurrà nel primo scaffold e aggiornerà questa sezione rispettando
-il `AGENTS.md` e le policy già presenti.
+```bash
+npm install
+npm run dev
+npm run typecheck
+npm run test:run
+npm run build
+```

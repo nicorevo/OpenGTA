@@ -1,43 +1,8 @@
-# Dependencies
 node_modules/
-
-# Build and coverage
 dist/
-build/
 coverage/
-.vite/
 *.tsbuildinfo
-
-# Browser test artifacts
-playwright-report/
-test-results/
-
-# IDE and editors
-.idea/
-*.iml
-*.swp
-
-# Operating systems
-.DS_Store
-Thumbs.db
-
-# Secrets and local environment
 .env
 .env.*
 !.env.example
-*.pem
-*.key
-secrets/
-
-# Python-based project tooling
-.venv/
-__pycache__/
-.pytest_cache/
-*.py[cod]
-*.egg-info/
-
-# Logs and tool caches
-*.log
-logs/
-.cache/
-.eslintcache
+*.local
