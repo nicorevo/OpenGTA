@@ -37,14 +37,16 @@ adiacenze; nessuna dipendenza da PixiJS, Rapier o browser.
 Acceptance: test di transizioni, deduplicazione richieste, stale result e
 fallimento del loader.
 
-### P2.3 — Active window and local seams
+### P2.3 — Active window and local geometric seams
 
 - calcolare la finestra in base a posizione, velocità e camera;
 - attivare il minimo mondo giocabile prima dei vicini;
-- testare continuità e ownership delle feature ai confini.
+- testare continuità geometrica e seam deterministiche ai confini; la policy di
+  ownership delle feature attraversanti sarà definita con la partizione del
+  compiler.
 
-Acceptance: finestra deterministica, priorità P0/P1/P2 e fixture multi-chunk con
-seam verificabili.
+Acceptance: finestra deterministica, priorità P0/P1/P2 e bounds adiacenti con
+seam verificabili senza gap o sovrapposizioni.
 
 ### P2.4 — In-memory warm cache
 

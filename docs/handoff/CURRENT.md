@@ -48,9 +48,12 @@ La prossima tranche è la fondazione Open World definita in
 `docs/specs/open-world-runtime-phase-2.md`. P2.1 è completata e documentata in
 `tasks/executions/2026-08-26-p2-1-chunk-grid.md`; anche P2.2, lifecycle locale
 dei chunk, è completata e documentata in
-`tasks/executions/2026-08-26-p2-2-chunk-lifecycle.md`. La prossima slice è P2.3,
-active window e seam locali. Cache persistente, acquisizione live, AI e
-multiplayer restano fuori scope fino alle slice dedicate.
+`tasks/executions/2026-08-26-p2-2-chunk-lifecycle.md`; anche P2.3, active window
+e seam geometriche locali, è completata e documentata in
+`tasks/executions/2026-08-26-p2-3-active-window.md`. La prossima slice è P2.4,
+warm cache in-memory. L’ownership delle feature attraversanti resta da definire
+nel compiler; cache persistente, acquisizione live, AI e multiplayer restano
+fuori scope fino alle slice dedicate.
 
 ## Comandi
 
