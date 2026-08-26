@@ -13,9 +13,9 @@
 - [x] Sanare i finding R1–R3 su geometria, multipolygon, hole e clipping.
 - [x] Sanare i finding R4–R6 su collision contract, metriche e freno.
 - [x] Completare la test matrix R7–R8 e il browser smoke automatizzato.
-- [ ] Rieseguire il gate end-to-end con commit atomici.
-- [ ] Scegliere il primo slice di Fase 2 e dettagliare criteri di accettazione.
-- [ ] Aprire il task implementativo con test e verifiche native.
+- [x] Rieseguire il gate end-to-end con commit atomici.
+- [x] Scegliere le slice di Fase 2 e dettagliare criteri di accettazione.
+- [x] Aprire i task implementativi con test e verifiche native.
 
 ## Phase 2 Open World
 

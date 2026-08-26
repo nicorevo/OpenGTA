@@ -38,18 +38,16 @@ la prossima fase.
 - [x] Correggere freno e metriche fixed-step con test di regressione.
 - [x] Riallineare collision contract e diagnostics del compiler.
 - [x] Sostituire lo smoke placeholder con una prova bootstrap/browser ripetibile.
-- [ ] Rieseguire la review del gate con working tree organizzato in commit
-  atomici.
-- [ ] Definire il piano di Fase 2 in slice verificabili.
-- [ ] Aprire il primo task implementativo solo dopo approvazione umana del
-  nuovo piano.
+- [x] Rieseguire il gate tecnico con working tree organizzato in commit atomici.
+- [x] Definire il piano di Fase 2 in slice verificabili.
+- [x] Aprire e completare le slice implementative dopo approvazione del piano.
 
 ### Checkpoint: Restart Ready
 - [x] Finding Important della review chiusi; esito in
   `docs/analysis/IMPORTANT-FINDINGS-REMEDIATION-2026-08-26.md`.
 - [x] Suite e browser smoke controllano il percorso end-to-end.
-- [ ] Piano Fase 2 approvato.
-- [ ] Contesto operativo chiaro per la prossima sessione.
+- [x] Piano Fase 2 approvato e implementato fino alla policy live opt-in.
+- [x] Contesto operativo chiaro per la prossima sessione.
 
 ### Phase 3: Open World Runtime Foundation
 

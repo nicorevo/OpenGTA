@@ -15,7 +15,8 @@ Non rieseguirli come backlog corrente.
 | 0 Documentazione e contratti | Completata — `docs/results/PHASE-0-COMPLETE.md` |
 | 0B Esperimenti stack V0 | Assorbita dall'evidenza V0 / ADR-001–005 |
 | 1 Vertical slice V0 | Eseguita, review con remediation richiesta |
-| 2+ Streaming, cache, live geo, packager, AI | Non aperte |
+| 2 Fondazione Open World | Completata fino a live opt-in provider-neutral |
+| 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
 
@@ -27,8 +28,8 @@ La remediation R1–R8 è stata completata il 2026-08-26:
 - remediation: `docs/analysis/IMPORTANT-FINDINGS-REMEDIATION-2026-08-26.md`;
 - esecuzione: `tasks/executions/2026-08-26-important-findings-remediation.md`.
 
-Il V0 è tecnicamente consolidato per una nuova review del gate. Phase 2 non è
-ancora aperta: serve approvazione umana del piano e dei criteri di accettazione.
+Il V0 e la fondazione Open World sono tecnicamente consolidati. Le verifiche
+complete e i commit atomici sono registrati negli execution log del 2026-08-26.
 
 ## Lettura minima prima di modificare il prodotto
 
@@ -44,7 +45,7 @@ ancora aperta: serve approvazione umana del piano e dei criteri di accettazione.
 
 ## Prossima fase di prodotto
 
-La prossima tranche è la fondazione Open World definita in
+La tranche implementata è la fondazione Open World definita in
 `docs/specs/open-world-runtime-phase-2.md`. P2.1 è completata e documentata in
 `tasks/executions/2026-08-26-p2-1-chunk-grid.md`; anche P2.2, lifecycle locale
 dei chunk, è completata e documentata in
@@ -62,7 +63,8 @@ sono state completate e registrate in
 composizione multi-chunk e adapter HTTP live. P3.4 è definita in
 `docs/adr/ADR-009-live-runtime-consent.md`: provider-neutral, endpoint esplicito
 e consenso opt-in; il fixture offline resta il default. AI e multiplayer
-restano fuori scope.
+restano fuori scope. Nuovi sviluppi devono aprire un task successivo con spec e
+criteri di accettazione propri.
 
 ## Comandi
 
