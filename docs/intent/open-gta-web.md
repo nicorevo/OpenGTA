@@ -239,6 +239,7 @@ ipotesi fino a misurazione.
 
 Per i dettagli usare:
 
+- `docs/architecture/README.md`
 - `docs/architecture/product-architecture-principles.md`
 - `docs/architecture/dual-world-pipeline.md`
 - `docs/architecture/2d-rendering-model.md`
@@ -288,11 +289,17 @@ Per ciascuna scelta vanno esplicitati:
 
 ## Stato dell'implementazione
 
-Al momento della presente baseline il repository non contiene codice
-applicativo: contiene documentazione e infrastruttura di processo per lo
-sviluppo assistito da agenti.
+Aggiornato il 2026-08-19.
 
-Non dedurre stato di implementazione dalla roadmap o dai documenti di analisi.
+La Fase 0 (documentazione e contratti) è chiusa:
+
+`docs/results/PHASE-0-COMPLETE.md`
+
+Il repository contiene anche lo slice V0 eseguibile (fixture Lecce, compiler,
+PixiJS, Rapier, veicolo). L'evidenza è in `docs/results/V0-RESULT.md`.
+
+Non dedurre lo stato del codice dai documenti di handoff pre-code o dalla sola
+roadmap. Usare `docs/handoff/CURRENT.md`.
 
 ## Regola di aggiornamento
 

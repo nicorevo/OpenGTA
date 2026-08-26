@@ -1,8 +1,12 @@
 # Codex Execution Queue — V0
 
+**Historical.** Do not execute. Current entry: `docs/handoff/CURRENT.md`.
+V0 evidence: `docs/results/V0-RESULT.md`.
+
 Execute in order.
 
-Each task should end with tests/verification and a concise result note.
+The original ordered tasks follow for historical reference. Each task ended
+with tests/verification and a concise result note.
 
 ## Q00 — Overlay verification
 

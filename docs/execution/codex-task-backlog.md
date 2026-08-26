@@ -1,6 +1,6 @@
 # OpenGTA Web — Codex Task Backlog
 
-**Status:** Initial backlog  
+**Status:** P0 closed with Phase 0; V0 tasks executed in code; P7 still gated
 **Date:** 2026-08-19
 
 Model classes are defined in `../codex/model-routing.md`.
@@ -8,14 +8,11 @@ Model classes are defined in `../codex/model-routing.md`.
 ## P0 — Before code
 
 ### T001 Repository assessment
-**Model class:** STANDARD / medium  
-**Context:** root manifests, existing src/tests, docs intent/architecture  
-**Output:** repository assessment only; no broad rewrite.
+**Status:** done (2026-08-19). Observed: V0 application code exists; pre-code
+docs were stale. Closeout in `docs/results/PHASE-0-COMPLETE.md`.
 
 ### T002 Reconcile docs/state
-**Model class:** ECONOMY / low  
-**Depends:** T001  
-**Output:** fix only factual repository-state inconsistencies found by T001.
+**Status:** done (2026-08-19). Current entry: `docs/handoff/CURRENT.md`.
 
 ## P1 — Coordinates and world model
 

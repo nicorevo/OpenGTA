@@ -7,7 +7,22 @@ describe("world geometry clipping", () => {
     const clipped = clipPolygonToBounds({ outer: [{ x: -20, y: -20 }, { x: 20, y: -20 }, { x: 20, y: 20 }, { x: -20, y: 20 }], holes: [] }, bounds);
     expect(clipped?.outer.every((point) => point.x >= -10 && point.x <= 10 && point.y >= -10 && point.y <= 10)).toBe(true);
   });
+
   it("clips a road centerline crossing the box", () => {
-    expect(clipPolylineToBounds([{ x: -20, y: 0 }, { x: 20, y: 0 }], bounds)).toEqual([{ x: -10, y: 0 }, { x: 10, y: 0 }]);
+    expect(clipPolylineToBounds([{ x: -20, y: 0 }, { x: 20, y: 0 }], bounds)).toEqual([
+      [{ x: -10, y: 0 }, { x: 10, y: 0 }],
+    ]);
+  });
+
+  it("keeps exit and re-entry segments disconnected", () => {
+    expect(clipPolylineToBounds([
+      { x: -5, y: 0 },
+      { x: 20, y: 0 },
+      { x: 20, y: 5 },
+      { x: -5, y: 5 },
+    ], bounds)).toEqual([
+      [{ x: -5, y: 0 }, { x: 10, y: 0 }],
+      [{ x: 10, y: 5 }, { x: -5, y: 5 }],
+    ]);
   });
 });

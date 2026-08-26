@@ -13,5 +13,6 @@ describe("committed Lecce fixture", () => {
     expect(region.roads.length).toBeGreaterThan(0);
     expect(result.chunks[0].buildings.length).toBeGreaterThan(0);
     expect(result.chunks[0].roads.length).toBeGreaterThan(0);
+    expect(region.buildings.find((building) => building.id === "osm:relation:3985208")?.footprint.outer).toHaveLength(37);
   });
 });

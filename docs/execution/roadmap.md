@@ -1,6 +1,6 @@
 # OpenGTA Web — Execution Roadmap
 
-**Status:** Planning baseline  
+**Status:** Phase 0 closed; V0 executed; later phases gated
 **Date:** 2026-08-19
 
 Each phase ends with a gate. Do not begin a broad later phase merely because
@@ -8,7 +8,8 @@ individual code can already be written.
 
 ## Phase 0 — Documentation and contracts
 
-Status: largely prepared by this pack.
+Status: **complete**. Closeout: `docs/results/PHASE-0-COMPLETE.md`.
+Index: `docs/architecture/README.md`. Current handoff: `docs/handoff/CURRENT.md`.
 
 Deliverables:
 

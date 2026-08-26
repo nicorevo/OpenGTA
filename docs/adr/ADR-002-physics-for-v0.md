@@ -20,6 +20,18 @@ This is a good fit for:
 - one dynamic vehicle;
 - future larger 2D simulations if required.
 
+## Collider strategy
+
+Building footprints become closed polyline walls, not convex hulls.
+
+A convex hull fills courtyards and street notches, so a road that is visibly
+free would still be blocked by an invisible wall. Walls follow the compiled
+footprint exactly and the vehicle body uses CCD to limit tunnelling against
+zero-thickness walls.
+
+Revisit if measured evidence shows contact cost or tunnelling problems; convex
+decomposition is the next candidate.
+
 ## Vehicle model
 
 Do not build a realistic wheel/suspension vehicle.

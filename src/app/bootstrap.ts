@@ -4,6 +4,8 @@ import { normalizeOsm } from "../geo/normalize/osm.ts";
 import { compileRegion } from "../world/compiler/compiled.ts";
 import { createPixiRenderer } from "../render/pixi/renderer.ts";
 import { createPhysicsAdapter } from "../physics/rapier/adapter.ts";
+import { advanceFixedStep } from "./fixed-step.ts";
+import { readVehicleInput } from "./input.ts";
 import { RuntimeMetrics } from "./metrics.ts";
 
 export async function bootstrap(root: HTMLElement): Promise<void> {
@@ -34,10 +36,21 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   const benchmarkStartedAt = performance.now();
   let lastOverlayUpdate = 0;
   const keys = new Set<string>();
+  let simulationAccumulatorSeconds = 0;
   let vehicle = physics.createVehicle({ x: 0, y: 0, heading: 0 });
+  Object.defineProperty(window, "__opengtaV0Debug", {
+    configurable: true,
+    value: {
+      vehicle: () => ({
+        heading: vehicle.heading,
+        position: { ...vehicle.position },
+        velocity: { ...vehicle.velocity },
+      }),
+    },
+  });
   const updateOverlay = () => {
     const snapshot = metrics.snapshot();
-    overlay.textContent = `region: ${region.id}\nbuildings: ${region.buildings.length}\nroads: ${region.roads.length}\ncompiled: ${result.diagnostics.compiledFeatureCount}\nphysics colliders: ${physics.colliderCount()}\nFPS: ${snapshot.fps.toFixed(1)}\nframe p95: ${snapshot.p95FrameMs.toFixed(2)} ms\nlong frames: ${snapshot.longFrames}\nphysics avg: ${snapshot.averagePhysicsMs.toFixed(3)} ms\nwarnings: ${region.warnings.length + result.diagnostics.warnings.length}\nrenderer: PixiJS WebGL`;
+    overlay.textContent = `region: ${region.id}\nbuildings: ${region.buildings.length}\nroads: ${region.roads.length}\ncompiled: ${result.diagnostics.compiledFeatureCount}\nphysics colliders: ${physics.colliderCount()}\nFPS: ${snapshot.fps.toFixed(1)}\nframe p95: ${snapshot.p95FrameMs.toFixed(2)} ms\nlong frames: ${snapshot.longFrames}\nphysics steps: ${snapshot.physicsSteps}\nphysics avg: ${snapshot.averagePhysicsMs.toFixed(3)} ms\nphysics p95: ${snapshot.p95PhysicsMs.toFixed(3)} ms\nsim debt drops: ${snapshot.simulationDebtDrops}\ndropped sim debt: ${snapshot.droppedSimulationSeconds.toFixed(3)} s\nwarnings: ${region.warnings.length + result.diagnostics.warnings.length}\nrenderer: PixiJS WebGL`;
   };
   Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: metrics });
   window.addEventListener("keydown", (event) => {
@@ -55,13 +68,16 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   const frame = (now: number) => {
     const frameMs = now - last;
     last = now;
-    const physicsStartedAt = performance.now();
-    vehicle = physics.stepVehicle(vehicle, {
-      throttle: keys.has("w") || keys.has("arrowup") ? 1 : keys.has("s") || keys.has("arrowdown") ? -1 : 0,
-      steer: keys.has("a") || keys.has("arrowleft") ? -1 : keys.has("d") || keys.has("arrowright") ? 1 : 0,
-      brake: keys.has(" ") ? 1 : 0,
-    });
-    metrics.recordFrame(frameMs, performance.now() - physicsStartedAt);
+    const input = readVehicleInput(keys);
+    const stepState = advanceFixedStep(simulationAccumulatorSeconds, frameMs / 1000);
+    simulationAccumulatorSeconds = stepState.accumulatorSeconds;
+    metrics.recordSimulationDebtDrop(stepState.droppedSeconds);
+    for (let step = 0; step < stepState.simulatedSteps; step += 1) {
+      const stepStartedAt = performance.now();
+      vehicle = physics.stepVehicle(vehicle, input);
+      metrics.recordPhysicsStep(performance.now() - stepStartedAt);
+    }
+    metrics.recordFrame(frameMs);
     renderer.updateVehicle(vehicle.position, vehicle.heading);
     if (benchmark && now - lastOverlayUpdate > 250) {
       lastOverlayUpdate = now;

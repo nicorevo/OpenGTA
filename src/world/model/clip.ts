@@ -42,12 +42,21 @@ function clipSegment(start: Vec2, end: Vec2, bounds: Bounds2D): [Vec2, Vec2] | u
   return [{ x: start.x + t0 * dx, y: start.y + t0 * dy }, { x: start.x + t1 * dx, y: start.y + t1 * dy }];
 }
 
-export function clipPolylineToBounds(points: readonly Vec2[], bounds: Bounds2D): Vec2[] {
-  const output: Vec2[] = [];
+export function clipPolylineToBounds(points: readonly Vec2[], bounds: Bounds2D): Vec2[][] {
+  const parts: Vec2[][] = [];
+  let currentPart: Vec2[] = [];
   for (let index = 1; index < points.length; index += 1) {
-    const segment = clipSegment(points[index - 1], points[index], bounds); if (!segment) continue;
-    if (output.length === 0 || output.at(-1)!.x !== segment[0].x || output.at(-1)!.y !== segment[0].y) output.push(segment[0]);
-    if (output.at(-1)!.x !== segment[1].x || output.at(-1)!.y !== segment[1].y) output.push(segment[1]);
+    const segment = clipSegment(points[index - 1], points[index], bounds);
+    if (!segment) continue;
+    const previous = currentPart.at(-1);
+    if (previous && (previous.x !== segment[0].x || previous.y !== segment[0].y)) {
+      parts.push(currentPart);
+      currentPart = [];
+    }
+    if (currentPart.length === 0) currentPart.push(segment[0]);
+    const last = currentPart.at(-1)!;
+    if (last.x !== segment[1].x || last.y !== segment[1].y) currentPart.push(segment[1]);
   }
-  return output;
+  if (currentPart.length >= 2) parts.push(currentPart);
+  return parts;
 }

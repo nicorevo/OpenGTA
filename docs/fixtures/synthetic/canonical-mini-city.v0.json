@@ -1,9 +1,9 @@
 {
   "schema": "open-gta-canonical-fixture-v0",
   "id": "synthetic-mini-city",
-  "origin": {
-    "latitude": 0.0,
-    "longitude": 0.0
+  "geoOrigin": {
+    "latitude": 0,
+    "longitude": 0
   },
   "bounds": {
     "minX": -120,
@@ -17,150 +17,82 @@
       "kind": "building",
       "footprint": {
         "outer": [
-          [
-            -85,
-            20
-          ],
-          [
-            -45,
-            20
-          ],
-          [
-            -45,
-            65
-          ],
-          [
-            -85,
-            65
-          ]
+          { "x": -85, "y": 20 },
+          { "x": -45, "y": 20 },
+          { "x": -45, "y": 65 },
+          { "x": -85, "y": 65 }
         ],
         "holes": []
       },
       "buildingType": "residential",
-      "sourceLevels": 3
+      "sourceLevels": 3,
+      "collisionPolicy": "solid"
     },
     {
       "id": "synthetic:building:b",
       "kind": "building",
       "footprint": {
         "outer": [
-          [
-            35,
-            25
-          ],
-          [
-            90,
-            25
-          ],
-          [
-            90,
-            70
-          ],
-          [
-            35,
-            70
-          ]
+          { "x": 35, "y": 25 },
+          { "x": 90, "y": 25 },
+          { "x": 90, "y": 70 },
+          { "x": 35, "y": 70 }
         ],
-        "holes": [
-          [
-            [
-              50,
-              40
-            ],
-            [
-              75,
-              40
-            ],
-            [
-              75,
-              55
-            ],
-            [
-              50,
-              55
-            ]
-          ]
-        ]
+        "holes": [[
+          { "x": 50, "y": 40 },
+          { "x": 50, "y": 55 },
+          { "x": 75, "y": 55 },
+          { "x": 75, "y": 40 }
+        ]]
       },
       "buildingType": "historic",
-      "sourceHeightMeters": 12
+      "sourceHeightMeters": 12,
+      "collisionPolicy": "solid"
     },
     {
       "id": "synthetic:building:c",
       "kind": "building",
       "footprint": {
         "outer": [
-          [
-            -75,
-            -75
-          ],
-          [
-            -35,
-            -75
-          ],
-          [
-            -35,
-            -30
-          ],
-          [
-            -75,
-            -30
-          ]
+          { "x": -75, "y": -75 },
+          { "x": -35, "y": -75 },
+          { "x": -35, "y": -30 },
+          { "x": -75, "y": -30 }
         ],
         "holes": []
       },
-      "buildingType": "commercial"
+      "buildingType": "commercial",
+      "collisionPolicy": "solid"
     },
     {
       "id": "synthetic:building:d",
       "kind": "building",
       "footprint": {
         "outer": [
-          [
-            35,
-            -80
-          ],
-          [
-            80,
-            -80
-          ],
-          [
-            80,
-            -35
-          ],
-          [
-            55,
-            -35
-          ],
-          [
-            55,
-            -55
-          ],
-          [
-            35,
-            -55
-          ]
+          { "x": 35, "y": -80 },
+          { "x": 80, "y": -80 },
+          { "x": 80, "y": -35 },
+          { "x": 55, "y": -35 },
+          { "x": 55, "y": -55 },
+          { "x": 35, "y": -55 }
         ],
         "holes": []
       },
       "buildingType": "industrial",
-      "sourceLevels": 2
+      "sourceLevels": 2,
+      "collisionPolicy": "solid"
     }
   ],
   "roads": [
     {
       "id": "synthetic:road:east-west",
       "kind": "road",
-      "centerline": [
-        [
-          -120,
-          0
-        ],
-        [
-          120,
-          0
+      "centerline": {
+        "points": [
+          { "x": -120, "y": 0 },
+          { "x": 120, "y": 0 }
         ]
-      ],
+      },
       "roadClass": "residential",
       "widthMeters": 8,
       "oneWay": false,
@@ -169,16 +101,12 @@
     {
       "id": "synthetic:road:north-south",
       "kind": "road",
-      "centerline": [
-        [
-          0,
-          -120
-        ],
-        [
-          0,
-          120
+      "centerline": {
+        "points": [
+          { "x": 0, "y": -120 },
+          { "x": 0, "y": 120 }
         ]
-      ],
+      },
       "roadClass": "secondary",
       "widthMeters": 9,
       "oneWay": false,
@@ -191,27 +119,18 @@
       "kind": "land",
       "area": {
         "outer": [
-          [
-            -115,
-            75
-          ],
-          [
-            -20,
-            75
-          ],
-          [
-            -20,
-            115
-          ],
-          [
-            -115,
-            115
-          ]
+          { "x": -115, "y": 75 },
+          { "x": -20, "y": 75 },
+          { "x": -20, "y": 115 },
+          { "x": -115, "y": 115 }
         ],
         "holes": []
       },
       "landClass": "park"
     }
   ],
-  "waterAreas": []
+  "waterAreas": [],
+  "barriers": [],
+  "trees": [],
+  "warnings": []
 }

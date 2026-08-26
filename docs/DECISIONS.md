@@ -3,6 +3,9 @@
 **Snapshot:** 2026-08-19  
 **Purpose:** One-page view of what Codex may treat as decided versus open.
 
+Phase 0 closeout: `docs/results/PHASE-0-COMPLETE.md`.
+Current session entry: `docs/handoff/CURRENT.md`.
+
 ## Product decisions — ACCEPTED
 
 - Browser-first.

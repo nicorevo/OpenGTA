@@ -1,7 +1,13 @@
 # OpenGTA Web — Layout applicativo proposto per V0
 
-**Status:** Proposed  
+**Status:** Principles in force; tree snapshot is historical
 **Date:** 2026-08-19
+
+Dependency direction and forbidden coupling below remain authoritative.
+
+The proposed `src/` tree was a planning snapshot. Observed modules live under
+`src/` as documented in `docs/architecture/README.md`. Do not reshape the tree
+to match this file without an explicit task.
 
 ## Principle
 

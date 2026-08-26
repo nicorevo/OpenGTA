@@ -15,37 +15,27 @@ Due modalità, un solo core:
    compilazione progressiva nel browser, con AI visiva opzionale
    preferibilmente client-side.
 
-## Stato del repository al handoff
+## Stato del repository
 
-Il repository applicativo deriva da uno scaffold AI-SDLC e contiene già:
+Fase 0 (documentazione e contratti) chiusa:
 
-- `AGENTS.md`;
-- `.opencode/agents`;
-- `.opencode/skills`;
-- standard e policy di progetto.
+`docs/results/PHASE-0-COMPLETE.md`
 
-Al momento del handoff non è stato ancora scritto codice applicativo OpenGTA.
+Slice V0 eseguibile (Lecce centro, guida top-down, collisioni 2D):
 
-Il planning pack porta il progetto fino al punto in cui la prossima attività
-richiede il repository eseguibile reale.
+`docs/results/V0-RESULT.md`
 
-## Da dove partire
+Avvio di sessione per agenti:
 
-### Umano: applicazione ZIP
+`docs/handoff/CURRENT.md`
 
-Leggere:
+Specifica corrente indicizzata:
 
-`docs/execution/overlay-existing-repository.md`
+`docs/SPEC.md`
 
-### Codex: dopo l'overlay
-
-Iniziare da:
-
-`docs/handoff/CODEX-START-HERE.md`
-
-e seguire:
-
-`docs/handoff/CODEX-EXECUTION-QUEUE.md`
+I file `docs/handoff/CODEX-START-HERE.md`, `docs/handoff/CODEX-EXECUTION-QUEUE.md`
+e `docs/execution/` sono archivio della coda V0: non rieseguirli come backlog
+attivo.
 
 ## Decisioni
 
@@ -60,11 +50,13 @@ Ordine:
 ```text
 AGENTS.md
 → relevant .opencode instructions
+→ docs/SPEC.md
 → docs/intent/open-gta-web.md
 → docs/architecture/
 → docs/adr/
 → docs/specs/
-→ docs/execution/ and docs/handoff/
+→ docs/handoff/CURRENT.md
+→ tasks/
 → implementation
 ```
 
@@ -95,6 +87,7 @@ evidenza misurata.
 
 ### Architecture
 
+- `docs/architecture/README.md`
 - `docs/architecture/product-architecture-principles.md`
 - `docs/architecture/dual-world-pipeline.md`
 - `docs/architecture/2d-rendering-model.md`
@@ -120,9 +113,17 @@ evidenza misurata.
 
 ### Handoff
 
-- `docs/handoff/PRE-CODE-COMPLETE.md`
-- `docs/handoff/CODEX-START-HERE.md`
-- `docs/handoff/CODEX-EXECUTION-QUEUE.md`
+- `docs/handoff/CURRENT.md`
+- `docs/results/PHASE-0-COMPLETE.md`
+- `docs/handoff/PRE-CODE-COMPLETE.md` (storico)
+- `docs/handoff/CODEX-START-HERE.md` (storico)
+- `docs/handoff/CODEX-EXECUTION-QUEUE.md` (storico)
+
+### Tasks
+
+- `tasks/plan.md`
+- `tasks/todo.md`
+- `tasks/executions/`
 
 ## Comandi di sviluppo
 
@@ -133,5 +134,6 @@ npm install
 npm run dev
 npm run typecheck
 npm run test:run
+npm run test:e2e
 npm run build
 ```

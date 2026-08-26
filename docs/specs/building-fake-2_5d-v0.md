@@ -93,6 +93,15 @@ The translated roof/facade never changes collision.
 Vehicle sprite should be capable of appearing behind facade/roof visual layers
 through deterministic render ordering.
 
+Buildings must be painted in a deterministic painter order along the depth
+direction: a building is drawn after the neighbour lying toward the extrusion
+direction, so the neighbour's roof hides the shared wall. Without this order the
+facade of one building paints a dark band across the roof of the next, which
+reads as disorder in dense blocks.
+
+Ties must resolve deterministically (stable feature identity), so the same chunk
+always produces the same scene.
+
 No 3D depth test is required.
 
 ## Success condition

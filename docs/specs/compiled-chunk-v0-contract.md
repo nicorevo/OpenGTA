@@ -41,9 +41,22 @@ interface CompiledChunkV0 {
 interface CompiledRoadVisual {
   readonly featureId: FeatureId;
   readonly surface: Polygon2D;
+
+  // Renderer-neutral carriageway description. A renderer may stroke the
+  // network from these instead of filling one polygon per road, so junctions
+  // merge instead of showing per-road outlines.
+  readonly centerline: readonly Vec2[];
+  readonly widthMeters: number;
+
   readonly styleKey: string;
 }
 ```
+
+`centerline` and `widthMeters` are plain geometry/scalars: they carry no renderer
+or physics types and stay valid for offline packaging.
+
+`widthMeters` is the fitted carriageway, which may be narrower than the class
+fallback. See `road-generation-v0.md`.
 
 ## Building visual
 

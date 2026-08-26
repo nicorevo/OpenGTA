@@ -1,5 +1,8 @@
 # CODEX START HERE — OpenGTA Web V0
 
+**Historical.** Session start is now `docs/handoff/CURRENT.md`. Do not re-run
+this queue.
+
 You are taking over after product/architecture design is complete.
 
 ## 1. Read process rules first

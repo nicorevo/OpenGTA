@@ -25,10 +25,16 @@ the skill/persona routing in `.opencode/`.
 
 ## Do not infer implementation state
 
-The repository was documentation-only when this pack was produced.
+Trust, in this order:
 
-A roadmap item, ADR or proposed directory tree is not evidence that code
-exists.
+1. the repository (`src/`, `package.json`, tests);
+2. `docs/handoff/CURRENT.md`;
+3. `docs/results/` closeouts.
+
+A roadmap item, ADR or proposed directory tree is not evidence that a later
+phase is open.
+
+Pre-code handoff files are historical. Do not restart `CODEX-EXECUTION-QUEUE.md`.
 
 ## Do not convert proposals into decisions silently
 
