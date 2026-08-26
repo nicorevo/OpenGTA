@@ -52,10 +52,12 @@ dei chunk, è completata e documentata in
 e seam geometriche locali, è completata e documentata in
 `tasks/executions/2026-08-26-p2-3-active-window.md`; anche P2.4, warm cache
 in-memory, è completata e documentata in
-`tasks/executions/2026-08-26-p2-4-warm-cache.md`. La prossima slice è P2.5,
-boundary di acquisizione runtime. L’ownership delle feature attraversanti resta
-da definire nel compiler; cache persistente, acquisizione live, AI e multiplayer
-restano fuori scope fino alle slice dedicate.
+`tasks/executions/2026-08-26-p2-4-warm-cache.md`; anche P2.5, boundary di
+acquisizione runtime, è completata e documentata in
+`tasks/executions/2026-08-26-p2-5-runtime-source.md`. La prossima slice è P2.6,
+integrazione della modalità Open World Runtime. L’ownership delle feature
+attraversanti resta da definire nel compiler; cache persistente, acquisizione
+live, AI e multiplayer restano fuori scope fino alle slice dedicate.
 
 ## Comandi
 

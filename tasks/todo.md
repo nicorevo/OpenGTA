@@ -23,5 +23,5 @@
 - [x] P2.2 Lifecycle locale dei chunk.
 - [x] P2.3 Active window e seam geometriche.
 - [x] P2.4 Warm cache in-memory.
-- [ ] P2.5 Boundary di acquisizione runtime.
+- [x] P2.5 Boundary di acquisizione runtime.
 - [ ] P2.6 Integrazione Open World Runtime.
