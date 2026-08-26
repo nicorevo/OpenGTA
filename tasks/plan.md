@@ -56,7 +56,7 @@ la prossima fase.
 Spec normativa proposta: `docs/specs/open-world-runtime-phase-2.md`.
 
 - [x] P2.1 Definire identità, griglia e bounds deterministici dei chunk.
-- [ ] P2.2 Implementare lifecycle in-memory con loader iniettato.
+- [x] P2.2 Implementare lifecycle in-memory con loader iniettato.
 - [ ] P2.3 Implementare active window e test delle seam locali.
 - [ ] P2.4 Aggiungere warm cache in-memory con eviction bounded.
 - [ ] P2.5 Definire boundary di acquisizione runtime con fake source.
