@@ -80,4 +80,16 @@ describe("runtime geo data source", () => {
     expect(query).toContain("nwr[\"building\"]");
     expect(query).toContain("out skel qt");
   });
+
+  it("retries transient Overpass throttling", async () => {
+    let calls = 0;
+    const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async () => {
+      calls += 1;
+      return calls === 1
+        ? { ok: false, status: 429, json: async () => ({}) }
+        : { ok: true, status: 200, json: async () => ({ elements: [] }) };
+    }, { maxRetries: 1, retryDelayMs: 0 });
+    await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    expect(calls).toBe(2);
+  });
 });

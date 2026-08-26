@@ -18,6 +18,8 @@ non deterministico e trasferirebbe dati senza un’azione esplicita dell’utent
   `consent=1`.
 - Per OpenStreetMap è disponibile `provider=osm`, che usa l’endpoint Overpass
   predefinito e invia una query POST con bbox.
+- Le risposte transitorie `429` e `503` vengono ritentate con backoff bounded;
+  le richieste dei neighbor restano seriali.
 - L’endpoint deve usare `http` o `https`, avere lunghezza bounded e passare dal
   timeout/rate-limit boundary.
 - Il default resta offline e deterministico sul fixture.

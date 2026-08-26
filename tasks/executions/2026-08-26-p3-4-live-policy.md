@@ -28,4 +28,6 @@ Il percorso è disponibile con:
 `/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&consent=1`
 
 L’endpoint predefinito è `https://overpass-api.de/api/interpreter`; le richieste
-dei vicini sono serializzate e sottoposte a rate limit.
+dei vicini sono serializzate e sottoposte a rate limit. Le risposte `429/503`
+transitorie vengono ritentate con backoff; gli errori definitivi sono mostrati
+all’utente senza Promise non gestite.

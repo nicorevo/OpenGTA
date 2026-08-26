@@ -23,10 +23,16 @@ export interface GeoDataSourceOptions {
 export interface GeoDataResponse {
   readonly ok: boolean;
   readonly status: number;
+  readonly headers?: { get(name: string): string | null };
   json(): Promise<unknown>;
 }
 
 export type GeoDataFetcher = (url: string, signal: AbortSignal, body?: string) => Promise<GeoDataResponse>;
+
+export interface OverpassOptions {
+  readonly maxRetries?: number;
+  readonly retryDelayMs?: number;
+}
 
 const MAX_RADIUS_METERS = 100_000;
 const MAX_REGION_ID_LENGTH = 128;
@@ -117,7 +123,11 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   headers: { "content-type": "application/x-www-form-urlencoded" },
   body,
   signal,
-})): GeoDataSource {
+}), options: OverpassOptions = {}): GeoDataSource {
+  const maxRetries = options.maxRetries ?? 2;
+  const retryDelayMs = options.retryDelayMs ?? 1_500;
+  if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
+  if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
   return createGeoDataSource(async (request, signal) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
@@ -127,10 +137,20 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
     const east = request.origin.longitude + longitudeDelta;
     const bbox = `${south},${west},${north},${east}`;
     const query = `[out:json][timeout:25];(nwr["building"](${bbox});nwr["highway"](${bbox});nwr["landuse"](${bbox});nwr["natural"](${bbox});nwr["waterway"](${bbox});nwr["barrier"](${bbox}););out body;>;out skel qt;`;
-    const response = await fetcher(endpoint, signal, `data=${encodeURIComponent(query)}`);
-    if (!response.ok) throw new Error(`geo data source returned HTTP ${response.status}`);
-    return response.json();
-  });
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      const response = await fetcher(endpoint, signal, `data=${encodeURIComponent(query)}`);
+      if (response.ok) return response.json();
+      const retryable = response.status === 429 || response.status === 503;
+      if (!retryable || attempt === maxRetries) throw new Error(`geo data source returned HTTP ${response.status}`);
+      const retryAfter = Number(response.headers?.get("retry-after"));
+      const delay = Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1_000 : retryDelayMs * (attempt + 1);
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, delay);
+        signal.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
+      });
+    }
+    throw new Error("geo data source retry loop exhausted");
+  }, { timeoutMs: 30_000, minIntervalMs: 2_000 });
 }
 
 export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest): Promise<CompileResult> {
