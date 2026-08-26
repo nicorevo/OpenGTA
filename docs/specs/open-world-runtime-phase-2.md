@@ -73,7 +73,8 @@ attendere l’intera area.
 - preparare progressivamente i vicini e degradare senza AI.
 
 Acceptance: smoke E2E su coordinate selezionabili, caricamento progressivo,
-riuso cache e assenza di dipendenza da un fixture hard-coded.
+riuso cache e source deterministica iniettata. La sostituzione del fixture con
+una sorgente geografica live resta fuori da questa slice.
 
 ## Non-goals della Phase 2
 

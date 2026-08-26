@@ -43,3 +43,14 @@ test("boots V0 and drives with keyboard input", async ({ page }) => {
   await expect(page.locator("p")).toContainText("Nomi attivi");
   expect(pageErrors).toEqual([]);
 });
+
+test("boots the Open World Runtime mode from selectable coordinates", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+
+  await page.goto("/?mode=open-world&lat=40.35&lon=18.17");
+  await page.keyboard.press("F3");
+  await expect(page.locator("#debug-overlay")).toContainText("region: open-world:chunk:0:0");
+  await expect(page.locator("#debug-overlay")).toContainText("physics steps:");
+  expect(pageErrors).toEqual([]);
+});

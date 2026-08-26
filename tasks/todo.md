@@ -24,4 +24,4 @@
 - [x] P2.3 Active window e seam geometriche.
 - [x] P2.4 Warm cache in-memory.
 - [x] P2.5 Boundary di acquisizione runtime.
-- [ ] P2.6 Integrazione Open World Runtime.
+- [x] P2.6 Integrazione fondazione Open World Runtime.

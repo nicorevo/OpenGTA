@@ -54,10 +54,12 @@ e seam geometriche locali, è completata e documentata in
 in-memory, è completata e documentata in
 `tasks/executions/2026-08-26-p2-4-warm-cache.md`; anche P2.5, boundary di
 acquisizione runtime, è completata e documentata in
-`tasks/executions/2026-08-26-p2-5-runtime-source.md`. La prossima slice è P2.6,
-integrazione della modalità Open World Runtime. L’ownership delle feature
-attraversanti resta da definire nel compiler; cache persistente, acquisizione
-live, AI e multiplayer restano fuori scope fino alle slice dedicate.
+`tasks/executions/2026-08-26-p2-5-runtime-source.md`; anche P2.6, integrazione
+della fondazione Open World Runtime, è completata e documentata in
+`tasks/executions/2026-08-26-p2-6-open-world-runtime.md`. La source resta
+deterministica sul fixture e il renderer mostra P0: ownership delle feature
+attraversanti, acquisizione live e composizione visuale multi-chunk sono i
+prossimi task. AI e multiplayer restano fuori scope.
 
 ## Comandi
 
