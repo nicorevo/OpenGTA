@@ -60,16 +60,14 @@ export function createChunkLifecycle<T>(loader: ChunkLoader<T>): ChunkLifecycle<
     const previousState = entry.record.state;
     const previousValue = entry.record.value;
     const canRestore = previousState === "ACTIVE" || previousState === "READY" || previousState === "INACTIVE";
-    setRecord(entry, "COMPILING", previousValue, undefined);
+    setRecord(entry, "REQUESTED", previousValue, undefined);
     entries.set(id, entry);
 
-    let loaded: Promise<T>;
-    try {
-      loaded = loader(copyKey(key));
-    } catch (error: unknown) {
-      loaded = Promise.reject(error);
-    }
-    const request = Promise.resolve(loaded)
+    const request = Promise.resolve()
+      .then(() => {
+        if (entry.generation === generation) setRecord(entry, "COMPILING", previousValue, undefined);
+        return loader(copyKey(key));
+      })
       .then((value) => {
         if (entry.generation !== generation) return entry.record;
         setRecord(entry, canRestore ? previousState : "READY", value, undefined);

@@ -13,6 +13,8 @@ describe("chunk lifecycle", () => {
 
     const first = lifecycle.load(key);
     const second = lifecycle.load(key);
+    expect(lifecycle.get(key)?.state).toBe("REQUESTED" satisfies ChunkState);
+    await Promise.resolve();
     expect(lifecycle.get(key)?.state).toBe("COMPILING" satisfies ChunkState);
     expect(await first).toMatchObject({ state: "READY", value: "compiled" });
     expect(await second).toMatchObject({ state: "READY", value: "compiled" });
@@ -38,6 +40,7 @@ describe("chunk lifecycle", () => {
 
     const stale = lifecycle.load(key);
     const current = lifecycle.reload(key);
+    await Promise.resolve();
     resolvers[1]("current");
     await expect(current).resolves.toMatchObject({ state: "READY", value: "current" });
     resolvers[0]("stale");
