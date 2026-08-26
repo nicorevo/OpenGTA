@@ -116,10 +116,10 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
   }, { timeoutMs: 30_000, minIntervalMs: 1_000 });
 }
 
-export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass.osm.ch/api/interpreter";
 const FALLBACK_OVERPASS_ENDPOINTS = [
   DEFAULT_OVERPASS_ENDPOINT,
-  "https://overpass.osm.ch/api/interpreter",
+  "https://overpass-api.de/api/interpreter",
 ] as const;
 
 export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT, fetcher: GeoDataFetcher = async (url, signal, body) => fetch(url, {

@@ -22,7 +22,7 @@ describe("live runtime configuration", () => {
   it("selects the default OpenStreetMap Overpass endpoint explicitly", () => {
     expect(readLiveSourceConfig(new URLSearchParams("mode=open-world-live&provider=osm&consent=1"))).toMatchObject({
       provider: "osm-overpass",
-      endpoint: "https://overpass-api.de/api/interpreter",
+      endpoint: "https://overpass.osm.ch/api/interpreter",
       consent: true,
     });
   });

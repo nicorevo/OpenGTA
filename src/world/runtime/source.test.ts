@@ -103,8 +103,8 @@ describe("runtime geo data source", () => {
     }, { maxRetries: 1, retryDelayMs: 0 });
     await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
     expect(endpoints).toEqual([
-      "https://overpass-api.de/api/interpreter",
       "https://overpass.osm.ch/api/interpreter",
+      "https://overpass-api.de/api/interpreter",
     ]);
   });
 

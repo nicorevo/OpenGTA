@@ -33,4 +33,4 @@ implicite. Un prodotto distribuito dovrà fornire una UI di consenso e una
 allowlist/policy endpoint prima di esporre il modo live agli utenti finali.
 Overpass pubblico è un endpoint condiviso e non va trattato come backend di
 produzione senza una policy dedicata. Il client applica retry limitati e, sul
-default pubblico, usa `overpass.osm.ch` come fallback per errori transitori.
+default pubblico, usa `overpass-api.de` come fallback per errori transitori.
