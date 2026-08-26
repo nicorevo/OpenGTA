@@ -26,7 +26,7 @@ export interface GeoDataResponse {
   json(): Promise<unknown>;
 }
 
-export type GeoDataFetcher = (url: string, signal: AbortSignal) => Promise<GeoDataResponse>;
+export type GeoDataFetcher = (url: string, signal: AbortSignal, body?: string) => Promise<GeoDataResponse>;
 
 const MAX_RADIUS_METERS = 100_000;
 const MAX_REGION_ID_LENGTH = 128;
@@ -105,6 +105,29 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
       request.origin.longitude + longitudeDelta,
     ].join(","));
     const response = await fetcher(url.toString(), signal);
+    if (!response.ok) throw new Error(`geo data source returned HTTP ${response.status}`);
+    return response.json();
+  }, { timeoutMs: 30_000, minIntervalMs: 1_000 });
+}
+
+export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
+
+export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT, fetcher: GeoDataFetcher = async (url, signal, body) => fetch(url, {
+  method: "POST",
+  headers: { "content-type": "application/x-www-form-urlencoded" },
+  body,
+  signal,
+})): GeoDataSource {
+  return createGeoDataSource(async (request, signal) => {
+    const latitudeDelta = request.radiusMeters / 111_320;
+    const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
+    const south = request.origin.latitude - latitudeDelta;
+    const west = request.origin.longitude - longitudeDelta;
+    const north = request.origin.latitude + latitudeDelta;
+    const east = request.origin.longitude + longitudeDelta;
+    const bbox = `${south},${west},${north},${east}`;
+    const query = `[out:json][timeout:25];(nwr["building"](${bbox});nwr["highway"](${bbox});nwr["landuse"](${bbox});nwr["natural"](${bbox});nwr["waterway"](${bbox});nwr["barrier"](${bbox}););out body;>;out skel qt;`;
+    const response = await fetcher(endpoint, signal, `data=${encodeURIComponent(query)}`);
     if (!response.ok) throw new Error(`geo data source returned HTTP ${response.status}`);
     return response.json();
   });

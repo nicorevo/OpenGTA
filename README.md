@@ -137,3 +137,16 @@ npm run test:run
 npm run test:e2e
 npm run build
 ```
+
+### OpenStreetMap live mode
+
+La modalità live usa Overpass per ottenere dati OpenStreetMap. Richiede
+consenso esplicito e limita le richieste per rispettare il servizio:
+
+```text
+http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&consent=1
+```
+
+L’endpoint predefinito è `https://overpass-api.de/api/interpreter`. Per un
+ambiente di produzione usare un endpoint autorizzato o un’istanza Overpass
+gestita; non incorporare chiavi o credenziali nel client.

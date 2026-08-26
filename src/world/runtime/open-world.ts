@@ -83,16 +83,15 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
         return { loaded, failed };
       }
       const neighbors = demands.filter((demand) => demand.id !== first.id);
-      const results = await Promise.allSettled(neighbors.map(async (demand) => {
-        await load(demand.key);
-        lifecycle.activate(demand.key);
-        return demand;
-      }));
-      results.forEach((result, index) => {
-        const demand = neighbors[index];
-        if (result.status === "fulfilled") loaded.push(result.value);
-        else failed.push({ key: demand.key, error: result.reason });
-      });
+      for (const demand of neighbors) {
+        try {
+          await load(demand.key);
+          lifecycle.activate(demand.key);
+          loaded.push(demand);
+        } catch (error: unknown) {
+          failed.push({ key: demand.key, error });
+        }
+      }
       return { loaded, failed };
     },
     state(key) {

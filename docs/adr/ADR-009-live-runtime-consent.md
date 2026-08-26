@@ -16,6 +16,8 @@ non deterministico e trasferirebbe dati senza un’azione esplicita dell’utent
 - Il live adapter HTTP riceve l’endpoint esplicitamente configurato.
 - La modalità live richiede `mode=open-world-live`, `endpoint=<url>` e
   `consent=1`.
+- Per OpenStreetMap è disponibile `provider=osm`, che usa l’endpoint Overpass
+  predefinito e invia una query POST con bbox.
 - L’endpoint deve usare `http` o `https`, avere lunghezza bounded e passare dal
   timeout/rate-limit boundary.
 - Il default resta offline e deterministico sul fixture.
@@ -27,3 +29,5 @@ non deterministico e trasferirebbe dati senza un’azione esplicita dell’utent
 Il runtime è testabile senza rete pubblica e non effettua acquisizioni live
 implicite. Un prodotto distribuito dovrà fornire una UI di consenso e una
 allowlist/policy endpoint prima di esporre il modo live agli utenti finali.
+Overpass pubblico è un endpoint condiviso e non va trattato come backend di
+produzione senza una policy dedicata.

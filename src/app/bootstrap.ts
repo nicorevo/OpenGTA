@@ -4,8 +4,7 @@ import { normalizeOsm } from "../geo/normalize/osm.ts";
 import { compileRegion, type CompileResult } from "../world/compiler/compiled.ts";
 import { createChunkCache } from "../world/chunk/cache.ts";
 import { createChunkGrid } from "../world/chunk/grid.ts";
-import { createGeoDataSource } from "../world/runtime/source.ts";
-import { createHttpGeoDataSource } from "../world/runtime/source.ts";
+import { createGeoDataSource, createHttpGeoDataSource, createOverpassGeoDataSource } from "../world/runtime/source.ts";
 import { readLiveSourceConfig } from "../world/runtime/live-config.ts";
 import { createOpenWorldRuntime } from "../world/runtime/open-world.ts";
 import { createPixiRenderer } from "../render/pixi/renderer.ts";
@@ -52,7 +51,9 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   let result: CompileResult;
   if (openWorldMode) {
     const source = liveConfig
-      ? createHttpGeoDataSource(liveConfig.endpoint)
+      ? liveConfig.provider === "osm-overpass"
+        ? createOverpassGeoDataSource(liveConfig.endpoint)
+        : createHttpGeoDataSource(liveConfig.endpoint)
       : createGeoDataSource(async () => rawFixture);
     const runtime = createOpenWorldRuntime({
       baseOrigin: origin,

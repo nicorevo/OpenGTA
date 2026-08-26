@@ -5,6 +5,7 @@ describe("live runtime configuration", () => {
   it("accepts an explicit endpoint only with consent", () => {
     expect(readLiveSourceConfig(new URLSearchParams("mode=open-world-live&endpoint=https%3A%2F%2Fgeo.test%2Fquery&consent=1"))).toEqual({
       endpoint: "https://geo.test/query",
+      provider: "http",
       consent: true,
     });
   });
@@ -16,5 +17,13 @@ describe("live runtime configuration", () => {
 
   it("returns no live config for offline mode", () => {
     expect(readLiveSourceConfig(new URLSearchParams("mode=open-world"))).toBeUndefined();
+  });
+
+  it("selects the default OpenStreetMap Overpass endpoint explicitly", () => {
+    expect(readLiveSourceConfig(new URLSearchParams("mode=open-world-live&provider=osm&consent=1"))).toMatchObject({
+      provider: "osm-overpass",
+      endpoint: "https://overpass-api.de/api/interpreter",
+      consent: true,
+    });
   });
 });

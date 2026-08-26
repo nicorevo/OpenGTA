@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileRuntimeRegion, createGeoDataSource, createHttpGeoDataSource, type RuntimeRegionRequest } from "./source.ts";
+import { compileRuntimeRegion, createGeoDataSource, createHttpGeoDataSource, createOverpassGeoDataSource, type RuntimeRegionRequest } from "./source.ts";
 
 const request: RuntimeRegionRequest = {
   regionId: "runtime:test",
@@ -66,5 +66,18 @@ describe("runtime geo data source", () => {
       ok: false, status: 429, json: async () => ({ elements: [] }),
     }));
     await expect(source.acquire(request)).rejects.toThrow("HTTP 429");
+  });
+
+  it("builds an Overpass POST query with the OSM bbox and recursion", async () => {
+    let body = "";
+    const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async (_url, _signal, requestBody) => {
+      body = requestBody ?? "";
+      return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+    });
+    await source.acquire(request);
+    const query = decodeURIComponent(body.replace(/^data=/, ""));
+    expect(query).toContain("[out:json]");
+    expect(query).toContain("nwr[\"building\"]");
+    expect(query).toContain("out skel qt");
   });
 });
