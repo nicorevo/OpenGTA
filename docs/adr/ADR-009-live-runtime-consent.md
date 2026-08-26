@@ -32,4 +32,5 @@ Il runtime è testabile senza rete pubblica e non effettua acquisizioni live
 implicite. Un prodotto distribuito dovrà fornire una UI di consenso e una
 allowlist/policy endpoint prima di esporre il modo live agli utenti finali.
 Overpass pubblico è un endpoint condiviso e non va trattato come backend di
-produzione senza una policy dedicata.
+produzione senza una policy dedicata. Il client applica retry limitati e, sul
+default pubblico, usa `overpass.osm.ch` come fallback per errori transitori.
