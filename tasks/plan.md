@@ -63,6 +63,14 @@ Spec normativa proposta: `docs/specs/open-world-runtime-phase-2.md`.
 - [x] P2.6 Integrare la fondazione Open World Runtime e lo smoke E2E con source
   deterministica iniettata.
 
+### Phase 4: Open World Completion
+
+- [x] P3.1 Definire ownership e partizione geometrica delle feature attraversanti.
+- [x] P3.2 Comporre e renderizzare la finestra multi-chunk attiva.
+- [x] P3.3 Aggiungere adapter HTTP live dietro `GeoDataSource`.
+- [ ] P3.4 Definire provider, consenso, policy dati e attivazione live in
+  prodotto.
+
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |

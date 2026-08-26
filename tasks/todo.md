@@ -25,3 +25,10 @@
 - [x] P2.4 Warm cache in-memory.
 - [x] P2.5 Boundary di acquisizione runtime.
 - [x] P2.6 Integrazione fondazione Open World Runtime.
+
+## Open World Completion
+
+- [x] P3.1 Partizione e ownership delle feature sui confini.
+- [x] P3.2 Composizione/rendering multi-chunk.
+- [x] P3.3 Adapter HTTP live dietro source boundary.
+- [ ] P3.4 Decisione prodotto su provider, consenso e attivazione live.

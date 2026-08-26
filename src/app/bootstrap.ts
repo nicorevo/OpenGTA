@@ -1,7 +1,7 @@
 import rawFixture from "../fixtures/geo/lecce-sant-oronzo-v0.raw.json";
 import { createTangentProjector } from "../geo/coordinates/projector.ts";
 import { normalizeOsm } from "../geo/normalize/osm.ts";
-import { compileRegion } from "../world/compiler/compiled.ts";
+import { compileRegion, type CompileResult } from "../world/compiler/compiled.ts";
 import { createChunkCache } from "../world/chunk/cache.ts";
 import { createChunkGrid } from "../world/chunk/grid.ts";
 import { createGeoDataSource } from "../world/runtime/source.ts";
@@ -40,7 +40,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   let buildingCount = 0;
   let roadCount = 0;
   let regionWarningCount = 0;
-  let result;
+  let result: CompileResult;
   if (openWorldMode) {
     const source = createGeoDataSource(async () => rawFixture);
     const runtime = createOpenWorldRuntime({
@@ -57,8 +57,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     });
     const firstChunk = activeWindow.loaded.find((demand) => demand.priority === "P0");
     if (!firstChunk) throw new Error("Open World Runtime could not load the playable chunk");
-    const chunk = await runtime.load(firstChunk.key);
-    result = { chunks: [chunk], diagnostics: chunk.diagnostics };
+    const chunks = await Promise.all(activeWindow.loaded.map((demand) => runtime.load(demand.key)));
+    const chunk = chunks.find((entry) => entry.spatial.regionId.endsWith("chunk:0:0")) ?? chunks[0];
+    if (!chunk) throw new Error("Open World Runtime returned no compiled chunk");
+    result = { chunks, diagnostics: chunk.diagnostics };
     regionId = chunk.spatial.regionId;
     buildingCount = Object.values(chunk.featureIndex).filter((feature) => feature.kind === "building").length;
     roadCount = Object.values(chunk.featureIndex).filter((feature) => feature.kind === "road").length;
@@ -70,9 +72,9 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     roadCount = region.roads.length;
     regionWarningCount = region.warnings.length;
   }
-  const physics = await createPhysicsAdapter(result.chunks[0].collisions);
+  const physics = await createPhysicsAdapter(result.chunks.flatMap((chunk) => chunk.collisions));
   const renderer = await createPixiRenderer(canvas);
-  renderer.render(result.chunks[0]);
+  renderer.render(result.chunks);
   const metrics = new RuntimeMetrics();
   const benchmark = new URLSearchParams(window.location.search).get("benchmark") === "1";
   const benchmarkStartedAt = performance.now();

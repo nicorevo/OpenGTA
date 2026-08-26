@@ -1,5 +1,6 @@
 import { createTangentProjector } from "../../geo/coordinates/projector.ts";
 import type { CompiledChunkV0 } from "../compiler/compiled.ts";
+import { partitionCompiledChunk, translateCompiledChunk } from "../compiler/partition.ts";
 import type { ChunkCache } from "../chunk/cache.ts";
 import type { ChunkKey, ChunkGrid } from "../chunk/grid.ts";
 import { createChunkLifecycle, type ChunkState } from "../chunk/lifecycle.ts";
@@ -48,8 +49,15 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
       ? await options.compile(key, request)
       : (await compileRuntimeRegion(options.source, request)).chunks[0];
     if (!compiled) throw new Error(`runtime compiler produced no chunk for ${id}`);
-    options.cache.set({ chunkId: id, compilerVersion: options.compilerVersion }, compiled);
-    return compiled;
+    const worldChunk = options.compile
+      ? compiled
+      : partitionCompiledChunk(translateCompiledChunk(compiled, {
+        x: (bounds.minX + bounds.maxX) / 2,
+        y: (bounds.minY + bounds.maxY) / 2,
+      }), options.grid, [key])[0];
+    if (!worldChunk) throw new Error(`runtime compiler produced no geometry for ${id}`);
+    options.cache.set({ chunkId: id, compilerVersion: options.compilerVersion }, worldChunk);
+    return worldChunk;
   });
 
   const load = async (key: ChunkKey): Promise<CompiledChunkV0> => {

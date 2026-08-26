@@ -20,6 +20,14 @@ export interface GeoDataSourceOptions {
   readonly now?: () => number;
 }
 
+export interface GeoDataResponse {
+  readonly ok: boolean;
+  readonly status: number;
+  json(): Promise<unknown>;
+}
+
+export type GeoDataFetcher = (url: string, signal: AbortSignal) => Promise<GeoDataResponse>;
+
 const MAX_RADIUS_METERS = 100_000;
 const MAX_REGION_ID_LENGTH = 128;
 const MAX_ELEMENTS = 100_000;
@@ -82,6 +90,24 @@ export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourc
       }
     },
   };
+}
+
+export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetcher = async (url, signal) => fetch(url, { signal })): GeoDataSource {
+  const baseUrl = new URL(endpoint);
+  return createGeoDataSource(async (request, signal) => {
+    const latitudeDelta = request.radiusMeters / 111_320;
+    const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
+    const url = new URL(baseUrl);
+    url.searchParams.set("bbox", [
+      request.origin.latitude - latitudeDelta,
+      request.origin.longitude - longitudeDelta,
+      request.origin.latitude + latitudeDelta,
+      request.origin.longitude + longitudeDelta,
+    ].join(","));
+    const response = await fetcher(url.toString(), signal);
+    if (!response.ok) throw new Error(`geo data source returned HTTP ${response.status}`);
+    return response.json();
+  });
 }
 
 export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest): Promise<CompileResult> {

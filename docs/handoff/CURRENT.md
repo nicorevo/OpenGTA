@@ -56,10 +56,12 @@ in-memory, è completata e documentata in
 acquisizione runtime, è completata e documentata in
 `tasks/executions/2026-08-26-p2-5-runtime-source.md`; anche P2.6, integrazione
 della fondazione Open World Runtime, è completata e documentata in
-`tasks/executions/2026-08-26-p2-6-open-world-runtime.md`. La source resta
-deterministica sul fixture e il renderer mostra P0: ownership delle feature
-attraversanti, acquisizione live e composizione visuale multi-chunk sono i
-prossimi task. AI e multiplayer restano fuori scope.
+`tasks/executions/2026-08-26-p2-6-open-world-runtime.md`. Le estensioni P3.1–P3.3
+sono state completate e registrate in
+`tasks/executions/2026-08-26-open-world-expansion.md`: partizione/ownership,
+composizione multi-chunk e adapter HTTP live. Resta P3.4, la decisione su
+provider, consenso e attivazione live in prodotto. AI e multiplayer restano
+fuori scope.
 
 ## Comandi
 

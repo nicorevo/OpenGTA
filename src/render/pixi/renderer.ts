@@ -4,7 +4,7 @@ import type { Polygon2D } from "../../world/model/types.ts";
 import { createPresentationState, toggleLabels, type PresentationState } from "./presentation.ts";
 import { groupRoadsByWidth, sortBuildingsForPainter, type RoadStrokeGroup } from "./scene-order.ts";
 
-export interface PixiRenderer { readonly app: Application; render(chunk: CompiledChunkV0): void; updateVehicle(position: { x: number; y: number }, heading: number): void; toggleLabels(): boolean; }
+export interface PixiRenderer { readonly app: Application; render(chunk: CompiledChunkV0 | readonly CompiledChunkV0[]): void; updateVehicle(position: { x: number; y: number }, heading: number): void; toggleLabels(): boolean; }
 const VEHICLE_LENGTH_METERS = 4.2;
 const VEHICLE_WIDTH_METERS = 1.8;
 const VEHICLE_VISUAL_SCALE = 2.6;
@@ -57,21 +57,24 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   let labelLayer: Container | undefined;
   return {
     app,
-    render(chunk) {
+    render(input) {
+      const chunks: readonly CompiledChunkV0[] = Array.isArray(input) ? input : [input];
+      const chunk = chunks[0];
+      if (!chunk) return;
       world.removeChildren().forEach((child) => child.destroy());
       worldScale = Math.min(app.screen.width, app.screen.height) / 360;
       world.position.set(app.screen.width / 2, app.screen.height / 2);
       const ground = new Graphics();
-      chunk.ground.forEach((area) => drawPolygon(ground, area.area, worldScale, 0, area.styleKey.startsWith("water:") ? 0x668ca3 : area.styleKey.includes("park") ? 0x70915a : 0x8b9d70));
+      chunks.flatMap((entry) => entry.ground).forEach((area) => drawPolygon(ground, area.area, worldScale, 0, area.styleKey.startsWith("water:") ? 0x668ca3 : area.styleKey.includes("park") ? 0x70915a : 0x8b9d70));
       world.addChild(ground);
-      const roadGroups = groupRoadsByWidth(chunk.roads);
+      const roadGroups = groupRoadsByWidth(chunks.flatMap((entry) => entry.roads));
       const roadCasing = new Graphics();
       const roadSurface = new Graphics();
       strokeRoadNetwork(roadCasing, roadGroups, worldScale, ROAD_EDGE, roadCasingPx);
       strokeRoadNetwork(roadSurface, roadGroups, worldScale, ROAD_FILL, () => 0);
       world.addChild(roadCasing, roadSurface);
       const buildings = new Graphics();
-      for (const building of sortBuildingsForPainter(chunk.buildings)) {
+      for (const building of sortBuildingsForPainter(chunks.flatMap((entry) => entry.buildings))) {
         const depth = Math.min(24, Math.max(3, building.visualHeightMeters * worldScale * 0.6));
         const offset = { x: -depth * 0.707, y: depth * 0.707 };
         const facade = {
@@ -86,7 +89,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       buildings.setMask({ mask: roadCorridor, inverse: true });
       world.addChild(roadCorridor, buildings);
       labelLayer = new Container();
-      for (const label of visibleLabels(chunk.labels)) {
+      for (const label of visibleLabels(chunks.flatMap((entry) => entry.labels))) {
         const text = new Text({ text: label.text, style: { fontFamily: "Arial", fontSize: label.kind === "place" ? 11 : 9, fontWeight: "bold", fill: label.kind === "place" ? 0x2d2928 : 0xf3e7c6 } });
         text.anchor.set(0.5); text.position.set(label.position.x * worldScale, -label.position.y * worldScale); text.rotation = readableLabelAngle(label.angle); labelLayer.addChild(text);
       }

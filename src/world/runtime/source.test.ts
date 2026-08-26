@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileRuntimeRegion, createGeoDataSource, type RuntimeRegionRequest } from "./source.ts";
+import { compileRuntimeRegion, createGeoDataSource, createHttpGeoDataSource, type RuntimeRegionRequest } from "./source.ts";
 
 const request: RuntimeRegionRequest = {
   regionId: "runtime:test",
@@ -49,5 +49,22 @@ describe("runtime geo data source", () => {
     });
     await expect(source.acquire({ ...request, origin: { latitude: 91, longitude: 18 } })).rejects.toThrow("latitude");
     expect(calls).toBe(0);
+  });
+
+  it("builds a bounded HTTP request and validates its status", async () => {
+    let requestedUrl = "";
+    const source = createHttpGeoDataSource("https://example.test/data", async (url) => {
+      requestedUrl = url;
+      return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+    });
+    await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    expect(new URL(requestedUrl).searchParams.get("bbox")).toContain("40.35");
+  });
+
+  it("turns an HTTP error into a source failure", async () => {
+    const source = createHttpGeoDataSource("https://example.test/data", async () => ({
+      ok: false, status: 429, json: async () => ({ elements: [] }),
+    }));
+    await expect(source.acquire(request)).rejects.toThrow("HTTP 429");
   });
 });

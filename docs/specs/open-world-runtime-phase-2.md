@@ -41,12 +41,14 @@ fallimento del loader.
 
 - calcolare la finestra in base a posizione, velocità e camera;
 - attivare il minimo mondo giocabile prima dei vicini;
-- testare continuità geometrica e seam deterministiche ai confini; la policy di
-  ownership delle feature attraversanti sarà definita con la partizione del
-  compiler.
+- testare continuità geometrica e seam deterministiche ai confini.
 
 Acceptance: finestra deterministica, priorità P0/P1/P2 e bounds adiacenti con
 seam verificabili senza gap o sovrapposizioni.
+
+La policy di ownership delle feature attraversanti è stata implementata nella
+tranche successiva P3.1 tramite partizione dei frammenti e owner derivato
+dall’anchor; il canonical feature ID resta invariato.
 
 ### P2.4 — In-memory warm cache
 
