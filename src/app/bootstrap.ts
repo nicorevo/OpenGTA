@@ -5,6 +5,8 @@ import { compileRegion, type CompileResult } from "../world/compiler/compiled.ts
 import { createChunkCache } from "../world/chunk/cache.ts";
 import { createChunkGrid } from "../world/chunk/grid.ts";
 import { createGeoDataSource } from "../world/runtime/source.ts";
+import { createHttpGeoDataSource } from "../world/runtime/source.ts";
+import { readLiveSourceConfig } from "../world/runtime/live-config.ts";
 import { createOpenWorldRuntime } from "../world/runtime/open-world.ts";
 import { createPixiRenderer } from "../render/pixi/renderer.ts";
 import { createPhysicsAdapter } from "../physics/rapier/adapter.ts";
@@ -35,14 +37,23 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     latitude: Number(params.get("lat") ?? defaultOrigin.latitude),
     longitude: Number(params.get("lon") ?? defaultOrigin.longitude),
   };
-  const openWorldMode = params.get("mode") === "open-world";
+  let liveConfig;
+  try {
+    liveConfig = readLiveSourceConfig(params);
+  } catch (error: unknown) {
+    hint.textContent = error instanceof Error ? error.message : "Live mode configuration is invalid";
+    return;
+  }
+  const openWorldMode = params.get("mode") === "open-world" || liveConfig !== undefined;
   let regionId = "lecce-sant-oronzo-v0";
   let buildingCount = 0;
   let roadCount = 0;
   let regionWarningCount = 0;
   let result: CompileResult;
   if (openWorldMode) {
-    const source = createGeoDataSource(async () => rawFixture);
+    const source = liveConfig
+      ? createHttpGeoDataSource(liveConfig.endpoint)
+      : createGeoDataSource(async () => rawFixture);
     const runtime = createOpenWorldRuntime({
       baseOrigin: origin,
       cache: createChunkCache(9),

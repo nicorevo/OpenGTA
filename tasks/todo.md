@@ -31,4 +31,4 @@
 - [x] P3.1 Partizione e ownership delle feature sui confini.
 - [x] P3.2 Composizione/rendering multi-chunk.
 - [x] P3.3 Adapter HTTP live dietro source boundary.
-- [ ] P3.4 Decisione prodotto su provider, consenso e attivazione live.
+- [x] P3.4 Decisione provider-neutral, consenso e attivazione live.

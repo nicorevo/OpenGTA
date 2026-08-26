@@ -54,3 +54,18 @@ test("boots the Open World Runtime mode from selectable coordinates", async ({ p
   await expect(page.locator("#debug-overlay")).toContainText("physics steps:");
   expect(pageErrors).toEqual([]);
 });
+
+test("uses an explicitly consented live endpoint without hidden network dependencies", async ({ page }) => {
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.route("https://geo.test/query**", async (route) => {
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ elements: [] }) });
+  });
+
+  await page.goto("/?mode=open-world-live&lat=40.35&lon=18.17&endpoint=https%3A%2F%2Fgeo.test%2Fquery&consent=1");
+  await page.waitForTimeout(500);
+  expect(pageErrors, pageErrors.join("\n")).toEqual([]);
+  await page.keyboard.press("F3");
+  await expect(page.locator("#debug-overlay")).toContainText("region: open-world:chunk:0:0");
+  expect(pageErrors).toEqual([]);
+});

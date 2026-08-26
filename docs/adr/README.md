@@ -19,5 +19,6 @@ Status meanings:
 - ADR-006 — Lecce historic-centre fixture — **Accepted for prototype**
 - ADR-007 — Public OSM service boundaries — **Accepted**
 - ADR-008 — Client AI staging — **Accepted**
+- ADR-009 — Provider-neutral live runtime and explicit consent — **Accepted for prototype**
 
 Prototype ADRs are intentionally reversible after measured evidence.

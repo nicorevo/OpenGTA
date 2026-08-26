@@ -86,6 +86,12 @@ una sorgente geografica live resta fuori da questa slice.
 - multiplayer, AI strutturale o traffico;
 - cambio di renderer o physics engine.
 
+## Live activation policy
+
+La policy corrente è definita in `docs/adr/ADR-009-live-runtime-consent.md`:
+il core resta provider-neutral, il live endpoint è esplicito e la modalità
+richiede consenso opt-in. Il fixture offline resta il default di sviluppo.
+
 ## Invariants
 
 - La feature identity è indipendente dal chunk che la visualizza.

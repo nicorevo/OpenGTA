@@ -68,8 +68,8 @@ Spec normativa proposta: `docs/specs/open-world-runtime-phase-2.md`.
 - [x] P3.1 Definire ownership e partizione geometrica delle feature attraversanti.
 - [x] P3.2 Comporre e renderizzare la finestra multi-chunk attiva.
 - [x] P3.3 Aggiungere adapter HTTP live dietro `GeoDataSource`.
-- [ ] P3.4 Definire provider, consenso, policy dati e attivazione live in
-  prodotto.
+- [x] P3.4 Definire policy provider-neutral, consenso opt-in e attivazione live
+  in `docs/adr/ADR-009-live-runtime-consent.md`.
 
 ## Risks and Mitigations
 

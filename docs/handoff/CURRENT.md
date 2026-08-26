@@ -59,9 +59,10 @@ della fondazione Open World Runtime, è completata e documentata in
 `tasks/executions/2026-08-26-p2-6-open-world-runtime.md`. Le estensioni P3.1–P3.3
 sono state completate e registrate in
 `tasks/executions/2026-08-26-open-world-expansion.md`: partizione/ownership,
-composizione multi-chunk e adapter HTTP live. Resta P3.4, la decisione su
-provider, consenso e attivazione live in prodotto. AI e multiplayer restano
-fuori scope.
+composizione multi-chunk e adapter HTTP live. P3.4 è definita in
+`docs/adr/ADR-009-live-runtime-consent.md`: provider-neutral, endpoint esplicito
+e consenso opt-in; il fixture offline resta il default. AI e multiplayer
+restano fuori scope.
 
 ## Comandi
 
