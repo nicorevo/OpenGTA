@@ -32,7 +32,8 @@ Lo scope eseguibile corrente resta il vertical slice V0 documentato in:
 
 ## Next Planned Product Phase
 
-La prossima fase di prodotto resta Fase 2, multi-chunk locale. La review
-end-to-end del 2026-08-25 ha richiesto remediation della baseline: il gate si
-riapre solo dopo chiusura dei finding Important, nuova review positiva e
-approvazione del piano in `tasks/`.
+La prossima fase di prodotto è Fase 2, definita in
+`docs/specs/open-world-runtime-phase-2.md`: prima multi-chunk locale e
+lifecycle, poi finestra/seam, cache e acquisizione runtime Open World. La
+baseline V0 è stata consolidata; l’implementazione segue le slice ordinate nel
+`tasks/plan.md`.

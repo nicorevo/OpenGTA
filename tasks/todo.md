@@ -16,3 +16,12 @@
 - [ ] Rieseguire il gate end-to-end con commit atomici.
 - [ ] Scegliere il primo slice di Fase 2 e dettagliare criteri di accettazione.
 - [ ] Aprire il task implementativo con test e verifiche native.
+
+## Phase 2 Open World
+
+- [x] P2.1 Chunk identity, grid e bounds deterministici.
+- [ ] P2.2 Lifecycle locale dei chunk.
+- [ ] P2.3 Active window e seam.
+- [ ] P2.4 Warm cache in-memory.
+- [ ] P2.5 Boundary di acquisizione runtime.
+- [ ] P2.6 Integrazione Open World Runtime.
