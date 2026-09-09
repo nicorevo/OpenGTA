@@ -1,6 +1,6 @@
 # ONLINE-05: Aggiornare collider senza ricreare il mondo fisico
 
-**Stato:** pianificato.
+**Stato:** completato; prove nel log ONLINE-05.
 **Dipendenze:** nessuna.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.

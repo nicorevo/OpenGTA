@@ -2,6 +2,28 @@ import { describe, expect, it } from "vitest";
 import { createPhysicsAdapter } from "./adapter.ts";
 
 describe("Rapier vehicle integration", () => {
+  it("updates static chunks without replacing the vehicle and removes shared feature fragments independently", async () => {
+    const physics = await createPhysicsAdapter([]);
+    const vehicle = physics.createVehicle({ x: 0, y: 0, heading: 0 });
+    const wall = (x: number) => [{ kind: "segment" as const, featureId: "shared", a: { x, y: -10 }, b: { x, y: 10 } }];
+    const a = wall(10); const b = wall(20);
+    physics.setChunk("a", a); physics.setChunk("b", b); physics.setChunk("b", b);
+    expect(physics.colliderCount()).toBe(3);
+    expect(physics.isPoseFree({ position: { x: 10, y: 0 }, heading: 0 })).toBe(false);
+    expect(physics.isPoseFree(vehicle)).toBe(true);
+    physics.removeChunk("a"); physics.removeChunk("a");
+    expect(physics.colliderCount()).toBe(2);
+    expect(physics.isPoseFree({ position: { x: 10, y: 0 }, heading: 1 })).toBe(true);
+    physics.setChunk("b", wall(30));
+    expect(physics.colliderCount()).toBe(2);
+    expect(physics.world.getRigidBody(vehicle.body.handle)).toBe(vehicle.body);
+    expect(vehicle.body.translation()).toMatchObject({ x: 0, y: 0 });
+    expect(() => physics.setChunk("b", [{ kind: "circle", featureId: "bad", center: { x: NaN, y: 0 }, radiusMeters: 1 }])).toThrow();
+    expect(physics.colliderCount()).toBe(2);
+    expect(physics.isPoseFree({ position: { x: 30, y: 0 }, heading: 0 })).toBe(false);
+    physics.dispose(); physics.dispose();
+    expect(physics.colliderCount()).toBe(0);
+  });
   it("keeps a dynamic vehicle outside a static wall", async () => {
     const physics = await createPhysicsAdapter([{
       kind: "polygon",
