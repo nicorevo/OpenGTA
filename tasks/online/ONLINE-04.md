@@ -1,6 +1,6 @@
 # ONLINE-04: Aggiornare la scena preservando il veicolo
 
-**Stato:** pianificato.
+**Stato:** completato; prove nel log ONLINE-04.
 **Dipendenze:** nessuna.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.

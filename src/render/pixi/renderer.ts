@@ -1,10 +1,10 @@
 import { Application, Container, Graphics, Text } from "pixi.js";
 import type { CompiledChunkV0, CompiledLabel } from "../../world/compiler/compiled.ts";
-import type { Polygon2D } from "../../world/model/types.ts";
+import type { Bounds2D, Polygon2D } from "../../world/model/types.ts";
 import { createPresentationState, toggleLabels, type PresentationState } from "./presentation.ts";
 import { groupRoadsByWidth, sortBuildingsForPainter, type RoadStrokeGroup } from "./scene-order.ts";
 
-export interface PixiRenderer { readonly app: Application; render(chunk: CompiledChunkV0 | readonly CompiledChunkV0[]): void; updateVehicle(position: { x: number; y: number }, heading: number): void; toggleLabels(): boolean; }
+export interface PixiRenderer { readonly app: Application; render(chunk: CompiledChunkV0 | readonly CompiledChunkV0[]): void; updateVehicle(position: { x: number; y: number }, heading: number): void; toggleLabels(): boolean; cameraBounds(): Bounds2D; dispose(): void; }
 const VEHICLE_LENGTH_METERS = 4.2;
 const VEHICLE_WIDTH_METERS = 1.8;
 const VEHICLE_VISUAL_SCALE = 2.6;
@@ -52,27 +52,46 @@ function visibleLabels(labels: readonly CompiledLabel[]): CompiledLabel[] { cons
 export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<PixiRenderer> {
   const app = new Application();
   await app.init({ canvas, background: 0x91a477, antialias: true, preference: "webgl", resizeTo: canvas.parentElement ?? window });
-  const world = new Container(); app.stage.addChild(world); let vehicle: Graphics | undefined; let worldScale = 1;
+  const world = new Container(); app.stage.addChild(world);
+  const staticLayer = new Container(); world.addChild(staticLayer);
+  const worldScale = 1;
+  const length = VEHICLE_LENGTH_METERS * VEHICLE_VISUAL_SCALE;
+  const width = VEHICLE_WIDTH_METERS * VEHICLE_VISUAL_SCALE;
+  const vehicle = new Graphics();
+  vehicle.roundRect(-length / 2, -width / 2, length, width, width * 0.2).fill(0xd1495b);
+  vehicle.moveTo(length / 2, 0).lineTo(length / 2 - width * 0.35, -width * 0.35).lineTo(length / 2 - width * 0.35, width * 0.35).closePath().fill(0xf6bd60).stroke({ color: 0x8c2636, width: 0.6 });
+  world.addChild(vehicle);
+  let currentChunks: readonly CompiledChunkV0[] = [];
+  let disposed = false;
+  let position = { x: 0, y: 0 };
+  const viewScale = () => Math.max(1, Math.min(app.screen.width, app.screen.height)) / 360;
+  const updateCamera = () => {
+    const scale = viewScale(); world.scale.set(scale);
+    world.position.set(app.screen.width / 2 - position.x * scale, app.screen.height / 2 + position.y * scale);
+  };
+  app.ticker.add(updateCamera);
   let presentation: PresentationState = createPresentationState();
   let labelLayer: Container | undefined;
   return {
     app,
     render(input) {
       const chunks: readonly CompiledChunkV0[] = Array.isArray(input) ? input : [input];
-      const chunk = chunks[0];
-      if (!chunk) return;
-      world.removeChildren().forEach((child) => child.destroy());
-      worldScale = Math.min(app.screen.width, app.screen.height) / 360;
-      world.position.set(app.screen.width / 2, app.screen.height / 2);
+      if (disposed) return;
+      const unique = new Map(chunks.map((chunk) => [chunk.id, chunk]));
+      if (unique.size !== chunks.length) throw new Error("Duplicate rendered chunk id");
+      if (chunks.length === currentChunks.length && currentChunks.every((chunk) => unique.get(chunk.id) === chunk)) return;
+      currentChunks = [...chunks];
+      staticLayer.removeChildren().forEach((child) => child.destroy({ children: true }));
+      updateCamera();
       const ground = new Graphics();
       chunks.flatMap((entry) => entry.ground).forEach((area) => drawPolygon(ground, area.area, worldScale, 0, area.styleKey.startsWith("water:") ? 0x668ca3 : area.styleKey.includes("park") ? 0x70915a : 0x8b9d70));
-      world.addChild(ground);
+      staticLayer.addChild(ground);
       const roadGroups = groupRoadsByWidth(chunks.flatMap((entry) => entry.roads));
       const roadCasing = new Graphics();
       const roadSurface = new Graphics();
       strokeRoadNetwork(roadCasing, roadGroups, worldScale, ROAD_EDGE, roadCasingPx);
       strokeRoadNetwork(roadSurface, roadGroups, worldScale, ROAD_FILL, () => 0);
-      world.addChild(roadCasing, roadSurface);
+      staticLayer.addChild(roadCasing, roadSurface);
       const buildings = new Graphics();
       for (const building of sortBuildingsForPainter(chunks.flatMap((entry) => entry.buildings))) {
         const depth = Math.min(24, Math.max(3, building.visualHeightMeters * worldScale * 0.6));
@@ -87,18 +106,18 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       const roadCorridor = new Graphics();
       strokeRoadNetwork(roadCorridor, roadGroups, worldScale, 0xffffff, roadCasingPx);
       buildings.setMask({ mask: roadCorridor, inverse: true });
-      world.addChild(roadCorridor, buildings);
+      staticLayer.addChild(roadCorridor, buildings);
       labelLayer = new Container();
       for (const label of visibleLabels(chunks.flatMap((entry) => entry.labels))) {
         const text = new Text({ text: label.text, style: { fontFamily: "Arial", fontSize: label.kind === "place" ? 11 : 9, fontWeight: "bold", fill: label.kind === "place" ? 0x2d2928 : 0xf3e7c6 } });
         text.anchor.set(0.5); text.position.set(label.position.x * worldScale, -label.position.y * worldScale); text.rotation = readableLabelAngle(label.angle); labelLayer.addChild(text);
       }
       labelLayer.visible = presentation.labelsVisible;
-      world.addChild(labelLayer);
-      const length = VEHICLE_LENGTH_METERS * worldScale * VEHICLE_VISUAL_SCALE; const width = VEHICLE_WIDTH_METERS * worldScale * VEHICLE_VISUAL_SCALE;
-      vehicle = new Graphics(); vehicle.roundRect(-length / 2, -width / 2, length, width, width * 0.2); vehicle.fill(0xd1495b); vehicle.moveTo(length / 2, 0); vehicle.lineTo(length / 2 - width * 0.35, -width * 0.35); vehicle.lineTo(length / 2 - width * 0.35, width * 0.35); vehicle.closePath(); vehicle.fill(0xf6bd60); vehicle.stroke({ color: 0x8c2636, width: Math.max(0.5, worldScale * 0.6) }); world.addChild(vehicle);
+      staticLayer.addChild(labelLayer);
     },
-    updateVehicle(position, heading) { if (!vehicle) return; world.position.set(app.screen.width / 2 - position.x * worldScale, app.screen.height / 2 + position.y * worldScale); vehicle.position.set(position.x * worldScale, -position.y * worldScale); vehicle.rotation = -heading; },
+    updateVehicle(nextPosition, heading) { if (disposed) return; position = { ...nextPosition }; updateCamera(); vehicle.position.set(position.x, -position.y); vehicle.rotation = -heading; },
+    cameraBounds() { const halfX = app.screen.width / viewScale() / 2; const halfY = app.screen.height / viewScale() / 2; return { minX: position.x - halfX, maxX: position.x + halfX, minY: position.y - halfY, maxY: position.y + halfY }; },
+    dispose() { if (disposed) return; disposed = true; currentChunks = []; app.ticker.remove(updateCamera); app.destroy(false, { children: true }); },
     toggleLabels() { presentation = toggleLabels(presentation); if (labelLayer) labelLayer.visible = presentation.labelsVisible; return presentation.labelsVisible; },
   };
 }
