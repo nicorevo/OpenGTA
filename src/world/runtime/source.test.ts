@@ -81,6 +81,15 @@ describe("runtime geo data source", () => {
     expect(query).toContain("out skel qt");
   });
 
+  it("rejects an Overpass provider remark even when HTTP succeeds", async () => {
+    const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ remark: "runtime error: Query timed out", elements: [] }),
+    }));
+    await expect(source.acquire(request)).rejects.toMatchObject({ code: "provider-error" });
+  });
+
   it("retries transient Overpass throttling", async () => {
     let calls = 0;
     const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async () => {
@@ -93,29 +102,26 @@ describe("runtime geo data source", () => {
     expect(calls).toBe(2);
   });
 
-  it("uses the managed fallback when the default Overpass endpoint is unavailable", async () => {
+  it("keeps the configured endpoint when the default Overpass endpoint is unavailable", async () => {
     const endpoints: string[] = [];
     const source = createOverpassGeoDataSource(undefined, async (url) => {
       endpoints.push(url);
-      return endpoints.length === 1
-        ? { ok: false, status: 503, json: async () => ({}) }
-        : { ok: true, status: 200, json: async () => ({ elements: [] }) };
+      return { ok: false, status: 503, json: async () => ({}) };
     }, { maxRetries: 1, retryDelayMs: 0 });
-    await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    await expect(source.acquire(request)).rejects.toThrow("HTTP 503");
     expect(endpoints).toEqual([
-      "https://overpass.osm.ch/api/interpreter",
+      "https://overpass-api.de/api/interpreter",
       "https://overpass-api.de/api/interpreter",
     ]);
   });
 
-  it("falls back after a network failure", async () => {
+  it("does not rotate endpoints after a network failure", async () => {
     let calls = 0;
     const source = createOverpassGeoDataSource(undefined, async () => {
       calls += 1;
-      if (calls === 1) throw new Error("fetch failed");
-      return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+      throw new Error("fetch failed");
     }, { maxRetries: 1, retryDelayMs: 0 });
-    await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    await expect(source.acquire(request)).rejects.toThrow("fetch failed");
     expect(calls).toBe(2);
   });
 });

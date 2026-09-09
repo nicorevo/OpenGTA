@@ -34,6 +34,20 @@ export interface OverpassOptions {
   readonly retryDelayMs?: number;
 }
 
+export type GeoDataErrorCode = "http" | "network" | "provider-error" | "invalid-response" | "timeout";
+
+export class GeoDataSourceError extends Error {
+  readonly code: GeoDataErrorCode;
+  readonly status?: number;
+
+  constructor(code: GeoDataErrorCode, message: string, status?: number) {
+    super(message);
+    this.name = "GeoDataSourceError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 const MAX_RADIUS_METERS = 100_000;
 const MAX_REGION_ID_LENGTH = 128;
 const MAX_ELEMENTS = 100_000;
@@ -84,7 +98,7 @@ export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourc
       const timeout = new Promise<never>((_, reject) => {
         timer = setTimeout(() => {
           controller.abort();
-          reject(new Error("geo data source request timed out"));
+          reject(new GeoDataSourceError("timeout", "geo data source request timed out"));
         }, timeoutMs);
       });
       try {
@@ -116,11 +130,7 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
   }, { timeoutMs: 30_000, minIntervalMs: 1_000 });
 }
 
-export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass.osm.ch/api/interpreter";
-const FALLBACK_OVERPASS_ENDPOINTS = [
-  DEFAULT_OVERPASS_ENDPOINT,
-  "https://overpass-api.de/api/interpreter",
-] as const;
+export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
 export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT, fetcher: GeoDataFetcher = async (url, signal, body) => fetch(url, {
   method: "POST",
@@ -132,7 +142,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   const retryDelayMs = options.retryDelayMs ?? 1_500;
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
-  const endpoints = endpoint === DEFAULT_OVERPASS_ENDPOINT ? FALLBACK_OVERPASS_ENDPOINTS : [endpoint];
+  const endpoints = [endpoint];
   return createGeoDataSource(async (request, signal) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
@@ -146,15 +156,21 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
       let response: GeoDataResponse | undefined;
       let networkError: unknown;
       try {
-        response = await fetcher(endpoints[attempt % endpoints.length], signal, `data=${encodeURIComponent(query)}`);
+        response = await fetcher(endpoints[0], signal, `data=${encodeURIComponent(query)}`);
       } catch (error: unknown) {
         networkError = error;
       }
-      if (response?.ok) return response.json();
+      if (response?.ok) {
+        const payload = await response.json();
+        if (payload && typeof payload === "object" && typeof (payload as { remark?: unknown }).remark === "string" && (payload as { remark: string }).remark.length > 0) {
+          throw new GeoDataSourceError("provider-error", (payload as { remark: string }).remark, response.status);
+        }
+        return payload;
+      }
       const retryable = networkError !== undefined || response?.status === 429 || response?.status === 503 || (response?.status ?? 0) >= 500;
       if (!retryable || attempt === maxRetries) {
-        if (networkError !== undefined) throw networkError;
-        throw new Error(`geo data source returned HTTP ${response?.status}`);
+        if (networkError !== undefined) throw new GeoDataSourceError("network", networkError instanceof Error ? networkError.message : "geo data source request failed");
+        throw new GeoDataSourceError("http", `geo data source returned HTTP ${response?.status}`, response?.status);
       }
       const retryAfter = Number(response?.headers?.get("retry-after"));
       const delay = Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1_000 : retryDelayMs * (attempt + 1);
@@ -163,7 +179,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
         signal.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
       });
     }
-    throw new Error("geo data source retry loop exhausted");
+    throw new GeoDataSourceError("network", "geo data source retry loop exhausted");
   }, { timeoutMs: 30_000, minIntervalMs: 2_000 });
 }
 
