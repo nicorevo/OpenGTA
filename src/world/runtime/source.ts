@@ -34,14 +34,14 @@ export interface OverpassOptions {
   readonly retryDelayMs?: number;
 }
 
-export type GeoDataErrorCode = "http" | "network" | "provider-error" | "invalid-response" | "timeout";
+export type GeoDataErrorCode = "invalid-request" | "http" | "network" | "provider-error" | "invalid-response" | "timeout" | "aborted" | "queue-full" | "queue-timeout";
 
 export class GeoDataSourceError extends Error {
   readonly code: GeoDataErrorCode;
   readonly status?: number;
 
-  constructor(code: GeoDataErrorCode, message: string, status?: number) {
-    super(message);
+  constructor(code: GeoDataErrorCode, message: string, status?: number, cause?: unknown) {
+    super(message, { cause });
     this.name = "GeoDataSourceError";
     this.code = code;
     this.status = status;
@@ -56,7 +56,7 @@ function validateRequest(request: RuntimeRegionRequest): void {
   if (!request || typeof request.regionId !== "string" || request.regionId.length === 0 || request.regionId.length > MAX_REGION_ID_LENGTH) {
     throw new TypeError("runtime region id must be a non-empty bounded string");
   }
-  if (!Number.isFinite(request.origin.latitude) || request.origin.latitude < -90 || request.origin.latitude > 90) {
+  if (!request.origin || !Number.isFinite(request.origin.latitude) || request.origin.latitude < -90 || request.origin.latitude > 90) {
     throw new RangeError("runtime latitude must be finite and between -90 and 90");
   }
   if (!Number.isFinite(request.origin.longitude) || request.origin.longitude < -180 || request.origin.longitude > 180) {
@@ -67,15 +67,26 @@ function validateRequest(request: RuntimeRegionRequest): void {
   }
 }
 
-function validateResponse(value: unknown): RawOsm {
+function validateResponse(value: unknown, status?: number): RawOsm {
   if (!value || typeof value !== "object" || !Array.isArray((value as { elements?: unknown }).elements)) {
-    throw new TypeError("OSM response must contain an elements array");
+    throw new GeoDataSourceError("invalid-response", "OSM response must contain an elements array", status);
   }
   const elements = (value as { elements: unknown[] }).elements;
   if (elements.length > MAX_ELEMENTS || elements.some((element) => !element || typeof element !== "object" || !["node", "way", "relation"].includes((element as { type?: unknown }).type as string))) {
-    throw new TypeError("OSM response contains invalid or excessive elements");
+    throw new GeoDataSourceError("invalid-response", "OSM response contains invalid or excessive elements", status);
   }
   return { elements } as RawOsm;
+}
+
+async function readResponse(response: GeoDataResponse, overpass = false): Promise<RawOsm> {
+  let payload: unknown;
+  try { payload = await response.json(); }
+  catch (cause) { throw new GeoDataSourceError("invalid-response", "OSM response is not valid JSON", response.status, cause); }
+  if (overpass && payload && typeof payload === "object" && "remark" in payload) {
+    if (typeof payload.remark !== "string") throw new GeoDataSourceError("invalid-response", "OSM response has an invalid remark", response.status);
+    if (payload.remark.length > 0) throw new GeoDataSourceError("provider-error", "OSM provider reported an incomplete response", response.status);
+  }
+  return validateResponse(payload, response.status);
 }
 
 export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourceOptions = {}): GeoDataSource {
@@ -88,7 +99,8 @@ export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourc
 
   return {
     async acquire(request) {
-      validateRequest(request);
+      try { validateRequest(request); }
+      catch (cause) { throw new GeoDataSourceError("invalid-request", cause instanceof Error ? cause.message : "Invalid region request", undefined, cause); }
       const startedAt = now();
       if (!Number.isFinite(startedAt)) throw new RangeError("source clock must be finite");
       if (startedAt - lastStartedAt < minIntervalMs) throw new Error("source rate limit interval has not elapsed");
@@ -124,9 +136,11 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
       request.origin.latitude + latitudeDelta,
       request.origin.longitude + longitudeDelta,
     ].join(","));
-    const response = await fetcher(url.toString(), signal);
-    if (!response.ok) throw new Error(`geo data source returned HTTP ${response.status}`);
-    return response.json();
+    let response: GeoDataResponse;
+    try { response = await fetcher(url.toString(), signal); }
+    catch (cause) { throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, cause); }
+    if (!response.ok) throw new GeoDataSourceError("http", `geo data source returned HTTP ${response.status}`, response.status);
+    return readResponse(response);
   }, { timeoutMs: 30_000, minIntervalMs: 1_000 });
 }
 
@@ -142,7 +156,6 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   const retryDelayMs = options.retryDelayMs ?? 1_500;
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
-  const endpoints = [endpoint];
   return createGeoDataSource(async (request, signal) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
@@ -156,20 +169,16 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
       let response: GeoDataResponse | undefined;
       let networkError: unknown;
       try {
-        response = await fetcher(endpoints[0], signal, `data=${encodeURIComponent(query)}`);
+        response = await fetcher(endpoint, signal, `data=${encodeURIComponent(query)}`);
       } catch (error: unknown) {
         networkError = error;
       }
       if (response?.ok) {
-        const payload = await response.json();
-        if (payload && typeof payload === "object" && typeof (payload as { remark?: unknown }).remark === "string" && (payload as { remark: string }).remark.length > 0) {
-          throw new GeoDataSourceError("provider-error", (payload as { remark: string }).remark, response.status);
-        }
-        return payload;
+        return readResponse(response, true);
       }
       const retryable = networkError !== undefined || response?.status === 429 || response?.status === 503 || (response?.status ?? 0) >= 500;
       if (!retryable || attempt === maxRetries) {
-        if (networkError !== undefined) throw new GeoDataSourceError("network", networkError instanceof Error ? networkError.message : "geo data source request failed");
+        if (networkError !== undefined) throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, networkError);
         throw new GeoDataSourceError("http", `geo data source returned HTTP ${response?.status}`, response?.status);
       }
       const retryAfter = Number(response?.headers?.get("retry-after"));

@@ -8,6 +8,21 @@ const request: RuntimeRegionRequest = {
 };
 
 describe("runtime geo data source", () => {
+  it.each([null, { elements: [null] }, { elements: [], remark: 7 }])("classifies malformed payloads %j", async (payload) => {
+    const source = createOverpassGeoDataSource(undefined, async () => ({ ok: true, status: 200, json: async () => payload }));
+    await expect(source.acquire(request)).rejects.toMatchObject({ code: "invalid-response", status: 200 });
+  });
+
+  it("preserves parsing cause without exposing provider text", async () => {
+    const cause = new SyntaxError("secret provider text");
+    const source = createHttpGeoDataSource("https://example.test", async () => ({ ok: true, status: 200, json: async () => { throw cause; } }));
+    await expect(source.acquire(request)).rejects.toMatchObject({ code: "invalid-response", status: 200, cause });
+  });
+
+  it("rejects partial provider data with a safe message", async () => {
+    const source = createOverpassGeoDataSource(undefined, async () => ({ ok: true, status: 200, json: async () => ({ elements: [{ type: "node", id: 1, lat: 0, lon: 0 }], remark: "untrusted secret" }) }));
+    await expect(source.acquire(request)).rejects.toMatchObject({ code: "provider-error", message: "OSM provider reported an incomplete response" });
+  });
   it("passes arbitrary coordinates through the shared normalize/compile pipeline", async () => {
     let received: RuntimeRegionRequest | undefined;
     const source = createGeoDataSource(async (incoming) => {
