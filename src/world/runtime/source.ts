@@ -1,6 +1,10 @@
 import { createTangentProjector } from "../../geo/coordinates/projector.ts";
 import { normalizeOsm, type RawOsm } from "../../geo/normalize/osm.ts";
 import { compileRegion, type CompileResult } from "../compiler/compiled.ts";
+import { createRequestScheduler, type AcquireOptions, type SchedulerOptions, type AttemptContext } from "./request-scheduler.ts";
+import { GeoDataSourceError } from "./source-error.ts";
+export { GeoDataSourceError, type GeoDataErrorCode } from "./source-error.ts";
+export type { AcquireOptions } from "./request-scheduler.ts";
 
 export interface RuntimeRegionRequest {
   readonly regionId: string;
@@ -8,17 +12,14 @@ export interface RuntimeRegionRequest {
   readonly radiusMeters: number;
 }
 
-export type GeoDataLoader = (request: RuntimeRegionRequest, signal: AbortSignal) => Promise<unknown>;
+export type GeoDataLoader = (request: RuntimeRegionRequest, signal: AbortSignal, context: AttemptContext) => Promise<unknown>;
 
 export interface GeoDataSource {
-  acquire(request: RuntimeRegionRequest): Promise<RawOsm>;
+  acquire(request: RuntimeRegionRequest, options?: AcquireOptions): Promise<RawOsm>;
+  promote?(signal: AbortSignal, priority: 0 | 1 | 2): void;
 }
 
-export interface GeoDataSourceOptions {
-  readonly timeoutMs?: number;
-  readonly minIntervalMs?: number;
-  readonly now?: () => number;
-}
+export interface GeoDataSourceOptions extends SchedulerOptions {}
 
 export interface GeoDataResponse {
   readonly ok: boolean;
@@ -29,24 +30,11 @@ export interface GeoDataResponse {
 
 export type GeoDataFetcher = (url: string, signal: AbortSignal, body?: string) => Promise<GeoDataResponse>;
 
-export interface OverpassOptions {
+export interface OverpassOptions extends GeoDataSourceOptions {
   readonly maxRetries?: number;
   readonly retryDelayMs?: number;
 }
 
-export type GeoDataErrorCode = "invalid-request" | "http" | "network" | "provider-error" | "invalid-response" | "timeout" | "aborted" | "queue-full" | "queue-timeout";
-
-export class GeoDataSourceError extends Error {
-  readonly code: GeoDataErrorCode;
-  readonly status?: number;
-
-  constructor(code: GeoDataErrorCode, message: string, status?: number, cause?: unknown) {
-    super(message, { cause });
-    this.name = "GeoDataSourceError";
-    this.code = code;
-    this.status = status;
-  }
-}
 
 const MAX_RADIUS_METERS = 100_000;
 const MAX_REGION_ID_LENGTH = 128;
@@ -90,36 +78,13 @@ async function readResponse(response: GeoDataResponse, overpass = false): Promis
 }
 
 export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourceOptions = {}): GeoDataSource {
-  const timeoutMs = options.timeoutMs ?? 15_000;
-  const minIntervalMs = options.minIntervalMs ?? 0;
-  const now = options.now ?? Date.now;
-  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw new RangeError("source timeout must be positive");
-  if (!Number.isFinite(minIntervalMs) || minIntervalMs < 0) throw new RangeError("source interval must be non-negative");
-  let lastStartedAt = Number.NEGATIVE_INFINITY;
-
+  const scheduler = createRequestScheduler(options);
   return {
-    async acquire(request) {
+    promote: scheduler.promote,
+    async acquire(request, input) {
       try { validateRequest(request); }
       catch (cause) { throw new GeoDataSourceError("invalid-request", cause instanceof Error ? cause.message : "Invalid region request", undefined, cause); }
-      const startedAt = now();
-      if (!Number.isFinite(startedAt)) throw new RangeError("source clock must be finite");
-      if (startedAt - lastStartedAt < minIntervalMs) throw new Error("source rate limit interval has not elapsed");
-      lastStartedAt = startedAt;
-      const controller = new AbortController();
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const timeout = new Promise<never>((_, reject) => {
-        timer = setTimeout(() => {
-          controller.abort();
-          reject(new GeoDataSourceError("timeout", "geo data source request timed out"));
-        }, timeoutMs);
-      });
-      try {
-        const response = await Promise.race([loader({ ...request, origin: { ...request.origin } }, controller.signal), timeout]);
-        return validateResponse(response);
-      } finally {
-        if (timer !== undefined) clearTimeout(timer);
-        controller.abort();
-      }
+      return scheduler.run(async (context) => validateResponse(await loader({ ...request, origin: { ...request.origin } }, context.signal, context)), input);
     },
   };
 }
@@ -146,6 +111,14 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
 
 export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
+export function retryAfterMilliseconds(value: string | null | undefined, now: number): number | undefined {
+  if (value == null || value.trim() === "") return undefined;
+  if (/^\d+(\.\d+)?$/.test(value.trim())) return Number(value) * 1000;
+  if (!/[A-Za-z]/.test(value)) return undefined;
+  const date = Date.parse(value);
+  return Number.isFinite(date) ? Math.max(0, date - now) : undefined;
+}
+
 export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT, fetcher: GeoDataFetcher = async (url, signal, body) => fetch(url, {
   method: "POST",
   headers: { "content-type": "application/x-www-form-urlencoded" },
@@ -156,7 +129,8 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   const retryDelayMs = options.retryDelayMs ?? 1_500;
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
-  return createGeoDataSource(async (request, signal) => {
+  const now = options.now ?? Date.now;
+  return createGeoDataSource(async (request, signal, context) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
     const south = request.origin.latitude - latitudeDelta;
@@ -166,6 +140,8 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
     const bbox = `${south},${west},${north},${east}`;
     const query = `[out:json][timeout:25];(nwr["building"](${bbox});nwr["highway"](${bbox});nwr["landuse"](${bbox});nwr["natural"](${bbox});nwr["waterway"](${bbox});nwr["barrier"](${bbox}););out body;>;out skel qt;`;
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+      signal.throwIfAborted();
+      if (attempt > 0) await context.attempt();
       let response: GeoDataResponse | undefined;
       let networkError: unknown;
       try {
@@ -177,19 +153,17 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
         return readResponse(response, true);
       }
       const retryable = networkError !== undefined || response?.status === 429 || response?.status === 503 || (response?.status ?? 0) >= 500;
+      const delay = retryAfterMilliseconds(response?.headers?.get("retry-after"), now()) ?? retryDelayMs * (attempt + 1);
+      const retryAt = now() + delay;
+      if (retryable) context.deferUntil(retryAt);
       if (!retryable || attempt === maxRetries) {
         if (networkError !== undefined) throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, networkError);
-        throw new GeoDataSourceError("http", `geo data source returned HTTP ${response?.status}`, response?.status);
+        throw new GeoDataSourceError("http", `geo data source returned HTTP ${response?.status}`, response?.status, undefined, retryable ? retryAt : undefined);
       }
-      const retryAfter = Number(response?.headers?.get("retry-after"));
-      const delay = Number.isFinite(retryAfter) && retryAfter >= 0 ? retryAfter * 1_000 : retryDelayMs * (attempt + 1);
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(resolve, delay);
-        signal.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
-      });
+      if (retryAt >= context.deadline) throw new GeoDataSourceError(response ? "http" : "network", "Provider cooldown exceeds request budget", response?.status, networkError, retryAt);
     }
     throw new GeoDataSourceError("network", "geo data source retry loop exhausted");
-  }, { timeoutMs: 30_000, minIntervalMs: 2_000 });
+  }, { timeoutMs: 30_000, minIntervalMs: 2_000, ...options });
 }
 
 export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest): Promise<CompileResult> {

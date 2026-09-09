@@ -1,6 +1,6 @@
 # ONLINE-02: Accodare acquisizioni e cancellare l'attesa
 
-**Stato:** pianificato.
+**Stato:** completato; prove nel log ONLINE-02.
 **Dipendenze:** ONLINE-01.
 **Persona:** root-cause-debugger.
 **MODEL CLASS:** STANDARD. **REASONING:** high.

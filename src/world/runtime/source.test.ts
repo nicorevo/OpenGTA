@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { compileRuntimeRegion, createGeoDataSource, createHttpGeoDataSource, createOverpassGeoDataSource, type RuntimeRegionRequest } from "./source.ts";
 
 const request: RuntimeRegionRequest = {
@@ -6,6 +6,7 @@ const request: RuntimeRegionRequest = {
   origin: { latitude: 40.35, longitude: 18.17 },
   radiusMeters: 300,
 };
+afterEach(() => vi.useRealTimers());
 
 describe("runtime geo data source", () => {
   it.each([null, { elements: [null] }, { elements: [], remark: 7 }])("classifies malformed payloads %j", async (payload) => {
@@ -47,13 +48,14 @@ describe("runtime geo data source", () => {
   });
 
   it("enforces the configured acquisition interval", async () => {
-    let now = 100;
-    const source = createGeoDataSource(async () => ({ elements: [] }), { minIntervalMs: 50, now: () => now });
-    await source.acquire(request);
-    now = 120;
-    await expect(source.acquire(request)).rejects.toThrow("rate limit");
-    now = 151;
-    await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    vi.useFakeTimers();
+    const starts: number[] = [];
+    const source = createGeoDataSource(async () => { starts.push(Date.now()); return { elements: [] }; }, { minIntervalMs: 50 });
+    const jobs = Array.from({ length: 4 }, () => source.acquire(request));
+    await vi.runAllTimersAsync();
+    await Promise.all(jobs);
+    expect(starts.map((t) => t - starts[0])).toEqual([0, 50, 100, 150]);
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it("rejects invalid coordinates before calling the source", async () => {
@@ -106,6 +108,7 @@ describe("runtime geo data source", () => {
   });
 
   it("retries transient Overpass throttling", async () => {
+    vi.useFakeTimers();
     let calls = 0;
     const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async () => {
       calls += 1;
@@ -113,17 +116,20 @@ describe("runtime geo data source", () => {
         ? { ok: false, status: 429, json: async () => ({}) }
         : { ok: true, status: 200, json: async () => ({ elements: [] }) };
     }, { maxRetries: 1, retryDelayMs: 0 });
-    await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    const result = expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+    await vi.runAllTimersAsync(); await result;
     expect(calls).toBe(2);
   });
 
   it("keeps the configured endpoint when the default Overpass endpoint is unavailable", async () => {
+    vi.useFakeTimers();
     const endpoints: string[] = [];
     const source = createOverpassGeoDataSource(undefined, async (url) => {
       endpoints.push(url);
       return { ok: false, status: 503, json: async () => ({}) };
     }, { maxRetries: 1, retryDelayMs: 0 });
-    await expect(source.acquire(request)).rejects.toThrow("HTTP 503");
+    const result = expect(source.acquire(request)).rejects.toThrow("HTTP 503");
+    await vi.runAllTimersAsync(); await result;
     expect(endpoints).toEqual([
       "https://overpass-api.de/api/interpreter",
       "https://overpass-api.de/api/interpreter",
@@ -131,12 +137,14 @@ describe("runtime geo data source", () => {
   });
 
   it("does not rotate endpoints after a network failure", async () => {
+    vi.useFakeTimers();
     let calls = 0;
     const source = createOverpassGeoDataSource(undefined, async () => {
       calls += 1;
       throw new Error("fetch failed");
     }, { maxRetries: 1, retryDelayMs: 0 });
-    await expect(source.acquire(request)).rejects.toThrow("fetch failed");
+    const result = expect(source.acquire(request)).rejects.toThrow("fetch failed");
+    await vi.runAllTimersAsync(); await result;
     expect(calls).toBe(2);
   });
 });

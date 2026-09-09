@@ -20,6 +20,7 @@ test("OSM live compiles real geometry using only the selected provider", async (
   });
   await page.goto("/?mode=open-world-live&provider=osm&consent=1");
   await expect(page.locator("canvas")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window), { timeout: 15000 }).toBe(true);
   await page.keyboard.press("F3");
   await expect(page.locator("#debug-overlay")).toContainText(/buildings: [1-9]/);
   await expect(page.locator("#debug-overlay")).toContainText(/roads: [1-9]/);

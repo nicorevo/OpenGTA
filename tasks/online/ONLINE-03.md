@@ -1,6 +1,6 @@
 # ONLINE-03: Retry con cooldown e budget verificabili
 
-**Stato:** pianificato.
+**Stato:** completato; prove nel log ONLINE-03.
 **Dipendenze:** ONLINE-02.
 **Persona:** root-cause-debugger.
 **MODEL CLASS:** STANDARD. **REASONING:** high.

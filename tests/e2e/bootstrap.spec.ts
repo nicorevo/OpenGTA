@@ -49,6 +49,7 @@ test("boots the Open World Runtime mode from selectable coordinates", async ({ p
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/?mode=open-world&lat=40.35&lon=18.17");
+  await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window)).toBe(true);
   await page.keyboard.press("F3");
   await expect(page.locator("#debug-overlay")).toContainText("region: open-world:chunk:0:0");
   await expect(page.locator("#debug-overlay")).toContainText("physics steps:");
@@ -63,7 +64,7 @@ test("uses an explicitly consented live endpoint without hidden network dependen
   });
 
   await page.goto("/?mode=open-world-live&lat=40.35&lon=18.17&endpoint=https%3A%2F%2Fgeo.test%2Fquery&consent=1");
-  await page.waitForTimeout(500);
+  await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window), { timeout: 15000 }).toBe(true);
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   await page.keyboard.press("F3");
   await expect(page.locator("#debug-overlay")).toContainText("region: open-world:chunk:0:0");
