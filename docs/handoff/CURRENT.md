@@ -1,6 +1,6 @@
 # Punto di ingresso corrente
 
-Data: 2026-08-26
+Data: 2026-09-09
 
 Questo file sostituisce `CODEX-START-HERE.md` come avvio di sessione.
 
@@ -14,8 +14,9 @@ Non rieseguirli come backlog corrente.
 |---|---|
 | 0 Documentazione e contratti | Completata — `docs/results/PHASE-0-COMPLETE.md` |
 | 0B Esperimenti stack V0 | Assorbita dall'evidenza V0 / ADR-001–005 |
-| 1 Vertical slice V0 | Eseguita, review con remediation richiesta |
-| 2 Fondazione Open World | Completata fino a live opt-in provider-neutral |
+| 1 Vertical slice V0 | Implementata; remediation R1-R8 completata |
+| 2 Fondazione Open World | Implementata; difetti del live riprodotti e aperti |
+| Ripristino online | ONLINE-01..16 pianificati, implementazione non avviata |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -28,8 +29,26 @@ La remediation R1–R8 è stata completata il 2026-08-26:
 - remediation: `docs/analysis/IMPORTANT-FINDINGS-REMEDIATION-2026-08-26.md`;
 - esecuzione: `tasks/executions/2026-08-26-important-findings-remediation.md`.
 
-Il V0 e la fondazione Open World sono tecnicamente consolidati. Le verifiche
-complete e i commit atomici sono registrati negli execution log del 2026-08-26.
+Le verifiche della baseline e i commit atomici sono registrati negli execution
+log del 2026-08-26. Non certificano l'affidabilita' online: l'analisi dell'8
+settembre ha riprodotto mondo vuoto, neighbor scartati e assenza di streaming
+anche con suite verde.
+
+## Lavoro corrente
+
+- Analisi: [ONLINE-RUNTIME-ANALYSIS-2026-09-08.md](../analysis/ONLINE-RUNTIME-ANALYSIS-2026-09-08.md).
+- Piano: [tasks/plan.md](../../tasks/plan.md).
+- Ingresso esecutore: [tasks/online/README.md](../../tasks/online/README.md).
+- Primo task senza dipendenze nell'ordine previsto: [ONLINE-01](../../tasks/online/ONLINE-01.md).
+- Stato: tutte le schede ONLINE sono pianificate, nessuna e' completata.
+
+La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
+Non sono state modificate le sorgenti applicative in questa attivita'. Un
+esecutore riceve il task da svolgere e usa scheda, contratti comuni e log dei
+prerequisiti, senza ricostruire la conversazione originale.
+
+I precedenti piano/checklist completati sono archiviati in `tasks/archive/`.
+Non usare `docs/execution/` o la vecchia coda V0 come lavoro da ripetere.
 
 ## Lettura minima prima di modificare il prodotto
 
@@ -43,7 +62,7 @@ complete e i commit atomici sono registrati negli execution log del 2026-08-26.
 8. `tasks/plan.md`, `tasks/todo.md`
 9. ADR e spec citati dal task
 
-## Prossima fase di prodotto
+## Fondazione precedente
 
 La tranche implementata è la fondazione Open World definita in
 `docs/specs/open-world-runtime-phase-2.md`. P2.1 è completata e documentata in
@@ -63,8 +82,9 @@ sono state completate e registrate in
 composizione multi-chunk e adapter HTTP live. P3.4 è definita in
 `docs/adr/ADR-009-live-runtime-consent.md`: provider-neutral, endpoint esplicito
 e consenso opt-in; il fixture offline resta il default. AI e multiplayer
-restano fuori scope. Nuovi sviluppi devono aprire un task successivo con spec e
-criteri di accettazione propri.
+restano fuori scope. Il piano ONLINE corrente definisce i successivi task con
+obiettivi e criteri propri; il completamento storico della fondazione non
+sostituisce le verifiche dei nuovi flussi.
 
 ## Comandi
 

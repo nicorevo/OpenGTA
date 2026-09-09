@@ -1,34 +1,54 @@
-# Active Todo
+# Checklist: ripristino online
 
-## Completed
+Data: 2026-09-09.
+Stato: tutti i task di implementazione sono pianificati, nessuno e' completato.
 
-- [x] Verificare routing, skill e documenti guida del repository.
-- [x] Riallineare la documentazione centrale al modello `docs/` vs `tasks/`.
-- [x] Creare i file di processo mancanti richiesti da `AGENTS.md`.
-- [x] Eseguire review end-to-end statica, nativa e browser del V0.
-- [x] Documentare finding, prove riproducibili e gate Phase 2.
+Fonte: [piano](plan.md). Prima di eseguire leggere
+[contratti e procedura](online/README.md). Le checkbox sono una vista sintetica:
+l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzione.
 
-## Next
+## Acquisizione
 
-- [x] Sanare i finding R1–R3 su geometria, multipolygon, hole e clipping.
-- [x] Sanare i finding R4–R6 su collision contract, metriche e freno.
-- [x] Completare la test matrix R7–R8 e il browser smoke automatizzato.
-- [x] Rieseguire il gate end-to-end con commit atomici.
-- [x] Scegliere le slice di Fase 2 e dettagliare criteri di accettazione.
-- [x] Aprire i task implementativi con test e verifiche native.
+- [x] [ONLINE-01](online/ONLINE-01.md): provider e risposte.
+- [ ] [ONLINE-02](online/ONLINE-02.md): coda e cancellazione.
+- [ ] [ONLINE-03](online/ONLINE-03.md): retry e Retry-After.
+- [ ] C1: dati affidabili.
 
-## Phase 2 Open World
+## Risorse
 
-- [x] P2.1 Chunk identity, grid e bounds deterministici.
-- [x] P2.2 Lifecycle locale dei chunk.
-- [x] P2.3 Active window e seam geometriche.
-- [x] P2.4 Warm cache in-memory.
-- [x] P2.5 Boundary di acquisizione runtime.
-- [x] P2.6 Integrazione fondazione Open World Runtime.
+- [ ] [ONLINE-04](online/ONLINE-04.md): scena aggiornabile.
+- [ ] [ONLINE-05](online/ONLINE-05.md): collisioni aggiornabili.
+- [ ] [ONLINE-06](online/ONLINE-06.md): rilascio lifecycle.
+- [ ] C2: risorse aggiornabili.
 
-## Open World Completion
+## Coordinamento
 
-- [x] P3.1 Partizione e ownership delle feature sui confini.
-- [x] P3.2 Composizione/rendering multi-chunk.
-- [x] P3.3 Adapter HTTP live dietro source boundary.
-- [x] P3.4 Decisione provider-neutral, consenso e attivazione live.
+- [ ] [ONLINE-07](online/ONLINE-07.md): identita' cache.
+- [ ] [ONLINE-08](online/ONLINE-08.md): runtime progressivo.
+- [ ] [ONLINE-09](online/ONLINE-09.md): spawn percorribile.
+- [ ] C3: coordinamento e spawn.
+
+## Sessione e guida
+
+- [ ] [ONLINE-10](online/ONLINE-10.md): avvio e riprova.
+- [ ] [ONLINE-11](online/ONLINE-11.md): confine disponibile.
+- [ ] [ONLINE-12](online/ONLINE-12.md): guida con streaming.
+- [ ] C4: live giocabile e streaming.
+
+## Robustezza
+
+- [ ] [ONLINE-13](online/ONLINE-13.md): limite payload.
+- [ ] [ONLINE-14](online/ONLINE-14.md): profilo OSM.
+- [ ] [ONLINE-15](online/ONLINE-15.md): ingresso e consenso.
+- [ ] C5: robustezza del prototipo.
+
+## Consegna
+
+- [ ] [ONLINE-16](online/ONLINE-16.md): verifiche complete e misure.
+- [ ] C6: handoff coerente con prove e codice.
+
+## Storico
+
+I task V0/P2/P3 completati sono conservati nella
+[checklist precedente](archive/2026-08-26-todo.md).
+Il [backlog differito](online/FOLLOW-UPS.md) non fa parte di questa consegna.

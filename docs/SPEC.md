@@ -1,6 +1,6 @@
 # OpenGTA Web Specification Index
 
-Ultimo riallineamento: 2026-08-25
+Ultimo riallineamento: 2026-09-09
 
 Questo file soddisfa la regola `DEFINE FIRST` di `AGENTS.md` e indica la
 specifica corrente senza duplicare tutti i contratti già scritti.
@@ -18,7 +18,9 @@ specifica corrente senza duplicare tutti i contratti già scritti.
 
 ## Prototype Scope in Force
 
-Lo scope eseguibile corrente resta il vertical slice V0 documentato in:
+Lo scope eseguibile comprende il vertical slice V0 e la fondazione Open World.
+La presenza del percorso live non implica che sia affidabile: i difetti
+riprodotti sono documentati nell'analisi online citata sotto. Riferimenti:
 
 - `docs/results/V0-RESULT.md`
 - `docs/specs/`
@@ -32,8 +34,16 @@ Lo scope eseguibile corrente resta il vertical slice V0 documentato in:
 
 ## Next Planned Product Phase
 
-La prossima fase di prodotto è Fase 2, definita in
-`docs/specs/open-world-runtime-phase-2.md`: prima multi-chunk locale e
-lifecycle, poi finestra/seam, cache e acquisizione runtime Open World. La
-baseline V0 è stata consolidata; l’implementazione segue le slice ordinate nel
-`tasks/plan.md`.
+La tranche corrente e' pianificata in [tasks/plan.md](../tasks/plan.md):
+ripristino dell'acquisizione live, avvio progressivo, streaming durante la
+guida e robustezza del prototipo. Non e' ancora implementata.
+
+- Evidenza: [analisi online](analysis/ONLINE-RUNTIME-ANALYSIS-2026-09-08.md).
+- Contratti e procedura delle slice: [tasks/online/README.md](../tasks/online/README.md).
+- Schede eseguibili: ONLINE-01..16, collegate dal piano e dalla checklist.
+
+Gli obiettivi e i criteri di ogni scheda soddisfano DEFINE FIRST per il task
+assegnato; i contratti descrivono il comportamento da implementare, non lo
+stato attuale. Gli ADR coinvolti saranno aggiornati nei task che li cambiano.
+La spec di Fase 2 resta riferimento della fondazione precedente; hosting,
+cache persistente, pacchetti, AI e multiplayer non sono impliciti nella tranche.
