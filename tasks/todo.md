@@ -1,7 +1,7 @@
 # Checklist: ripristino online
 
 Data: 2026-09-09.
-Stato: tutti i task di implementazione sono pianificati, nessuno e' completato.
+Stato: implementazione in corso; vedere checkbox e log verificati.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
 [contratti e procedura](online/README.md). Le checkbox sono una vista sintetica:
@@ -18,7 +18,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzion
 
 - [ ] [ONLINE-04](online/ONLINE-04.md): scena aggiornabile.
 - [ ] [ONLINE-05](online/ONLINE-05.md): collisioni aggiornabili.
-- [ ] [ONLINE-06](online/ONLINE-06.md): rilascio lifecycle.
+- [x] [ONLINE-06](online/ONLINE-06.md): rilascio lifecycle.
 - [ ] C2: risorse aggiornabili.
 
 ## Coordinamento

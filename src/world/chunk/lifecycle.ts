@@ -10,11 +10,16 @@ export interface ChunkRecord<T> {
   readonly error?: unknown;
 }
 
-export type ChunkLoader<T> = (key: ChunkKey) => Promise<T>;
+export interface ChunkLoadOptions { readonly priority?: 0 | 1 | 2 }
+export interface ChunkLoadContext extends ChunkLoadOptions { readonly signal: AbortSignal }
+export type ChunkLoader<T> = (key: ChunkKey, context: ChunkLoadContext) => Promise<T>;
 
 export interface ChunkLifecycle<T> {
-  load(key: ChunkKey): Promise<ChunkRecord<T>>;
-  reload(key: ChunkKey): Promise<ChunkRecord<T>>;
+  load(key: ChunkKey, options?: ChunkLoadOptions): Promise<ChunkRecord<T>>;
+  reload(key: ChunkKey, options?: ChunkLoadOptions): Promise<ChunkRecord<T>>;
+  cancel(key: ChunkKey): void;
+  release(key: ChunkKey): void;
+  dispose(): void;
   activate(key: ChunkKey): void;
   deactivate(key: ChunkKey): void;
   get(key: ChunkKey): Readonly<ChunkRecord<T>> | undefined;
@@ -25,6 +30,7 @@ interface Entry<T> {
   record: ChunkRecord<T>;
   generation: number;
   inFlight?: Promise<ChunkRecord<T>>;
+  controllers: Set<AbortController>;
 }
 
 function idForKey(key: ChunkKey): string {
@@ -38,13 +44,18 @@ function copyKey(key: ChunkKey): ChunkKey {
 
 export function createChunkLifecycle<T>(loader: ChunkLoader<T>): ChunkLifecycle<T> {
   const entries = new Map<string, Entry<T>>();
+  let disposed = false;
+  const cancel = (key: ChunkKey): void => {
+    for (const controller of entries.get(idForKey(key))?.controllers ?? []) controller.abort();
+  };
 
   const getEntry = (key: ChunkKey): Entry<T> | undefined => entries.get(idForKey(key));
   const setRecord = (entry: Entry<T>, state: ChunkState, value?: T, error?: unknown): void => {
     entry.record = { ...entry.record, state, value, error };
   };
 
-  const start = (key: ChunkKey, force: boolean): Promise<ChunkRecord<T>> => {
+  const start = (key: ChunkKey, force: boolean, options: ChunkLoadOptions = {}): Promise<ChunkRecord<T>> => {
+    if (disposed) return Promise.reject(new Error("Chunk lifecycle disposed"));
     const id = idForKey(key);
     const existing = entries.get(id);
     if (existing && !force && (existing.inFlight || existing.record.state !== "ABSENT")) {
@@ -54,6 +65,7 @@ export function createChunkLifecycle<T>(loader: ChunkLoader<T>): ChunkLifecycle<
     const entry: Entry<T> = existing ?? {
       record: { key: copyKey(key), id, state: "ABSENT" },
       generation: 0,
+      controllers: new Set(),
     };
     entry.generation += 1;
     const generation = entry.generation;
@@ -62,22 +74,38 @@ export function createChunkLifecycle<T>(loader: ChunkLoader<T>): ChunkLifecycle<
     const canRestore = previousState === "ACTIVE" || previousState === "READY" || previousState === "INACTIVE";
     setRecord(entry, "REQUESTED", previousValue, undefined);
     entries.set(id, entry);
+    const controller = new AbortController();
+    entry.controllers.add(controller);
+    const current = () => entries.get(id) === entry && entry.generation === generation;
+    let onAbort!: () => void;
+    const aborted = new Promise<never>((_, reject) => {
+      onAbort = () => {
+        if (current()) setRecord(entry, canRestore ? previousState : "ABSENT", previousValue);
+        reject(new DOMException("Chunk load aborted", "AbortError"));
+      };
+      controller.signal.addEventListener("abort", onAbort, { once: true });
+    });
 
-    const request = Promise.resolve()
+    const work = Promise.resolve()
       .then(() => {
-        if (entry.generation === generation) setRecord(entry, "COMPILING", previousValue, undefined);
-        return loader(copyKey(key));
+        controller.signal.throwIfAborted();
+        if (current()) setRecord(entry, "COMPILING", previousValue, undefined);
+        return loader(copyKey(key), { signal: controller.signal, priority: options.priority });
       })
       .then((value) => {
-        if (entry.generation !== generation) return entry.record;
+        if (!current() || controller.signal.aborted) return entry.record;
         setRecord(entry, canRestore ? previousState : "READY", value, undefined);
         return entry.record;
       })
       .catch((error: unknown) => {
-        if (entry.generation !== generation) return entry.record;
+        if (!current() || controller.signal.aborted) return entry.record;
         setRecord(entry, canRestore ? previousState : "ABSENT", previousValue, error);
         throw error;
       });
+    const request = Promise.race([work, aborted]).finally(() => {
+      controller.signal.removeEventListener("abort", onAbort);
+      entry.controllers.delete(controller);
+    });
     entry.inFlight = request;
     request.then(() => {
       if (entry.generation === generation) entry.inFlight = undefined;
@@ -88,11 +116,18 @@ export function createChunkLifecycle<T>(loader: ChunkLoader<T>): ChunkLifecycle<
   };
 
   return {
-    load(key) {
-      return start(key, false);
+    load(key, options) {
+      return start(key, false, options);
     },
-    reload(key) {
-      return start(key, true);
+    reload(key, options) {
+      return start(key, true, options);
+    },
+    cancel,
+    release(key) { cancel(key); entries.delete(idForKey(key)); },
+    dispose() {
+      disposed = true;
+      for (const entry of entries.values()) cancel(entry.record.key);
+      entries.clear();
     },
     activate(key) {
       const entry = getEntry(key);

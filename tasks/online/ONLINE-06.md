@@ -1,6 +1,6 @@
 # ONLINE-06: Cancellare e rilasciare record del lifecycle
 
-**Stato:** pianificato.
+**Stato:** completato; prove in `tasks/executions/2026-09-09-ONLINE-06.md`.
 **Dipendenze:** nessuna.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
