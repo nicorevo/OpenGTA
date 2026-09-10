@@ -1,8 +1,8 @@
 # Piano: ripristino online e streaming Open World
 
 Data: 2026-09-09. Analisi di riferimento: 2026-09-08.
-Stato: implementazione in corso; ONLINE-01..12 completati e verificati
-(checkpoint C1..C4 superati), ONLINE-13..16 da eseguire (evidenze in
+Stato: implementazione in corso; ONLINE-01..15 completati e verificati
+(checkpoint C1..C5 superati), ONLINE-16 da eseguire (evidenze in
 `tasks/executions/` e [todo](todo.md)).
 Baseline codice: `4ad9836`. Responsabile della pianificazione: tech-lead-planner.
 
@@ -67,7 +67,7 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 | [x] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
 | [x] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
 | [x] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |
-| [ ] | [ONLINE-15 Ingresso live esplicito](online/ONLINE-15.md) | ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14 | M | Coordinate/consenso/policy endpoint verificati prima della rete |
+| [x] | [ONLINE-15 Ingresso live esplicito](online/ONLINE-15.md) | ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14 | M | Coordinate/consenso/policy endpoint verificati prima della rete |
 | [ ] | [ONLINE-16 Gate finale](online/ONLINE-16.md) | ONLINE-01..ONLINE-15 | M | E2E completo, build, misure e handoff allineati |
 
 ## Checkpoint
@@ -105,9 +105,9 @@ ONLINE-10 da solo consegna l'avvio progressivo, non l'esplorazione continua.
 
 ### C5: robustezza del prototipo, dopo ONLINE-13..15
 
-- [ ] Payload e input rifiutati prima del lavoro eccessivo o della rete.
-- [ ] Consenso revocato cancella la sessione; default offline preservato.
-- [ ] Parchi/parcheggi e namespace cache aggiornati senza download extra in CI.
+- [x] Payload e input rifiutati prima del lavoro eccessivo o della rete.
+- [x] Consenso revocato cancella la sessione; default offline preservato.
+- [x] Parchi/parcheggi e namespace cache aggiornati senza download extra in CI.
 
 ### C6: consegna, ONLINE-16
 
