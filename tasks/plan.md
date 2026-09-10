@@ -1,7 +1,8 @@
 # Piano: ripristino online e streaming Open World
 
 Data: 2026-09-09. Analisi di riferimento: 2026-09-08.
-Stato: pianificazione redatta su richiesta; implementazione non avviata.
+Stato: implementazione in corso; ONLINE-01..10 completati e verificati,
+ONLINE-11..16 da eseguire (evidenze in `tasks/executions/` e [todo](todo.md)).
 Baseline codice: `4ad9836`. Responsabile della pianificazione: tech-lead-planner.
 
 ## Obiettivo
@@ -52,15 +53,15 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 | Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
 | --- | --- | --- | --- | --- |
 | [x] | [ONLINE-01 Provider e risposte](online/ONLINE-01.md) | Nessuna | M | OSM non vuoto sul percorso reale; errore provider distinto dal vuoto valido |
-| [ ] | [ONLINE-02 Coda di acquisizione](online/ONLINE-02.md) | ONLINE-01 | M | Quattro richieste rapide servite in ordine e cancellabili |
-| [ ] | [ONLINE-03 Retry rispettosi](online/ONLINE-03.md) | ONLINE-02 | M | Backoff, Retry-After e deadline verificati senza cambiare mirror |
-| [ ] | [ONLINE-04 Scena aggiornabile](online/ONLINE-04.md) | Nessuna | M | Cambio chunk preserva auto, camera e label |
-| [ ] | [ONLINE-05 Collisioni aggiornabili](online/ONLINE-05.md) | Nessuna | M | Aggiunta/rimozione dei collider senza ricreare il veicolo |
-| [ ] | [ONLINE-06 Rilascio lifecycle](online/ONLINE-06.md) | Nessuna | S | Cancellazione e rilascio senza risultati obsoleti |
-| [ ] | [ONLINE-07 Identita' cache](online/ONLINE-07.md) | ONLINE-01, ONLINE-06 | M | Nessun riuso fra origini/provider incompatibili |
-| [ ] | [ONLINE-08 Runtime progressivo](online/ONLINE-08.md) | ONLINE-03, ONLINE-06, ONLINE-07 | M | Ogni chunk pronto pubblicato subito; generazioni e memoria limitate |
-| [ ] | [ONLINE-09 Spawn percorribile](online/ONLINE-09.md) | ONLINE-05 | M | Posizione iniziale su strada, libera e interna ai chunk disponibili |
-| [ ] | [ONLINE-10 Sessione live recuperabile](online/ONLINE-10.md) | ONLINE-04, ONLINE-05, ONLINE-08, ONLINE-09 | M | Gioco avviato prima dei neighbor; errore/vuoto/riprova espliciti |
+| [x] | [ONLINE-02 Coda di acquisizione](online/ONLINE-02.md) | ONLINE-01 | M | Quattro richieste rapide servite in ordine e cancellabili |
+| [x] | [ONLINE-03 Retry rispettosi](online/ONLINE-03.md) | ONLINE-02 | M | Backoff, Retry-After e deadline verificati senza cambiare mirror |
+| [x] | [ONLINE-04 Scena aggiornabile](online/ONLINE-04.md) | Nessuna | M | Cambio chunk preserva auto, camera e label |
+| [x] | [ONLINE-05 Collisioni aggiornabili](online/ONLINE-05.md) | Nessuna | M | Aggiunta/rimozione dei collider senza ricreare il veicolo |
+| [x] | [ONLINE-06 Rilascio lifecycle](online/ONLINE-06.md) | Nessuna | S | Cancellazione e rilascio senza risultati obsoleti |
+| [x] | [ONLINE-07 Identita' cache](online/ONLINE-07.md) | ONLINE-01, ONLINE-06 | M | Nessun riuso fra origini/provider incompatibili |
+| [x] | [ONLINE-08 Runtime progressivo](online/ONLINE-08.md) | ONLINE-03, ONLINE-06, ONLINE-07 | M | Ogni chunk pronto pubblicato subito; generazioni e memoria limitate |
+| [x] | [ONLINE-09 Spawn percorribile](online/ONLINE-09.md) | ONLINE-05 | M | Posizione iniziale su strada, libera e interna ai chunk disponibili |
+| [x] | [ONLINE-10 Sessione live recuperabile](online/ONLINE-10.md) | ONLINE-04, ONLINE-05, ONLINE-08, ONLINE-09 | M | Gioco avviato prima dei neighbor; errore/vuoto/riprova espliciti |
 | [ ] | [ONLINE-11 Confine disponibile](online/ONLINE-11.md) | ONLINE-05, ONLINE-09 | M | Movimento fisico confinato ai chunk applicati |
 | [ ] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
 | [ ] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
@@ -72,24 +73,24 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 
 ### C1: dati affidabili, dopo ONLINE-01..03
 
-- [ ] Risposta non vuota attraversa source/normalize/compile.
-- [ ] Il caso 1 caricato + 3 falliti diventa 4 caricati.
-- [ ] 429, Retry-After assente/data/secondi, cancellazione e timeout coperti.
-- [ ] Test pertinenti, suite completa, typecheck e build passano.
+- [x] Risposta non vuota attraversa source/normalize/compile.
+- [x] Il caso 1 caricato + 3 falliti diventa 4 caricati.
+- [x] 429, Retry-After assente/data/secondi, cancellazione e timeout coperti.
+- [x] Test pertinenti, suite completa, typecheck e build passano.
 
 C1 corregge l'acquisizione; non certifica ancora avvio progressivo o streaming.
 
 ### C2: risorse aggiornabili, dopo ONLINE-04..06
 
-- [ ] Rendering e fisica gestiscono chunk in ingresso/uscita senza reset auto.
-- [ ] Lifecycle rilascia anche richieste pendenti senza risurrezione dei record.
-- [ ] Test e spot check V0 passano; nessuna regressione di hole o collisioni.
+- [x] Rendering e fisica gestiscono chunk in ingresso/uscita senza reset auto.
+- [x] Lifecycle rilascia anche richieste pendenti senza risurrezione dei record.
+- [x] Test e spot check V0 passano; nessuna regressione di hole o collisioni.
 
 ### C3: coordinamento, dopo ONLINE-07..09
 
-- [ ] Cache isolata per mondo; priorita', stale result e retention verificati.
-- [ ] P0 viene pubblicato anche con neighbor pendente.
-- [ ] Spawn e impronta fisica sicuri sui bordi e nei casi senza strada.
+- [x] Cache isolata per mondo; priorita', stale result e retention verificati.
+- [x] P0 viene pubblicato anche con neighbor pendente.
+- [x] Spawn e impronta fisica sicuri sui bordi e nei casi senza strada.
 
 ### C4: live giocabile e streaming, dopo ONLINE-10..12
 

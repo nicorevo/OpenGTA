@@ -17,9 +17,11 @@ Questa cartella contiene il materiale operativo attivo del progetto.
 
 ## Stato attuale
 
-Il lavoro corrente e' la pianificazione del ripristino online e dello streaming,
-basata sull'analisi dell'8 settembre 2026. Le schede sono pianificate, non
-implementate: partire da [plan.md](plan.md) e [online/README.md](online/README.md).
+Il lavoro corrente e' il ripristino online e lo streaming, basato sull'analisi
+dell'8 settembre 2026. ONLINE-01..10 sono completati e verificati (checkpoint
+C1..C3 superati); i log sono in `executions/`. Prossimo task nell'ordine
+previsto: [ONLINE-11](online/ONLINE-11.md). Partire da [plan.md](plan.md),
+[todo.md](todo.md) e [online/README.md](online/README.md).
 
 Ogni scheda contiene dipendenze, letture, file modificabili, passi TDD,
 accettazione, comandi e handoff per un esecutore senza il contesto della chat.

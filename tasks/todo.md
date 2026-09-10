@@ -1,6 +1,6 @@
 # Checklist: ripristino online
 
-Data: 2026-09-09.
+Data: 2026-09-10.
 Stato: implementazione in corso; vedere checkbox e log verificati.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
@@ -10,27 +10,27 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzion
 ## Acquisizione
 
 - [x] [ONLINE-01](online/ONLINE-01.md): provider e risposte.
-- [ ] [ONLINE-02](online/ONLINE-02.md): coda e cancellazione.
-- [ ] [ONLINE-03](online/ONLINE-03.md): retry e Retry-After.
-- [ ] C1: dati affidabili.
+- [x] [ONLINE-02](online/ONLINE-02.md): coda e cancellazione.
+- [x] [ONLINE-03](online/ONLINE-03.md): retry e Retry-After.
+- [x] C1: dati affidabili.
 
 ## Risorse
 
-- [ ] [ONLINE-04](online/ONLINE-04.md): scena aggiornabile.
-- [ ] [ONLINE-05](online/ONLINE-05.md): collisioni aggiornabili.
+- [x] [ONLINE-04](online/ONLINE-04.md): scena aggiornabile.
+- [x] [ONLINE-05](online/ONLINE-05.md): collisioni aggiornabili.
 - [x] [ONLINE-06](online/ONLINE-06.md): rilascio lifecycle.
-- [ ] C2: risorse aggiornabili.
+- [x] C2: risorse aggiornabili.
 
 ## Coordinamento
 
-- [ ] [ONLINE-07](online/ONLINE-07.md): identita' cache.
-- [ ] [ONLINE-08](online/ONLINE-08.md): runtime progressivo.
-- [ ] [ONLINE-09](online/ONLINE-09.md): spawn percorribile.
-- [ ] C3: coordinamento e spawn.
+- [x] [ONLINE-07](online/ONLINE-07.md): identita' cache.
+- [x] [ONLINE-08](online/ONLINE-08.md): runtime progressivo.
+- [x] [ONLINE-09](online/ONLINE-09.md): spawn percorribile.
+- [x] C3: coordinamento e spawn.
 
 ## Sessione e guida
 
-- [ ] [ONLINE-10](online/ONLINE-10.md): avvio e riprova.
+- [x] [ONLINE-10](online/ONLINE-10.md): avvio e riprova.
 - [ ] [ONLINE-11](online/ONLINE-11.md): confine disponibile.
 - [ ] [ONLINE-12](online/ONLINE-12.md): guida con streaming.
 - [ ] C4: live giocabile e streaming.

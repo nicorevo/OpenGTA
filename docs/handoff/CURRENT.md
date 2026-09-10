@@ -1,6 +1,6 @@
 # Punto di ingresso corrente
 
-Data: 2026-09-09
+Data: 2026-09-10
 
 Questo file sostituisce `CODEX-START-HERE.md` come avvio di sessione.
 
@@ -16,7 +16,7 @@ Non rieseguirli come backlog corrente.
 | 0B Esperimenti stack V0 | Assorbita dall'evidenza V0 / ADR-001–005 |
 | 1 Vertical slice V0 | Implementata; remediation R1-R8 completata |
 | 2 Fondazione Open World | Implementata; difetti del live riprodotti e aperti |
-| Ripristino online | ONLINE-01..16 pianificati, implementazione non avviata |
+| Ripristino online | ONLINE-01..10 completati e verificati; ONLINE-11..16 in corso |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -38,14 +38,18 @@ anche con suite verde.
 
 - Analisi: [ONLINE-RUNTIME-ANALYSIS-2026-09-08.md](../analysis/ONLINE-RUNTIME-ANALYSIS-2026-09-08.md).
 - Piano: [tasks/plan.md](../../tasks/plan.md).
+- Checklist: [tasks/todo.md](../../tasks/todo.md).
 - Ingresso esecutore: [tasks/online/README.md](../../tasks/online/README.md).
-- Primo task senza dipendenze nell'ordine previsto: [ONLINE-01](../../tasks/online/ONLINE-01.md).
-- Stato: tutte le schede ONLINE sono pianificate, nessuna e' completata.
+- Stato: ONLINE-01..10 completati con log in `tasks/executions/`;
+  checkpoint C1..C3 superati. Prossimo task nell'ordine previsto:
+  [ONLINE-11](../../tasks/online/ONLINE-11.md), seguito da ONLINE-12 per il
+  gate C4 (live giocabile e streaming).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
-Non sono state modificate le sorgenti applicative in questa attivita'. Un
-esecutore riceve il task da svolgere e usa scheda, contratti comuni e log dei
-prerequisiti, senza ricostruire la conversazione originale.
+L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log
+con evidenze reali; un esecutore riceve il task da svolgere e usa scheda,
+contratti comuni e log dei prerequisiti, senza ricostruire la conversazione
+originale.
 
 I precedenti piano/checklist completati sono archiviati in `tasks/archive/`.
 Non usare `docs/execution/` o la vecchia coda V0 come lavoro da ripetere.
