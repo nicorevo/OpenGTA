@@ -62,7 +62,7 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 | [x] | [ONLINE-08 Runtime progressivo](online/ONLINE-08.md) | ONLINE-03, ONLINE-06, ONLINE-07 | M | Ogni chunk pronto pubblicato subito; generazioni e memoria limitate |
 | [x] | [ONLINE-09 Spawn percorribile](online/ONLINE-09.md) | ONLINE-05 | M | Posizione iniziale su strada, libera e interna ai chunk disponibili |
 | [x] | [ONLINE-10 Sessione live recuperabile](online/ONLINE-10.md) | ONLINE-04, ONLINE-05, ONLINE-08, ONLINE-09 | M | Gioco avviato prima dei neighbor; errore/vuoto/riprova espliciti |
-| [ ] | [ONLINE-11 Confine disponibile](online/ONLINE-11.md) | ONLINE-05, ONLINE-09 | M | Movimento fisico confinato ai chunk applicati |
+| [x] | [ONLINE-11 Confine disponibile](online/ONLINE-11.md) | ONLINE-05, ONLINE-09 | M | Movimento fisico confinato ai chunk applicati |
 | [ ] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
 | [ ] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
 | [ ] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |

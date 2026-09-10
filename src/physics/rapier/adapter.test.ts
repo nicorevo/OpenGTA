@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { createChunkGrid } from "../../world/chunk/grid.ts";
+import { isPoseAvailable } from "../../world/chunk/availability.ts";
 import { createPhysicsAdapter } from "./adapter.ts";
 
 describe("Rapier vehicle integration", () => {
@@ -18,6 +20,25 @@ describe("Rapier vehicle integration", () => {
     edge = 600;
     for (let i = 0; i < 300; i++) state = physics.stepVehicle(state, { throttle: 1, steer: 0, brake: 0 }, guard);
     expect(state.position.x).toBeGreaterThan(300);
+    physics.dispose();
+  });
+
+  it("confines a diagonal push into a corner to the applied cell", async () => {
+    const physics = await createPhysicsAdapter([]);
+    const grid = createChunkGrid(300);
+    const active = [{ x: 0, y: 0 }];
+    let state = physics.createVehicle({ x: 292, y: 292, heading: Math.PI / 4 });
+    for (let i = 0; i < 300; i++) {
+      state = physics.stepVehicle(state, { throttle: 1, steer: 0, brake: 0 }, (pose) => isPoseAvailable(grid, pose, active));
+      expect(isPoseAvailable(grid, state, active)).toBe(true);
+    }
+    expect(state.blockedByAvailability).toBe(true);
+    expect(state.position.x).toBeGreaterThan(292);
+    expect(state.position.x).toBeLessThan(297.9);
+    expect(state.position.y).toBeLessThan(297.9);
+    const stopped = state.position;
+    for (let i = 0; i < 60; i++) state = physics.stepVehicle(state, { throttle: -1, steer: 0, brake: 0 }, (pose) => isPoseAvailable(grid, pose, active));
+    expect(Math.hypot(state.position.x - stopped.x, state.position.y - stopped.y)).toBeGreaterThan(0.1);
     physics.dispose();
   });
 

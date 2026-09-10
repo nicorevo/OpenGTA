@@ -31,7 +31,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzion
 ## Sessione e guida
 
 - [x] [ONLINE-10](online/ONLINE-10.md): avvio e riprova.
-- [ ] [ONLINE-11](online/ONLINE-11.md): confine disponibile.
+- [x] [ONLINE-11](online/ONLINE-11.md): confine disponibile.
 - [ ] [ONLINE-12](online/ONLINE-12.md): guida con streaming.
 - [ ] C4: live giocabile e streaming.
 
