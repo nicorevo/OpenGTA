@@ -16,7 +16,7 @@ Non rieseguirli come backlog corrente.
 | 0B Esperimenti stack V0 | Assorbita dall'evidenza V0 / ADR-001–005 |
 | 1 Vertical slice V0 | Implementata; remediation R1-R8 completata |
 | 2 Fondazione Open World | Implementata; difetti del live riprodotti e aperti |
-| Ripristino online | ONLINE-01..10 completati e verificati; ONLINE-11..16 in corso |
+| Ripristino online | ONLINE-01..12 completati e verificati (C1..C4); ONLINE-13..16 in corso |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -40,10 +40,10 @@ anche con suite verde.
 - Piano: [tasks/plan.md](../../tasks/plan.md).
 - Checklist: [tasks/todo.md](../../tasks/todo.md).
 - Ingresso esecutore: [tasks/online/README.md](../../tasks/online/README.md).
-- Stato: ONLINE-01..10 completati con log in `tasks/executions/`;
-  checkpoint C1..C3 superati. Prossimo task nell'ordine previsto:
-  [ONLINE-11](../../tasks/online/ONLINE-11.md), seguito da ONLINE-12 per il
-  gate C4 (live giocabile e streaming).
+- Stato: ONLINE-01..12 completati con log in `tasks/executions/`;
+  checkpoint C1..C4 superati: il prototipo live e' giocabile con streaming.
+  Prossimo task nell'ordine previsto:
+  [ONLINE-13](../../tasks/online/ONLINE-13.md).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log

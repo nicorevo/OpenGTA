@@ -1,8 +1,9 @@
 # Piano: ripristino online e streaming Open World
 
 Data: 2026-09-09. Analisi di riferimento: 2026-09-08.
-Stato: implementazione in corso; ONLINE-01..10 completati e verificati,
-ONLINE-11..16 da eseguire (evidenze in `tasks/executions/` e [todo](todo.md)).
+Stato: implementazione in corso; ONLINE-01..12 completati e verificati
+(checkpoint C1..C4 superati), ONLINE-13..16 da eseguire (evidenze in
+`tasks/executions/` e [todo](todo.md)).
 Baseline codice: `4ad9836`. Responsabile della pianificazione: tech-lead-planner.
 
 ## Obiettivo
@@ -63,7 +64,7 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 | [x] | [ONLINE-09 Spawn percorribile](online/ONLINE-09.md) | ONLINE-05 | M | Posizione iniziale su strada, libera e interna ai chunk disponibili |
 | [x] | [ONLINE-10 Sessione live recuperabile](online/ONLINE-10.md) | ONLINE-04, ONLINE-05, ONLINE-08, ONLINE-09 | M | Gioco avviato prima dei neighbor; errore/vuoto/riprova espliciti |
 | [x] | [ONLINE-11 Confine disponibile](online/ONLINE-11.md) | ONLINE-05, ONLINE-09 | M | Movimento fisico confinato ai chunk applicati |
-| [ ] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
+| [x] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
 | [ ] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
 | [ ] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |
 | [ ] | [ONLINE-15 Ingresso live esplicito](online/ONLINE-15.md) | ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14 | M | Coordinate/consenso/policy endpoint verificati prima della rete |
@@ -94,10 +95,10 @@ C1 corregge l'acquisizione; non certifica ancora avvio progressivo o streaming.
 
 ### C4: live giocabile e streaming, dopo ONLINE-10..12
 
-- [ ] Avvio su P0 applicato; errore e vuoto distinti; riprova senza reload.
-- [ ] Tre confini, ritorno su cache e disconnessione coperti con fixture.
-- [ ] Auto confinata alla zona pronta; risorse e richieste bounded.
-- [ ] Suite completa, typecheck, build ed E2E passano.
+- [x] Avvio su P0 applicato; errore e vuoto distinti; riprova senza reload.
+- [x] Tre confini, ritorno su cache e disconnessione coperti con fixture.
+- [x] Auto confinata alla zona pronta; risorse e richieste bounded.
+- [x] Suite completa, typecheck, build ed E2E passano.
 
 C4 e' la prima consegna che puo' essere chiamata ripristino online con streaming.
 ONLINE-10 da solo consegna l'avvio progressivo, non l'esplorazione continua.

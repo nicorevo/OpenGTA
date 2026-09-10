@@ -80,6 +80,54 @@ it("streams across three borders and returns through the warm cache with bounded
   await session.dispose();
 });
 
+it("updates the demand on camera resize within the coalescing window", async () => {
+  const physics = await createPhysicsAdapter([]);
+  const scene = renderer();
+  let bounds = { minX: -200, maxX: 200, minY: -100, maxY: 100 };
+  scene.cameraBounds = () => bounds;
+  const calls: string[] = [];
+  const session = createRuntimeSession({ source: createGeoDataSource(async (request) => { calls.push(request.regionId); return liveWorld; }, { minIntervalMs: 0 }), origin: liveOrigin, renderer: scene, physics });
+  await session.start();
+  const callsAfterStart = calls.length;
+  let now = 0;
+  await session.stream(now);
+  expect(calls).toHaveLength(callsAfterStart);
+  now += 200;
+  bounds = { minX: -320, maxX: 200, minY: -100, maxY: 100 };
+  await session.stream(now);
+  expect(calls.some((id) => id.includes("chunk:-2:0"))).toBe(true);
+  await session.dispose();
+});
+
+it("ignores a late response for a chunk abandoned by a rapid reversal", async () => {
+  const physics = await createPhysicsAdapter([]);
+  const scene = renderer(); let position = { x: 0, y: 0 };
+  scene.updateVehicle = (next?: { x: number; y: number }) => { if (next) position = next; };
+  scene.cameraBounds = () => ({ minX: position.x - 200, maxX: position.x + 200, minY: position.y - 100, maxY: position.y + 100 });
+  let held!: { release: () => void };
+  const source = createGeoDataSource(async (request) => {
+    if (request.regionId.endsWith("chunk:1:0")) return new Promise<typeof liveWorld>((resolve) => { held = { release: () => resolve(liveWorld) }; });
+    return liveWorld;
+  }, { minIntervalMs: 0 });
+  const session = createRuntimeSession({ source, origin: liveOrigin, renderer: scene, physics });
+  await session.start();
+  let now = 0;
+  for (let i = 0; i < 2400 && !session.snapshot().runtime.pending.includes("chunk:1:0"); i++) { session.step({ throttle: 1, steer: 0, brake: 0 }); now += 1000 / 60; void session.stream(now); }
+  expect(session.snapshot().runtime.pending).toContain("chunk:1:0");
+  await new Promise((resolve) => setTimeout(resolve, 0)); // let the scheduler invoke the held loader
+  expect(held).toBeDefined();
+  for (let i = 0; i < 2400 && session.snapshot().runtime.wanted.includes("chunk:1:0"); i++) { session.step({ throttle: -1, steer: 0, brake: 0 }); now += 1000 / 60; void session.stream(now); }
+  expect(session.snapshot().runtime.wanted).not.toContain("chunk:1:0");
+  const before = { ...session.vehicle()!.position };
+  held.release();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await session.stream(now + 200);
+  expect(session.snapshot().runtime.active).not.toContain("chunk:1:0");
+  expect(session.vehicle()!.position).toEqual(before);
+  expect(session.snapshot().runtime.records).toBeLessThanOrEqual(9);
+  await session.dispose();
+});
+
 it("stops at a disconnected neighbor and resumes without resetting after explicit retry", async () => {
   let unavailable = true; let failures = 0;
   const physics = await createPhysicsAdapter([]);
