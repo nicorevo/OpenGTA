@@ -36,6 +36,18 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
   let lastDemand = "";
   const available = () => [...chunks.values()].map((entry) => entry.key);
   const values = () => [...chunks.values()].map((entry) => entry.chunk);
+  // Removals can burst (window shifts, dispose): coalesce the scene rebuilds
+  // into one render per microtask flush instead of one full rebuild each.
+  let renderScheduled = false;
+  const scheduleRender = () => {
+    if (renderScheduled || disposed) return;
+    renderScheduled = true;
+    queueMicrotask(() => {
+      if (!renderScheduled || disposed) return;
+      renderScheduled = false;
+      try { options.renderer.render(values()); } catch { fatal = true; }
+    });
+  };
   const runtime = createOpenWorldRuntime({
     baseOrigin: options.origin, grid, cache: options.cache ?? createChunkCache(9), compilerVersion: "v0-runtime",
     source: options.source, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile,
@@ -45,6 +57,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const next = new Map(chunks); next.set(id, { key, chunk });
       try {
         options.physics.setChunk(id, chunk.collisions);
+        renderScheduled = false; // the synchronous render supersedes pending removals
         options.renderer.render([...next.values()].map((entry) => entry.chunk));
       } catch (error) {
         try {
@@ -67,21 +80,23 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
     onChunkRemoved(key) {
       const id = grid.idForKey(key);
       const previous = chunks.get(id); if (!previous) return;
-      const next = values().filter((chunk) => chunk !== previous.chunk);
-      options.renderer.render(next);
-      options.physics.removeChunk(id); chunks.delete(id);
+      try {
+        options.physics.removeChunk(id); chunks.delete(id);
+        scheduleRender();
+      } catch { fatal = true; }
     },
   });
   const stream = async (now: number, retry = false) => {
     if (disposed || fatal || !vehicle || (!retry && now - lastStreamAt < 200)) return;
-    lastStreamAt = now;
-    const input = { position: vehicle.position, velocity: vehicle.velocity, cameraBounds: options.renderer.cameraBounds() };
-    const pinnedKeys = keysForVehicle(grid, vehicle);
-    const signature = JSON.stringify([selectActiveChunks(grid, input).map((demand) => [demand.id, demand.priority]), pinnedKeys]);
-    if (!retry && signature === lastDemand) return;
-    lastDemand = signature;
-    try { await runtime.loadWindow(input, { pinnedKeys, retry }); }
-    catch { if (!disposed) fatal = true; }
+    try {
+      lastStreamAt = now;
+      const input = { position: vehicle.position, velocity: vehicle.velocity, cameraBounds: options.renderer.cameraBounds() };
+      const pinnedKeys = keysForVehicle(grid, vehicle);
+      const signature = JSON.stringify([selectActiveChunks(grid, input).map((demand) => [demand.id, demand.priority]), pinnedKeys]);
+      if (!retry && signature === lastDemand) return;
+      lastDemand = signature;
+      await runtime.loadWindow(input, { pinnedKeys, retry });
+    } catch { if (!disposed) fatal = true; }
   };
   return {
     stream,
@@ -103,7 +118,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const hasErrors = Object.keys(diagnostic.errors).length > 0;
       const state: SessionState = fatal ? "error" : vehicle ? hasErrors ? "degraded" : "ready" : !finished ? "loading" : hasErrors ? "error" : "empty";
       const compiled = values();
-      return { state, runtime: diagnostic, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
+      return { state, runtime: diagnostic, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), warnings: compiled.reduce((sum, chunk) => sum + chunk.diagnostics.warnings.length, 0), lastCompileMs: compiled.reduce((max, chunk) => Math.max(max, chunk.diagnostics.stageDurationsMs.total), 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
     },
     async dispose() {
       if (disposed) return;

@@ -1,6 +1,6 @@
 import { DEFAULT_ENDPOINT_POLICY, DEFAULT_ORIGIN, readRuntimeConfig, type EndpointPolicy, type RuntimeConfig } from "../world/runtime/live-config.ts";
 
-export function createLiveControls(root: HTMLElement, params: URLSearchParams, policy: EndpointPolicy, start: (config: RuntimeConfig) => Promise<void>, stop: () => void) {
+export function createLiveControls(root: HTMLElement, params: URLSearchParams, policy: EndpointPolicy, start: (config: RuntimeConfig) => Promise<void>, stop: (revoked: boolean) => void) {
   const details = document.createElement("details"); details.id = "live-controls";
   details.style.cssText = "position:fixed;left:12px;top:12px;z-index:2;background:#f4f5f7;color:#25272c;padding:10px 12px;border-radius:4px;width:min(320px,calc(100vw - 48px));box-shadow:0 2px 8px #0003;font-size:13px";
   const summary = document.createElement("summary"); summary.textContent = "OpenGTA / Area di gioco"; summary.style.cursor = "pointer";
@@ -18,16 +18,21 @@ export function createLiveControls(root: HTMLElement, params: URLSearchParams, p
   const latitude = document.createElement("input"); latitude.name = "lat"; latitude.type = "number"; latitude.step = "any"; latitude.min = "-90"; latitude.max = "90"; latitude.value = params.get("lat") ?? String(DEFAULT_ORIGIN.latitude);
   const longitude = document.createElement("input"); longitude.name = "lon"; longitude.type = "number"; longitude.step = "any"; longitude.min = "-180"; longitude.max = "180"; longitude.value = params.get("lon") ?? String(DEFAULT_ORIGIN.longitude);
   field("Latitudine", latitude); field("Longitudine", longitude);
-  const provider = document.createElement("select");
+  const provider = document.createElement("select"); provider.name = "provider";
   const osm = document.createElement("option"); osm.value = "osm"; osm.textContent = "OpenStreetMap"; provider.append(osm);
   if (policy.developmentOrigin || policy.httpsEndpoints.some((endpoint) => !DEFAULT_ENDPOINT_POLICY.httpsEndpoints.includes(endpoint))) {
     const http = document.createElement("option"); http.value = "http"; http.textContent = "Endpoint autorizzato"; provider.append(http);
   }
-  provider.value = params.get("provider") === "http" || (params.has("endpoint") && params.get("provider") !== "osm") ? "http" : "osm";
+  // The http option exists only when the trusted policy authorises it: in a
+  // production build with the default policy the select must fall back to the
+  // only available option instead of submitting an empty provider value.
+  const desiredProvider = params.get("provider") === "http" || (params.has("endpoint") && params.get("provider") !== "osm") ? "http" : "osm";
+  provider.value = [...provider.options].some((option) => option.value === desiredProvider) ? desiredProvider : provider.options[0].value;
   field("Provider", provider, true);
   const endpoint = document.createElement("input"); endpoint.type = "url"; endpoint.value = params.get("endpoint") ?? DEFAULT_ENDPOINT_POLICY.httpsEndpoints[0];
   field("Endpoint", endpoint, true);
   const consent = document.createElement("input"); consent.type = "checkbox"; consent.id = "live-consent";
+  consent.checked = params.get("mode") === "open-world-live" && params.get("consent") === "1";
   const consentLabel = document.createElement("label"); consentLabel.style.cssText = "grid-column:1/-1;display:flex;align-items:flex-start;gap:8px";
   consentLabel.append(consent, document.createTextNode("Autorizzo l'invio delle coordinate al provider")); form.append(consentLabel);
   const error = document.createElement("div"); error.id = "config-error"; error.setAttribute("role", "alert"); error.style.cssText = "grid-column:1/-1;color:#a72035;overflow-wrap:anywhere"; form.append(error);
@@ -38,10 +43,10 @@ export function createLiveControls(root: HTMLElement, params: URLSearchParams, p
     let config: RuntimeConfig;
     try { config = readRuntimeConfig(input, policy); }
     catch (cause) { error.textContent = cause instanceof Error ? cause.message : "Configurazione non valida"; return; }
-    submit.disabled = true;
-    void start(config).then(() => { details.open = false; submit.blur(); }).catch(() => { error.textContent = "Avvio non riuscito"; }).finally(() => { submit.disabled = false; });
+    submit.disabled = true; submit.textContent = "Avvio in corso...";
+    void start(config).then(() => { details.open = false; submit.blur(); (document.activeElement as HTMLElement | null)?.blur(); }).catch(() => { error.textContent = "Avvio non riuscito"; }).finally(() => { submit.disabled = false; submit.textContent = "Avvia"; });
   };
-  consent.onchange = () => { if (!consent.checked) stop(); };
+  consent.onchange = () => { if (!consent.checked && mode.value === "open-world-live") stop(true); };
   details.append(summary, form); root.append(details);
   return { showError(text: string) { error.textContent = text; details.open = true; } };
 }

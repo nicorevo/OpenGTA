@@ -58,14 +58,18 @@ test("boots the Open World Runtime mode from selectable coordinates", async ({ p
 
 test("reports a valid empty live area without starting a vehicle", async ({ page, baseURL }) => {
   const pageErrors: string[] = [];
+  const unexpected: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.route("**/__test-geo**", async (route) => {
-    await route.fulfill({ contentType: "application/json", body: JSON.stringify({ elements: [] }) });
+  await page.route("**/*", (route) => {
+    const url = route.request().url();
+    if (url.includes("/__test-geo")) return route.fulfill({ contentType: "application/json", body: JSON.stringify({ elements: [] }) });
+    if (url.startsWith(baseURL!)) return route.continue();
+    unexpected.push(url); return route.abort();
   });
 
   await page.goto(`/?mode=open-world-live&lat=40.35&lon=18.17&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "empty", { timeout: 15000 });
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   await expect(page.getByRole("button", { name: "Riprova", exact: true })).toBeVisible();
-  expect(pageErrors).toEqual([]);
+  expect(unexpected).toEqual([]);
 });

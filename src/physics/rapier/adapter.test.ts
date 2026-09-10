@@ -43,13 +43,20 @@ describe("Rapier vehicle integration", () => {
   });
 
   it("restores the previous valid pose if Rapier pushes it outside after a collision", async () => {
-    const physics = await createPhysicsAdapter([{ kind: "segment", featureId: "wall", a: { x: 0, y: -10 }, b: { x: 0, y: 10 } }]);
-    const initial = physics.createVehicle({ x: 1.9, y: 0, heading: 0 });
+    // An angled wall deflects the car along +y past the availability bound:
+    // the pre-step guard passes, Rapier's contact resolution pushes the body
+    // further than the desired pose, and the post-step check must roll back.
+    const physics = await createPhysicsAdapter([{ kind: "segment", featureId: "wall", a: { x: 3, y: 0.5 }, b: { x: 5, y: 2.5 } }]);
+    let state = physics.createVehicle({ x: 0, y: 2, heading: 0 });
     let checks = 0;
-    const next = physics.stepVehicle(initial, { throttle: 0, steer: 0, brake: 0 }, (pose) => { checks++; return pose.position.x <= 1.95; });
+    const guard = (pose: { position: { x: number; y: number } }) => { checks++; return pose.position.y <= 2.1; };
+    for (let i = 0; i < 120 && !state.blockedByAvailability; i++) {
+      state = physics.stepVehicle(state, { throttle: 1, steer: 0, brake: 0 }, guard);
+    }
     expect(checks).toBeGreaterThanOrEqual(2);
-    expect(next.position.x).toBeLessThanOrEqual(1.95);
-    expect(next.body.translation().x).toBeLessThanOrEqual(1.95);
+    expect(state.blockedByAvailability).toBe(true);
+    expect(state.position.y).toBeLessThanOrEqual(2.1);
+    expect(state.body.translation().y).toBeLessThanOrEqual(2.1);
     physics.dispose();
   });
   it("updates static chunks without replacing the vehicle and removes shared feature fragments independently", async () => {

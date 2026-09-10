@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { liveWorld } from "../fixtures/live-world.ts";
 
 test("requires explicit consent, validates coordinates and cancels on revocation", async ({ page, baseURL }) => {
+  test.setTimeout(90000);
   let requests = 0;
   const unexpected: string[] = [];
   await page.route("**/*", (route) => {
@@ -22,7 +23,11 @@ test("requires explicit consent, validates coordinates and cancels on revocation
   await expect(page.getByRole("alert")).toContainText("Coordinate");
   expect(requests).toBe(0);
   await page.getByLabel("Latitudine").fill("40.35316888888889");
-  await page.getByRole("button", { name: "Avvia", exact: true }).click();
+  // A previous submission can still be starting (WASM/Pixi init): wait until
+  // the button is actionably enabled instead of racing the disabled state.
+  const submit = page.getByRole("button", { name: "Avvia", exact: true });
+  await expect(submit).toBeEnabled({ timeout: 30000 });
+  await submit.click();
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   await expect.poll(() => requests).toBeGreaterThan(0);
   await page.getByText("OpenGTA / Area di gioco", { exact: true }).click();

@@ -109,6 +109,7 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
     return result;
   };
   const needed = (id: string) => !disposed && (wanted.has(id) || pinned.has(id));
+  const priorityOf = (demand?: ChunkDemand) => demand?.priority === "P1" ? 1 : demand?.priority === "P2" ? 2 : 0;
   const removeObsolete = () => enqueue(async () => {
     for (const [id, key] of active) {
       if (needed(id)) continue;
@@ -116,12 +117,10 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
       if (!needed(id)) continue;
       // Re-demanded while removal was committing: re-apply from the warm cache.
       // Runs inside the commit chain, so scene and colliders stay serialized.
-      const demand = wanted.get(id);
-      const priority = demand?.priority === "P1" ? 1 : demand?.priority === "P2" ? 2 : 0;
       try {
-        const record = await lifecycle.load(key, { priority });
-        if (!needed(id) || active.has(id) || lifecycle.get(key)?.value !== record.value) continue;
-        await options.onChunkReady?.(record.value!, key);
+        const record = await lifecycle.load(key, { priority: priorityOf(wanted.get(id)) });
+        if (!needed(id) || active.has(id) || !record.value || lifecycle.get(key)?.value !== record.value) continue;
+        await options.onChunkReady?.(record.value, key);
         if (!needed(id) || lifecycle.get(key)?.value !== record.value) { await options.onChunkRemoved?.(key); continue; }
         lifecycle.activate(key); active.set(id, key);
       } catch (error) { if (needed(id)) errors.set(id, error); }
@@ -129,7 +128,7 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
   });
   const ensure = (demand: ChunkDemand): Promise<void> => {
     const { id, key } = demand;
-    const priority = demand.priority === "P0" ? 0 : demand.priority === "P1" ? 1 : 2;
+    const priority = priorityOf(demand);
     const signal = signals.get(id); if (signal) options.source.promote?.(signal, priority);
     if (pending.has(id)) return pending.get(id)!;
     if (active.has(id) || errors.has(id)) return Promise.resolve();
@@ -138,8 +137,8 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
       try {
         const record = await lifecycle.load(key, { priority });
         await enqueue(async () => {
-          if (!needed(id) || active.has(id) || lifecycle.get(key)?.value !== record.value) return;
-          await options.onChunkReady?.(record.value!, key);
+          if (!needed(id) || active.has(id) || !record.value || lifecycle.get(key)?.value !== record.value) return;
+          await options.onChunkReady?.(record.value, key);
           if (!needed(id) || lifecycle.get(key)?.value !== record.value) { await options.onChunkRemoved?.(key); return; }
           lifecycle.activate(key); active.set(id, key);
         });

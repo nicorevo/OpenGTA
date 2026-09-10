@@ -38,11 +38,17 @@ test("starts driving while a neighbor is delayed and recovers after an error", a
   let calls = 0;
   let release!: () => void;
   const held = new Promise<void>((resolve) => { release = resolve; });
-  await page.route("**/__test-geo**", async (route) => {
-    calls++;
-    if (fail) return route.fulfill({ status: 503, json: {} });
-    if (calls > 5) await held;
-    try { await route.fulfill({ json: liveWorld }); } catch { /* Session can abort a held response. */ }
+  await page.route("**/*", async (route) => {
+    const url = route.request().url();
+    if (url.includes("/__test-geo")) {
+      calls++;
+      if (fail) return route.fulfill({ status: 503, json: {} });
+      if (calls > 5) await held;
+      try { await route.fulfill({ json: liveWorld }); } catch { /* Session can abort a held response. */ }
+      return;
+    }
+    if (url.startsWith(baseURL!)) return route.continue();
+    errors.push("Unexpected remote request"); return route.abort();
   });
   await page.goto(`/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "error", { timeout: 15000 });
