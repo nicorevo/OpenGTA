@@ -29,8 +29,8 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `a5b076b` sul ramo `opcl`
-(2026-09-10). Verificata con 172 test unitari, 14 E2E su dev server, 1 smoke
+**Baseline stabile per test utente:** commit `77312aa` sul ramo `opcl`
+(2026-09-10). Verificata con 175 test unitari, 14 E2E su dev server, 1 smoke
 del build di produzione, typecheck e build. Vedi [Prova della baseline](#prova-della-baseline).
 
 Avvio di sessione per agenti:

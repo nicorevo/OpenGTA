@@ -1,7 +1,8 @@
 # Risultato: ripristino online e streaming Open World
 
-Data: 2026-09-10. Stato: consegnato.
-Baseline: `4ad9836`. Commit finale della tranche: vedi log ONLINE-16.
+Data: 2026-09-10. Stato: consegnato, con correzioni post-review.
+Baseline: `4ad9836`. Commit finale della tranche: `a5b076b`; commit di
+correzione post-review: `77312aa` (baseline stabile per i test utente).
 Piano: `tasks/plan.md`. Checklist: `tasks/todo.md`.
 
 ## Esito
@@ -75,11 +76,47 @@ prestazioni dell'hardware dell'utente. I file JSON per trial restano in
 ## Verifiche del gate
 
 - `npm run typecheck`: PASS.
-- `npm run test:run`: PASS — 29 file, 172 test.
+- `npm run test:run`: PASS — 29 file, 175 test.
 - `npm run build`: PASS (warning dimensione bundle preesistente).
 - `OPENGTA_E2E_PORT=5175 npm run test:e2e`: PASS — 14 test dev server.
 - Smoke dist: `OPENGTA_E2E_PREVIEW=1 OPENGTA_E2E_PORT=5176` con
   `tests/preview/production.spec.ts`: PASS — asset offline, policy HTTPS di
-  produzione attiva (endpoint HTTP locale rifiutato, zero richieste).
+  produzione attiva (endpoint HTTP locale rifiutato, zero richieste) e
+  select provider con fallback verificato nella build.
 - `git diff --check` pulito; lint N/A (script assente); nessun artefatto
   runtime committato.
+
+## Correzioni post-review (`77312aa`)
+
+Dopo la review end-to-end della tranche (2026-09-10) sono stati corretti i
+difetti confermati, quattro dei quali live-riprodotti in Chrome:
+
+- pannello live nel build di produzione: il select provider ricade sull'unica
+  opzione disponibile invece di inviare un valore vuoto (verificato nello
+  smoke dist);
+- `start()`/`stop()` sbloccano sempre `busy` e i retry su ogni percorso
+  (inclusi fallimenti di inizializzazione e teardown); uno start soppiantato
+  non tocca piu' canvas o UI del successivo;
+- la revoca del consenso ferma solo le sessioni live e azzera la
+  configurazione autorizzata, cosi' Riprova non riavvia il live senza
+  consenso; Riprova con errore fatale esegue un riavvio completo invece di
+  chiamare la funzione disabilitata dal latch;
+- i tasti di guida funzionano di nuovo dopo il focus su pulsanti/checkbox; A
+  e D ora concordano con le frecce (sterzo positivo = sinistra, coperto da
+  test di direzione);
+- i render delle rimozioni sono coalescizzati per microtask; le guardie di
+  ri-applicazione rifiutano record senza valore su entrambi i percorsi;
+- il test di rollback dell'adapter esegue ora il ramo post-step
+  (`blockedByAvailability` reale, deflessione su muro inclinato);
+- gli E2E intercettano tutta la rete (catch-all che abbatte ogni host non
+  atteso): il claim "nessun servizio pubblico contattato" e' ora una
+  proprieta' della suite, non una convenzione;
+- l'overlay F3 ripristina long frames, media frame/fisica, debito di
+  simulazione, warning e tempo di compilazione, posizione/velocita'/heading
+  dell'auto, origine e risoluzione canvas; la legenda dei controlli e'
+  tornata a schermo.
+
+Limiti residui dichiarati: il costo di rebuild della scena per applicazioni
+successive resta quadratico nel numero di chunk (mascherato dal pacing del
+provider); la misurazione del percorso HTTP-cache di un reload completo non
+e' coperta.
