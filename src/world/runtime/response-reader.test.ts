@@ -29,3 +29,19 @@ it("cancels a pending reader on abort and releases the lock", async () => {
   expect(await work).toMatchObject({ code: "aborted" });
   expect(cancelled).toBe(true); expect(response.body?.locked).toBe(false);
 });
+
+it("reports a failing stream as invalid-response and releases the reader", async () => {
+  const response = new Response(new ReadableStream({
+    pull(controller) { controller.enqueue(new TextEncoder().encode('{"half')); controller.error(new Error("stream broken")); },
+  }));
+  // An errored stream rejects reader.cancel() by spec without invoking the
+  // underlying cancel: the stream already released itself.
+  await expect(readBoundedJson(response, new AbortController().signal)).rejects.toMatchObject({ code: "invalid-response" });
+  expect(response.body?.locked).toBe(false);
+});
+
+it("validates the byte budget before reading", async () => {
+  for (const budget of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    await expect(readBoundedJson(new Response('{"elements":[]}'), new AbortController().signal, budget)).rejects.toThrow(RangeError);
+  }
+});
