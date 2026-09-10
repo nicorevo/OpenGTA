@@ -1,6 +1,6 @@
 # ONLINE-14: Richiedere parchi e parcheggi gia' supportati
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-14.md`.
 **Dipendenze:** ONLINE-07, ONLINE-13.
 **Persona:** root-cause-debugger.
 **MODEL CLASS:** STANDARD. **REASONING:** medium.
@@ -42,11 +42,11 @@ normalizzatore, palette, classificazione delle strade o schema canonico.
 
 ## Accettazione
 
-- [ ] AC1: la query include entrambi i filtri specifici con bbox e ricorsione
+- [x] AC1: la query include entrambi i filtri specifici con bbox e ricorsione
   corretti, senza perdere i filtri strutturali gia' presenti.
-- [ ] AC2: fixture minime park/parking arrivano come aree compilate corrette;
+- [x] AC2: fixture minime park/parking arrivano come aree compilate corrette;
   il test non si limita a verificare che due parole compaiano nella stringa.
-- [ ] AC3: la versione del profilo cambia e invalida il riuso incompatibile,
+- [x] AC3: la versione del profilo cambia e invalida il riuso incompatibile,
   senza cambiare featureId, schema o introdurre query non bounded.
 
 ## Verifica

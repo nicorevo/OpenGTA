@@ -49,11 +49,11 @@ semantica della griglia. Non introdurre backend o nuovo provider SDK.
 
 ## Accettazione
 
-- [ ] AC1: il default e l'override usano solo l'endpoint scelto; E2E OSM con
+- [x] AC1: il default e l'override usano solo l'endpoint scelto; E2E OSM con
   fixture non vuota mostra geometria e contatori > 0 senza rete reale.
-- [ ] AC2: errore HTTP, parsing, forma invalida e remark sono distinguibili;
+- [x] AC2: errore HTTP, parsing, forma invalida e remark sono distinguibili;
   `elements: []` senza remark resta valido e non attiva mirror o dati sintetici.
-- [ ] AC3: `/` resta offline e il live senza consenso non invia richieste;
+- [x] AC3: `/` resta offline e il live senza consenso non invia richieste;
   README, ADR e test non descrivono piu' la rotazione dei mirror.
 
 ## Verifica

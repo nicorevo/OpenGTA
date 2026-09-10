@@ -1,6 +1,6 @@
 # ONLINE-10: Avviare e recuperare una sessione live
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-10.md`.
 **Dipendenze:** ONLINE-04, ONLINE-05, ONLINE-08, ONLINE-09.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -55,11 +55,11 @@ La sessione estratta serve il loop condiviso, non costituisce un secondo motore.
 
 ## Accettazione
 
-- [ ] AC1: P0 applicato con spawn valido consente input e rendering prima del
+- [x] AC1: P0 applicato con spawn valido consente input e rendering prima del
   neighbor; commit falliti non producono disallineamento scena/collider.
-- [ ] AC2: P0 fallito, neighbor fallito e mondo validamente vuoto hanno stati
+- [x] AC2: P0 fallito, neighbor fallito e mondo validamente vuoto hanno stati
   diversi; Riprova recupera con risposta valida, senza reload o cooldown saltato.
-- [ ] AC3: ripetere avvio/riprova/stop non duplica listener, RAF, richieste o
+- [x] AC3: ripetere avvio/riprova/stop non duplica listener, RAF, richieste o
   body; V0 offline e attribuzione rimangono funzionanti.
 
 ## Verifica

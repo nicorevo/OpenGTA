@@ -1,6 +1,6 @@
 # ONLINE-16: Verificare il percorso completo e consegnare le evidenze
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-16.md`.
 **Dipendenze:** ONLINE-01, ONLINE-02, ONLINE-03, ONLINE-04, ONLINE-05, ONLINE-06, ONLINE-07, ONLINE-08, ONLINE-09, ONLINE-10, ONLINE-11, ONLINE-12, ONLINE-13, ONLINE-14, ONLINE-15.
 **Persona:** test-engineer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -56,11 +56,11 @@ riaprire il task responsabile con riproduzione e lasciare questo gate incompleto
 
 ## Accettazione
 
-- [ ] AC1: matrice completa con prove passate per F1-F7 e requisiti ONLINE-13..15;
+- [x] AC1: matrice completa con prove passate per F1-F7 e requisiti ONLINE-13..15;
   zero dipendenze dai servizi pubblici nella suite e V0 ancora funzionante.
-- [ ] AC2: test/ports/dev/build ripetibili, geometria e collisioni verificate,
+- [x] AC2: test/ports/dev/build ripetibili, geometria e collisioni verificate,
   misure cold/warm e memoria con ambiente/metodo riportati, limiti espliciti.
-- [ ] AC3: risultato, handoff, SPEC, piano e todo concordano con il codice;
+- [x] AC3: risultato, handoff, SPEC, piano e todo concordano con il codice;
   nessun task incompleto marcato chiuso, nessun deploy o SLA dichiarato.
 
 ## Verifica

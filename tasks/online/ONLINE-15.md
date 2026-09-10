@@ -1,6 +1,6 @@
 # ONLINE-15: Ingresso live con consenso e configurazione validata
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-15.md`.
 **Dipendenze:** ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -55,11 +55,11 @@ backend o hosting. Non riscrivere il motore o la macchina di sessione.
 
 ## Accettazione
 
-- [ ] AC1: URL e controlli condividono validazione/policy; richieste assenti
+- [x] AC1: URL e controlli condividono validazione/policy; richieste assenti
   senza consenso o con input invalido, endpoint non autorizzato o userinfo.
-- [ ] AC2: avvio valido funziona con fixture, stop/revoca cancellano sessione
+- [x] AC2: avvio valido funziona con fixture, stop/revoca cancellano sessione
   e rete; default offline e URL esplicitamente consentito restano supportati.
-- [ ] AC3: flusso tastiera e resize 1280x720/390x844 verificati, errori e stato
+- [x] AC3: flusso tastiera e resize 1280x720/390x844 verificati, errori e stato
   comprensibili, attribuzione visibile e nessuna persistenza implicita del consenso.
 
 ## Verifica

@@ -46,6 +46,9 @@ anche con suite verde.
   Nessun lavoro online pendente nel piano; i filoni differiti restano in
   [tasks/online/FOLLOW-UPS.md](../../tasks/online/FOLLOW-UPS.md) con le
   condizioni di apertura.
+- Baseline stabile per test utente: commit `a5b076b`; istruzioni di prova,
+  stati attesi e limiti noti nella sezione "Prova della baseline" del
+  [README](../../README.md).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log

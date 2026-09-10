@@ -45,11 +45,11 @@ event bus, storage persistente o nuove dipendenze.
 
 ## Accettazione
 
-- [ ] AC1: release elimina record/valore, e release/dispose sono idempotenti;
+- [x] AC1: release elimina record/valore, e release/dispose sono idempotenti;
   i metodi non trattengono tutti i chunk gia' visitati.
-- [ ] AC2: cancel, dispose e loader non cooperativo terminano le promesse
+- [x] AC2: cancel, dispose e loader non cooperativo terminano le promesse
   pubbliche; risultati precedenti a release+reload non riappaiono.
-- [ ] AC3: deduplicazione, attivazione/disattivazione e fallback sul precedente
+- [x] AC3: deduplicazione, attivazione/disattivazione e fallback sul precedente
   valore dopo refresh fallito mantengono i contratti gia' testati.
 
 ## Verifica

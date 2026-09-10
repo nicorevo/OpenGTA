@@ -1,6 +1,6 @@
 # ONLINE-11: Impedire l'ingresso in aree non disponibili
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-11.md`.
 **Dipendenze:** ONLINE-05, ONLINE-09.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -51,11 +51,11 @@ pubblico o controlli test-only nella UI.
 
 ## Accettazione
 
-- [ ] AC1: la sagoma, incluso margine, resta nell'unione delle celle ACTIVE
+- [x] AC1: la sagoma, incluso margine, resta nell'unione delle celle ACTIVE
   in casi di bordo, angolo, buco interno e spinta da collisione.
-- [ ] AC2: guardia disabilitata conserva V0; guardia abilitata permette ritorno
+- [x] AC2: guardia disabilitata conserva V0; guardia abilitata permette ritorno
   verso spazio pronto e sblocca il movimento quando arriva il vicino.
-- [ ] AC3: nessun debito temporale o velocita' accumulata durante il blocco;
+- [x] AC3: nessun debito temporale o velocita' accumulata durante il blocco;
   funzioni di disponibilita' indipendenti da Rapier/Pixi e sagoma centralizzata.
 
 ## Verifica

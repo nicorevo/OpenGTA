@@ -50,11 +50,11 @@ importato esclusivamente nell'adapter fisico.
 
 ## Accettazione
 
-- [ ] AC1: add/remove/replace sono idempotenti, preservano veicolo e dinamica,
+- [x] AC1: add/remove/replace sono idempotenti, preservano veicolo e dinamica,
   e il numero di collider corrisponde solo a statici attivi piu' l'auto.
-- [ ] AC2: collisioni, cortili e frammenti condivisi restano corretti;
+- [x] AC2: collisioni, cortili e frammenti condivisi restano corretti;
   un errore non cancella il mondo precedente, dispose libera tutte le risorse.
-- [ ] AC3: sagoma autorevole centralizzata e query di spazio libero testata
+- [x] AC3: sagoma autorevole centralizzata e query di spazio libero testata
   con pose ruotate, sovrapposizione a muro e auto esclusa dalla query.
 
 ## Verifica

@@ -1,6 +1,6 @@
 # ONLINE-12: Collegare lo streaming alla guida
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-12.md`.
 **Dipendenze:** ONLINE-10, ONLINE-11.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -49,11 +49,11 @@ per evitare di usare le loro API. Niente timer per fetch dentro ogni frame.
 
 ## Accettazione
 
-- [ ] AC1: un percorso di almeno tre confini mostra nuovi dati e collisioni,
+- [x] AC1: un percorso di almeno tre confini mostra nuovi dati e collisioni,
   mantenendo body/pose continui; ritorno in warm cache non fa rete inutile.
-- [ ] AC2: direzione/resize aggiornano la domanda entro 200 ms con limiti di
+- [x] AC2: direzione/resize aggiornano la domanda entro 200 ms con limiti di
   coda e priorita' rispettati; nessuna risposta obsoleta riapplica chunk rimossi.
-- [ ] AC3: disconnessione e neighbor lento non consentono ingresso nel vuoto;
+- [x] AC3: disconnessione e neighbor lento non consentono ingresso nel vuoto;
   recupero e stop della sessione non lasciano risorse, job o loop duplicati.
 
 ## Verifica

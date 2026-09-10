@@ -1,6 +1,6 @@
 # ONLINE-09: Scegliere uno spawn percorribile
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-09.md`.
 **Dipendenze:** ONLINE-05.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** medium.
@@ -53,11 +53,11 @@ Il gameplay usa geometria compilata e un callback di spazio libero, non Rapier.
 
 ## Accettazione
 
-- [ ] AC1: a parita' di chunk e input la scelta e' deterministica, su strada,
+- [x] AC1: a parita' di chunk e input la scelta e' deterministica, su strada,
   con sagoma disponibile e senza edificio/collider attraversato.
-- [ ] AC2: vuoto, strada troppo stretta/bloccata, bordo e segmenti degeneri
+- [x] AC2: vuoto, strada troppo stretta/bloccata, bordo e segmenti degeneri
   danno esito controllato; nessun auto-spawn arbitrario o loop non limitato.
-- [ ] AC3: l'helper non importa raw OSM, PixiJS o Rapier; usa la sagoma di
+- [x] AC3: l'helper non importa raw OSM, PixiJS o Rapier; usa la sagoma di
   ONLINE-05 e almeno un test con query fisica reale dimostra lo spazio libero.
 
 ## Verifica

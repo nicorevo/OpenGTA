@@ -1,6 +1,6 @@
 # ONLINE-07: Isolare la cache per mondo e provider
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-07.md`.
 **Dipendenze:** ONLINE-01, ONLINE-06.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** medium.
@@ -49,11 +49,11 @@ TTL di produzione o cache di oggetti renderer/fisica.
 
 ## Accettazione
 
-- [ ] AC1: origini, griglie, dataset/profili e versioni incompatibili non
+- [x] AC1: origini, griglie, dataset/profili e versioni incompatibili non
   producono hit incrociati, anche quando chunkId e compilerVersion coincidono.
-- [ ] AC2: configurazioni compatibili producono hit; get/set/evict usano la
+- [x] AC2: configurazioni compatibili producono hit; get/set/evict usano la
   stessa identita', senza alterare gli id del mondo o esporre credenziali.
-- [ ] AC3: LRU e limite di capacita' restano verificati; bootstrap offline e
+- [x] AC3: LRU e limite di capacita' restano verificati; bootstrap offline e
   live forniscono identita' esplicite e i test precedenti passano.
 
 ## Verifica

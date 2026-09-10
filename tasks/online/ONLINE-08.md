@@ -1,6 +1,6 @@
 # ONLINE-08: Pubblicare chunk progressivamente e riconciliare la finestra
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-08.md`.
 **Dipendenze:** ONLINE-03, ONLINE-06, ONLINE-07.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -53,12 +53,12 @@ dei prerequisiti; non crearne un secondo sistema incompatibile.
 
 ## Accettazione
 
-- [ ] AC1: P0 notificato/attivabile senza aspettare neighbor; callback fallita,
+- [x] AC1: P0 notificato/attivabile senza aspettare neighbor; callback fallita,
   P0 fallito e neighbor fallito producono risultati separati e non corrompono
   gli altri chunk. L'intervallo di acquisizione reale e' rispettato.
-- [ ] AC2: deduplicazione, priorita', generazioni e pinned keys verificati;
+- [x] AC2: deduplicazione, priorita', generazioni e pinned keys verificati;
   un completamento vecchio non riattiva dati usciti dalla finestra.
-- [ ] AC3: percorso di 100 finestre mantiene risorse logiche limitate a
+- [x] AC3: percorso di 100 finestre mantiene risorse logiche limitate a
   wanted/pinned/pending piu' warm cache; dispose termina tutte le attivita'.
 
 ## Verifica

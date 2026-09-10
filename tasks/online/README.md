@@ -1,6 +1,8 @@
 # Esecuzione dei task online
 
-Data: 2026-09-09. Stato: contratti pianificati, non ancora implementati.
+Data: 2026-09-10. Stato: tranche completata (ONLINE-01..16, C1..C6); le
+schede restano riferimento dei contratti implementati e dei criteri
+verificati. Risultato: [`docs/results/ONLINE-RUNTIME-RESULT.md`](../../docs/results/ONLINE-RUNTIME-RESULT.md).
 Indice operativo: [piano](../plan.md), [checklist](../todo.md).
 
 ## Avvio per un modello senza contesto
@@ -16,8 +18,9 @@ le verifiche e aggiorna piano, checklist e log. Non implementare gli altri
 task e non trattare il piano come descrizione di API gia' esistenti.
 ```
 
-La consegna corrente riguarda solo la pianificazione. Le schede descrivono
-il lavoro che un esecutore potra' svolgere quando gli viene assegnato.
+La consegna della tranche e' completata: ogni scheda riporta il log di
+esecuzione che ne attesta i criteri. Le schede restano valide per riaprire
+un task in caso di regressione, con le stesse regole di esecuzione.
 
 ## Letture comuni obbligatorie
 

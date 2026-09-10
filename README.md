@@ -29,6 +29,10 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
+**Baseline stabile per test utente:** commit `a5b076b` sul ramo `opcl`
+(2026-09-10). Verificata con 172 test unitari, 14 E2E su dev server, 1 smoke
+del build di produzione, typecheck e build. Vedi [Prova della baseline](#prova-della-baseline).
+
 Avvio di sessione per agenti:
 
 `docs/handoff/CURRENT.md`
@@ -154,3 +158,42 @@ http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&con
 L’endpoint predefinito è `https://overpass-api.de/api/interpreter`. Per un
 ambiente di produzione usare un endpoint autorizzato o un’istanza Overpass
 gestita; non incorporare chiavi o credenziali nel client.
+
+### Prova della baseline
+
+Avvio: `npm install && npm run dev`, poi aprire `http://127.0.0.1:5173/`.
+Il default è la **modalità offline** (fixture Lecce, nessuna rete): guida con
+W, retromarcia con S, F3 per la diagnostica, L per le etichette.
+
+Modalità live dal pannello **"OpenGTA / Area di gioco"** (in alto a sinistra):
+selezionare "Online OSM", spuntare il consenso e premere Avvia. In
+alternativa, URL esplicito:
+
+```text
+http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&consent=1
+```
+
+Cosa verificare durante la prova:
+
+- stato sotto la scena: `Area pronta`, `Area parziale` (neighbor falliti),
+  `Nessuna strada percorribile`, `Caricamento non riuscito` — con `Riprova`
+  senza ricaricare la pagina;
+- l'auto parte appena la prima area è applicata, senza attendere i neighbor;
+- guidando si attraversano i confini dei chunk: i dati arrivano e i settori
+  lontani vengono rilasciati;
+- se il settore davanti non è ancora disponibile l'auto si ferma con
+  "Settore davanti non disponibile" e riparte quando i dati arrivano;
+- `Interrompi` ferma la sessione; togliere il consenso la termina subito;
+- l'attribuzione OpenStreetMap resta sempre visibile.
+
+Limiti noti della baseline (dettagli in `docs/results/ONLINE-RUNTIME-RESULT.md`):
+
+- con il provider reale la finestra completa arriva in ~14 s (spaziatura
+  minima Overpass di 2 s per cella); il primo chunk giocabile è pronto in
+  ~100 ms;
+- la copertura dipende dal provider pubblico: un'area senza strade o un
+  servizio occupato producono `empty`/`error` espliciti, non un mondo finto;
+- le misure di prestazione sono headless con GPU software: non promettono
+  FPS dell'hardware dell'utente;
+- la porta E2E è configurabile con `OPENGTA_E2E_PORT` (default 5180);
+  lo smoke degli asset costruiti con `OPENGTA_E2E_PREVIEW=1`.

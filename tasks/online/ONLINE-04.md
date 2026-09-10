@@ -48,11 +48,11 @@ a WebGPU/Three.js, non introdurre un framework UI o un secondo motore.
 
 ## Accettazione
 
-- [ ] AC1: aggiunta/rimozione/sostituzione/vuoto preservano auto, pose, label e
+- [x] AC1: aggiunta/rimozione/sostituzione/vuoto preservano auto, pose, label e
   camera; nessuna allocazione statica per aggiornamenti equivalenti.
-- [ ] AC2: geometrie, hole, mask e ordine di disegno rimangono corretti su
+- [x] AC2: geometrie, hole, mask e ordine di disegno rimangono corretti su
   chunk adiacenti; le risorse rimosse e dispose non lasciano oggetti vivi.
-- [ ] AC3: cameraBounds riflette dimensioni e inversione Y dopo resize;
+- [x] AC3: cameraBounds riflette dimensioni e inversione Y dopo resize;
   V0 continua a renderizzare e rispondere a guida/L/F3 senza regressioni.
 
 ## Verifica

@@ -46,11 +46,11 @@ budget predefiniti. Non reintrodurre rotazione automatica dei mirror.
 
 ## Accettazione
 
-- [ ] AC1: matrice degli header e intervalli verificata su clock controllato;
+- [x] AC1: matrice degli header e intervalli verificata su clock controllato;
   l'assenza di header non produce piu' il retry immediato della regressione.
-- [ ] AC2: casi ritentabili/non ritentabili e limite tentativi conformi a
+- [x] AC2: casi ritentabili/non ritentabili e limite tentativi conformi a
   C-SOURCE; nessun accesso a un endpoint diverso per superare un rifiuto.
-- [ ] AC3: budget include tutti i tentativi, parsing e backoff; abort e deadline
+- [x] AC3: budget include tutti i tentativi, parsing e backoff; abort e deadline
   liberano la coda senza timer residui o fetch dopo la conclusione.
 
 ## Verifica

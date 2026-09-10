@@ -49,11 +49,11 @@ dei timeout per mascherare un errore. Il coordinatore usera' la coda in ONLINE-0
 
 ## Accettazione
 
-- [ ] AC1: quattro richieste rapide riescono senza `source rate limit interval
+- [x] AC1: quattro richieste rapide riescono senza `source rate limit interval
   has not elapsed`, con concorrenza 1 e spaziatura corretta anche dopo errori.
-- [ ] AC2: priorita'/FIFO, coda piena e scadenza di coda sono testati; attendere
+- [x] AC2: priorita'/FIFO, coda piena e scadenza di coda sono testati; attendere
   il proprio turno non consuma il timeout attivo di 30 s.
-- [ ] AC3: tutte le forme di cancellazione terminano e liberano lo slot;
+- [x] AC3: tutte le forme di cancellazione terminano e liberano lo slot;
   nessuna richiesta tardiva parte dopo abort, nessun timer residuo nei test.
 
 ## Verifica

@@ -32,18 +32,21 @@ riprodotti sono documentati nell'analisi online citata sotto. Riferimenti:
 - La checklist operativa corrente è in `tasks/todo.md`.
 - I log di esecuzione di sessione vivono in `tasks/executions/`.
 
-## Next Planned Product Phase
+## Online Recovery Tranche (implemented)
 
-La tranche corrente e' pianificata in [tasks/plan.md](../tasks/plan.md):
-ripristino dell'acquisizione live, avvio progressivo, streaming durante la
-guida e robustezza del prototipo. Non e' ancora implementata.
+La tranche di ripristino online e' implementata e verificata (ONLINE-01..16,
+checkpoint C1..C6): acquisizione live con retry rispettosi, avvio progressivo,
+streaming durante la guida, confinamento fisico, payload limitati, ingresso
+live esplicito e gate finale con misure.
 
+- Risultato con matrice e limiti:
+  [ONLINE-RUNTIME-RESULT](../results/ONLINE-RUNTIME-RESULT.md).
 - Evidenza: [analisi online](analysis/ONLINE-RUNTIME-ANALYSIS-2026-09-08.md).
 - Contratti e procedura delle slice: [tasks/online/README.md](../tasks/online/README.md).
-- Schede eseguibili: ONLINE-01..16, collegate dal piano e dalla checklist.
+- Schede consegnate: ONLINE-01..16 in `tasks/online/`, log in
+  `tasks/executions/`, stato in [tasks/plan.md](../tasks/plan.md) e
+  [tasks/todo.md](../tasks/todo.md).
 
-Gli obiettivi e i criteri di ogni scheda soddisfano DEFINE FIRST per il task
-assegnato; i contratti descrivono il comportamento da implementare, non lo
-stato attuale. Gli ADR coinvolti saranno aggiornati nei task che li cambiano.
 La spec di Fase 2 resta riferimento della fondazione precedente; hosting,
-cache persistente, pacchetti, AI e multiplayer non sono impliciti nella tranche.
+cache persistente, pacchetti, AI e multiplayer non sono impliciti nella
+tranche e restano nei filoni differiti di `tasks/online/FOLLOW-UPS.md`.

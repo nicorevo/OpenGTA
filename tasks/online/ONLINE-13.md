@@ -1,6 +1,6 @@
 # ONLINE-13: Limitare i byte delle risposte prima del parsing
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-10-ONLINE-13.md`.
 **Dipendenze:** ONLINE-03.
 **Persona:** fullstack-developer.
 **MODEL CLASS:** STANDARD. **REASONING:** high.
@@ -46,11 +46,11 @@ MAX_ELEMENTS/MAX_WAY_NODES. Nessuna libreria di parsing streaming esterna.
 
 ## Accettazione
 
-- [ ] AC1: il limite si applica ai byte letti, anche con header mancante/falso
+- [x] AC1: il limite si applica ai byte letti, anche con header mancante/falso
   e UTF-8 multibyte; nessun parsing dopo superamento della soglia.
-- [ ] AC2: HTTP e Overpass usano il reader bounded in produzione;
+- [x] AC2: HTTP e Overpass usano il reader bounded in produzione;
   response-too-large e invalid-response sono distinti e non ritentati.
-- [ ] AC3: abort, timeout e errore di stream rilasciano reader/slot/timer;
+- [x] AC3: abort, timeout e errore di stream rilasciano reader/slot/timer;
   la richiesta successiva puo' completarsi normalmente.
 
 ## Verifica
