@@ -17,11 +17,11 @@ Questa cartella contiene il materiale operativo attivo del progetto.
 
 ## Stato attuale
 
-Il lavoro corrente e' il ripristino online e lo streaming, basato sull'analisi
-dell'8 settembre 2026. ONLINE-01..10 sono completati e verificati (checkpoint
-C1..C3 superati); i log sono in `executions/`. Prossimo task nell'ordine
-previsto: [ONLINE-11](online/ONLINE-11.md). Partire da [plan.md](plan.md),
-[todo.md](todo.md) e [online/README.md](online/README.md).
+Il ripristino online e lo streaming sono completati: ONLINE-01..16 verificati,
+checkpoint C1..C6 superati (2026-09-10). Risultato con matrice e misure:
+[`docs/results/ONLINE-RUNTIME-RESULT.md`](../docs/results/ONLINE-RUNTIME-RESULT.md).
+I log sono in `executions/`; il backlog differito e' in
+[`online/FOLLOW-UPS.md`](online/FOLLOW-UPS.md) e non fa parte della consegna.
 
 Ogni scheda contiene dipendenze, letture, file modificabili, passi TDD,
 accettazione, comandi e handoff per un esecutore senza il contesto della chat.

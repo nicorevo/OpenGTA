@@ -25,6 +25,10 @@ Slice V0 eseguibile (Lecce centro, guida top-down, collisioni 2D):
 
 `docs/results/V0-RESULT.md`
 
+Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
+
+`docs/results/ONLINE-RUNTIME-RESULT.md`
+
 Avvio di sessione per agenti:
 
 `docs/handoff/CURRENT.md`

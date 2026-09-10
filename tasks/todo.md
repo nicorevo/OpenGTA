@@ -1,7 +1,7 @@
 # Checklist: ripristino online
 
 Data: 2026-09-10.
-Stato: implementazione in corso; vedere checkbox e log verificati.
+Stato: completata; tutti i task e i checkpoint verificati nei log.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
 [contratti e procedura](online/README.md). Le checkbox sono una vista sintetica:
@@ -44,8 +44,8 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzion
 
 ## Consegna
 
-- [ ] [ONLINE-16](online/ONLINE-16.md): verifiche complete e misure.
-- [ ] C6: handoff coerente con prove e codice.
+- [x] [ONLINE-16](online/ONLINE-16.md): verifiche complete e misure.
+- [x] C6: handoff coerente con prove e codice.
 
 ## Storico
 

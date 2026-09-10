@@ -1,9 +1,10 @@
 # Piano: ripristino online e streaming Open World
 
 Data: 2026-09-09. Analisi di riferimento: 2026-09-08.
-Stato: implementazione in corso; ONLINE-01..15 completati e verificati
-(checkpoint C1..C5 superati), ONLINE-16 da eseguire (evidenze in
-`tasks/executions/` e [todo](todo.md)).
+Stato: completato; ONLINE-01..16 verificati, checkpoint C1..C6 superati.
+Evidenze in `tasks/executions/`, [todo](todo.md) e
+`docs/results/ONLINE-RUNTIME-RESULT.md`. Il backlog differito resta in
+[FOLLOW-UPS](online/FOLLOW-UPS.md).
 Baseline codice: `4ad9836`. Responsabile della pianificazione: tech-lead-planner.
 
 ## Obiettivo
@@ -68,7 +69,7 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 | [x] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
 | [x] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |
 | [x] | [ONLINE-15 Ingresso live esplicito](online/ONLINE-15.md) | ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14 | M | Coordinate/consenso/policy endpoint verificati prima della rete |
-| [ ] | [ONLINE-16 Gate finale](online/ONLINE-16.md) | ONLINE-01..ONLINE-15 | M | E2E completo, build, misure e handoff allineati |
+| [x] | [ONLINE-16 Gate finale](online/ONLINE-16.md) | ONLINE-01..ONLINE-15 | M | E2E completo, build, misure e handoff allineati |
 
 ## Checkpoint
 
@@ -111,9 +112,9 @@ ONLINE-10 da solo consegna l'avvio progressivo, non l'esplorazione continua.
 
 ### C6: consegna, ONLINE-16
 
-- [ ] Ogni criterio delle schede e' collegato a un test o a evidenza manuale.
-- [ ] Misure con ambiente dichiarato; nessuna pretesa di SLA pubblico.
-- [ ] `docs/handoff/CURRENT.md`, piano e checklist concordano con il codice.
+- [x] Ogni criterio delle schede e' collegato a un test o a evidenza manuale.
+- [x] Misure con ambiente dichiarato; nessuna pretesa di SLA pubblico.
+- [x] `docs/handoff/CURRENT.md`, piano e checklist concordano con il codice.
 
 I checkpoint sono gate tecnici. Non richiedono di interrompere una tranche
 gia' assegnata per domandare di nuovo il permesso di proseguire. Il lavoro
