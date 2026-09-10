@@ -31,6 +31,8 @@ describe("runtime geo data source", () => {
     const result = await compileRuntimeRegion(source, request);
     expect(query).toContain('nwr["leisure"="park"]');
     expect(query).toContain('nwr["amenity"="parking"]');
+    for (const filter of ['nwr["building"]', 'nwr["highway"]', 'nwr["landuse"]', 'nwr["natural"]', 'nwr["waterway"]', 'nwr["barrier"]']) expect(query).toContain(filter);
+    expect(query).toContain("out body;>;out skel qt;");
     expect(result.chunks[0].ground.map((area) => area.styleKey).sort()).toEqual(["land:park", "land:parking"]);
   });
   it.each([null, { elements: [null] }, { elements: [], remark: 7 }])("classifies malformed payloads %j", async (payload) => {

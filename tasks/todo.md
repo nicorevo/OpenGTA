@@ -38,7 +38,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzion
 ## Robustezza
 
 - [x] [ONLINE-13](online/ONLINE-13.md): limite payload.
-- [ ] [ONLINE-14](online/ONLINE-14.md): profilo OSM.
+- [x] [ONLINE-14](online/ONLINE-14.md): profilo OSM.
 - [ ] [ONLINE-15](online/ONLINE-15.md): ingresso e consenso.
 - [ ] C5: robustezza del prototipo.
 

@@ -66,7 +66,7 @@ superficie stimata di codice e test; documentazione e log non sono conteggiati.
 | [x] | [ONLINE-11 Confine disponibile](online/ONLINE-11.md) | ONLINE-05, ONLINE-09 | M | Movimento fisico confinato ai chunk applicati |
 | [x] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
 | [x] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
-| [ ] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |
+| [x] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |
 | [ ] | [ONLINE-15 Ingresso live esplicito](online/ONLINE-15.md) | ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14 | M | Coordinate/consenso/policy endpoint verificati prima della rete |
 | [ ] | [ONLINE-16 Gate finale](online/ONLINE-16.md) | ONLINE-01..ONLINE-15 | M | E2E completo, build, misure e handoff allineati |
 
