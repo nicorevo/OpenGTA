@@ -16,6 +16,25 @@ function emptyChunk(id: string): CompiledChunkV0 {
 }
 
 describe("open world runtime coordinator", () => {
+  it("reconciles a rapid return while removal is still committing", async () => {
+    let finishRemoval!: () => void;
+    let removalStarted!: () => void;
+    const started = new Promise<void>((resolve) => { removalStarted = resolve; });
+    let once = true;
+    const applied = new Set<string>();
+    const runtime = createOpenWorldRuntime({ baseOrigin: { latitude: 0, longitude: 0 }, grid: createChunkGrid(300), cache: createChunkCache(9), compilerVersion: "test", source: createGeoDataSource(async () => ({ elements: [] })), compile: async (key) => emptyChunk(`chunk:${key.x}:${key.y}`),
+      onChunkReady: (chunk) => { applied.add(chunk.id); },
+      onChunkRemoved: async (key) => { if (once) { once = false; removalStarted(); await new Promise<void>((resolve) => { finishRemoval = resolve; }); } applied.delete(`chunk:${key.x}:${key.y}`); },
+    });
+    const input = (x: number) => ({ position: { x: x * 300 + 10, y: 10 }, velocity: { x: 0, y: 0 }, cameraBounds: { minX: x * 300 + 1, maxX: x * 300 + 200, minY: 1, maxY: 200 } });
+    await runtime.loadWindow(input(0));
+    const away = runtime.loadWindow(input(1)); await started;
+    const back = runtime.loadWindow(input(0)); finishRemoval();
+    await Promise.all([away, back]);
+    expect(runtime.state({ x: 0, y: 0 })).toBe("ACTIVE");
+    expect(applied).toEqual(new Set(["chunk:0:0"]));
+    await runtime.dispose();
+  });
   it("publishes a ready chunk before neighbors and awaits application before activation", async () => {
     let finishNeighbor!: (chunk: CompiledChunkV0) => void;
     let finishApply!: () => void;

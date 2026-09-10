@@ -2,7 +2,7 @@ import RAPIER from "@dimforge/rapier2d-compat";
 import type { CollisionShape2D } from "../../world/compiler/compiled.ts";
 import { stepVehicle as stepArcadeVehicle, type VehicleInput, type VehicleState } from "../../gameplay/vehicle/controller.ts";
 import { VEHICLE_HALF_LENGTH, VEHICLE_HALF_WIDTH, type VehiclePose } from "../../gameplay/vehicle/shape.ts";
-export interface PhysicsVehicleState extends VehicleState { readonly body: RAPIER.RigidBody; }
+export interface PhysicsVehicleState extends VehicleState { readonly body: RAPIER.RigidBody; readonly blockedByAvailability?: boolean }
 export interface PhysicsAdapter {
   readonly world: RAPIER.World;
   readonly colliderCount: () => number;
@@ -11,7 +11,7 @@ export interface PhysicsAdapter {
   isPoseFree(pose: VehiclePose): boolean;
   dispose(): void;
   createVehicle(initial: { x: number; y: number; heading: number }): PhysicsVehicleState;
-  stepVehicle(state: PhysicsVehicleState, input: VehicleInput): PhysicsVehicleState;
+  stepVehicle(state: PhysicsVehicleState, input: VehicleInput, available?: (pose: VehiclePose) => boolean): PhysicsVehicleState;
 }
 /**
  * Walls follow the footprint outline instead of its convex hull: a hull would
@@ -83,12 +83,21 @@ export async function createPhysicsAdapter(shapes: readonly CollisionShape2D[]):
       world.createCollider(RAPIER.ColliderDesc.cuboid(VEHICLE_HALF_LENGTH, VEHICLE_HALF_WIDTH).setFriction(0.8).setRestitution(0), body);
       return { body, position: { x: initial.x, y: initial.y }, velocity: { x: 0, y: 0 }, heading: initial.heading };
     },
-    stepVehicle(state, input) {
-      const desired = stepArcadeVehicle(state, input);
+    stepVehicle(state, input, available) {
+      let desired = stepArcadeVehicle(state, input);
+      let blocked = available ? !available(desired) : false;
+      if (blocked) desired = { ...state, velocity: { x: 0, y: 0 } };
       state.body.setLinvel(desired.velocity, true); state.body.setRotation(desired.heading, true);
       world.timestep = 1 / 60; world.step();
       const position = state.body.translation(); const velocity = state.body.linvel();
-      return { body: state.body, position: { x: position.x, y: position.y }, velocity: { x: velocity.x, y: velocity.y }, heading: state.body.rotation() };
+      const next = { body: state.body, position: { x: position.x, y: position.y }, velocity: { x: velocity.x, y: velocity.y }, heading: state.body.rotation() };
+      if (available && !available(next)) {
+        blocked = true;
+        state.body.setTranslation(state.position, true); state.body.setRotation(state.heading, true);
+        state.body.setLinvel({ x: 0, y: 0 }, true); state.body.setAngvel(0, true);
+        return { ...state, velocity: { x: 0, y: 0 }, blockedByAvailability: true };
+      }
+      return { ...next, blockedByAvailability: blocked };
     },
   };
 }

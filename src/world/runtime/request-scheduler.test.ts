@@ -56,3 +56,26 @@ it("pre-abort never invokes loader and failures free the queue", async () => {
   await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
   expect(calls).toBe(2);
 });
+
+it("admits new P0 ahead of P2 still waiting for the next permitted start", async () => {
+  vi.useFakeTimers();
+  const starts: string[] = [];
+  const source = createGeoDataSource(async (r) => { starts.push(r.regionId); return { elements: [] }; }, { minIntervalMs: 100 });
+  await source.acquire({ ...request, regionId: "first" });
+  const slow = source.acquire({ ...request, regionId: "p2" });
+  await vi.advanceTimersByTimeAsync(10);
+  const urgent = source.acquire({ ...request, regionId: "p0" }, { priority: 0 });
+  await vi.runAllTimersAsync(); await Promise.all([slow, urgent]);
+  expect(starts).toEqual(["first", "p0", "p2"]);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("does not start a loader cancelled before its first microtask", async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  const source = createGeoDataSource(async () => { calls++; return { elements: [] }; });
+  const work = source.acquire(request, { signal: controller.signal }).catch((e) => e);
+  controller.abort();
+  expect(await work).toMatchObject({ code: "aborted" });
+  expect(calls).toBe(0);
+});

@@ -9,6 +9,30 @@ const request: RuntimeRegionRequest = {
 afterEach(() => vi.useRealTimers());
 
 describe("runtime geo data source", () => {
+  it.each([createHttpGeoDataSource, createOverpassGeoDataSource])("bounds native Fetch responses without retrying oversized payloads", async (factory) => {
+    vi.useFakeTimers();
+    let calls = 0;
+    const source = factory("https://example.test", async () => new Response(++calls === 1 ? JSON.stringify({ elements: [], note: "x".repeat(100) }) : '{"elements":[]}'), { maxResponseBytes: 32 });
+    const first = source.acquire(request).catch((e) => e);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(await first).toMatchObject({ code: "response-too-large" });
+    expect(calls).toBe(1);
+    const next = source.acquire(request); await vi.runAllTimersAsync();
+    expect(await next).toEqual({ elements: [] });
+  });
+
+  it("requests and compiles minimally tagged parks and parking areas", async () => {
+    let query = "";
+    const nodes = Array.from({ length: 8 }, (_, i) => ({ type: "node", id: i + 1, lat: request.origin.latitude + (i % 4 > 1 ? 0.0002 : 0), lon: request.origin.longitude + (i % 4 === 1 || i % 4 === 2 ? 0.0002 : 0) + (i >= 4 ? 0.0004 : 0) }));
+    const source = createOverpassGeoDataSource(undefined, async (_url, _signal, body) => {
+      query = new URLSearchParams(body).get("data")!;
+      return new Response(JSON.stringify({ elements: [...nodes, { type: "way", id: 10, nodes: [1, 2, 3, 4, 1], tags: { leisure: "park" } }, { type: "way", id: 11, nodes: [5, 6, 7, 8, 5], tags: { amenity: "parking" } }] }));
+    });
+    const result = await compileRuntimeRegion(source, request);
+    expect(query).toContain('nwr["leisure"="park"]');
+    expect(query).toContain('nwr["amenity"="parking"]');
+    expect(result.chunks[0].ground.map((area) => area.styleKey).sort()).toEqual(["land:park", "land:parking"]);
+  });
   it.each([null, { elements: [null] }, { elements: [], remark: 7 }])("classifies malformed payloads %j", async (payload) => {
     const source = createOverpassGeoDataSource(undefined, async () => ({ ok: true, status: 200, json: async () => payload }));
     await expect(source.acquire(request)).rejects.toMatchObject({ code: "invalid-response", status: 200 });

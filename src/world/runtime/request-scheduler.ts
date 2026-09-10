@@ -27,8 +27,13 @@ export function createRequestScheduler(options: SchedulerOptions = {}) {
   let active = false;
   let sequence = 0;
   let nextStart = -Infinity;
+  let admissionTimer: ReturnType<typeof setTimeout> | undefined;
   const pump = () => {
     if (active || !queue.length) return;
+    if (nextStart > now()) {
+      if (admissionTimer === undefined) admissionTimer = setTimeout(() => { admissionTimer = undefined; pump(); }, nextStart - now());
+      return;
+    }
     queue.sort((a, b) => a.priority - b.priority || a.order - b.order);
     const job = queue.shift()!;
     active = true;
@@ -57,15 +62,16 @@ export function createRequestScheduler(options: SchedulerOptions = {}) {
           clearTimeout(queueTimer); clearTimeout(activeTimer); clearTimeout(waitTimer);
           input.signal?.removeEventListener("abort", onAbort);
         };
-        const finish = (value: T | undefined, error?: unknown) => {
+        const finish = (value: T | undefined, error?: unknown, failed = false) => {
           if (finished) return;
           finished = true; cleanup();
-          if (error !== undefined) reject(error); else resolve(value as T);
+          if (failed) reject(error); else resolve(value as T);
         };
         const cancel = (error: GeoDataSourceError) => {
           if (finished) return;
           const index = queue.indexOf(job); if (index >= 0) queue.splice(index, 1);
-          controller.abort(error); rejectAborted(error); wake?.(); finish(undefined, error);
+          if (!queue.length) { clearTimeout(admissionTimer); admissionTimer = undefined; }
+          controller.abort(error); rejectAborted(error); wake?.(); finish(undefined, error, true);
         };
         const onAbort = () => cancel(new GeoDataSourceError("aborted", "Geo request aborted"));
         const context: AttemptContext = {
@@ -92,9 +98,9 @@ export function createRequestScheduler(options: SchedulerOptions = {}) {
           priority: input.priority ?? 2, order: sequence++, signal: input.signal, cancel,
           async start() {
             try {
-              const value = await Promise.race([(async () => { await context.attempt(); return task(context); })(), aborted]);
+              const value = await Promise.race([(async () => { await context.attempt(); controller.signal.throwIfAborted(); return task(context); })(), aborted]);
               finish(value);
-            } catch (error) { finish(undefined, error); }
+            } catch (error) { finish(undefined, error, true); }
             finally { controller.abort(); }
           },
         };

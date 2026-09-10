@@ -113,6 +113,18 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
     for (const [id, key] of active) {
       if (needed(id)) continue;
       await options.onChunkRemoved?.(key); active.delete(id);
+      if (!needed(id)) continue;
+      // Re-demanded while removal was committing: re-apply from the warm cache.
+      // Runs inside the commit chain, so scene and colliders stay serialized.
+      const demand = wanted.get(id);
+      const priority = demand?.priority === "P1" ? 1 : demand?.priority === "P2" ? 2 : 0;
+      try {
+        const record = await lifecycle.load(key, { priority });
+        if (!needed(id) || active.has(id) || lifecycle.get(key)?.value !== record.value) continue;
+        await options.onChunkReady?.(record.value!, key);
+        if (!needed(id) || lifecycle.get(key)?.value !== record.value) { await options.onChunkRemoved?.(key); continue; }
+        lifecycle.activate(key); active.set(id, key);
+      } catch (error) { if (needed(id)) errors.set(id, error); }
     }
   });
   const ensure = (demand: ChunkDemand): Promise<void> => {

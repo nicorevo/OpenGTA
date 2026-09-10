@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readLiveSourceConfig } from "./live-config.ts";
+import { readLiveSourceConfig, readRuntimeConfig } from "./live-config.ts";
 
 describe("live runtime configuration", () => {
   it("accepts an explicit endpoint only with consent", () => {
-    expect(readLiveSourceConfig(new URLSearchParams("mode=open-world-live&endpoint=https%3A%2F%2Fgeo.test%2Fquery&consent=1"))).toEqual({
+    expect(readLiveSourceConfig(new URLSearchParams("mode=open-world-live&endpoint=https%3A%2F%2Fgeo.test%2Fquery&consent=1"), { httpsEndpoints: ["https://geo.test/query"] })).toEqual({
       endpoint: "https://geo.test/query",
       provider: "http",
       consent: true,
@@ -26,4 +26,21 @@ describe("live runtime configuration", () => {
       consent: true,
     });
   });
+});
+
+it.each(["lat=", "lat=NaN", "lat=Infinity", "lat=91", "lon=-181", "mode=unknown", "provider=unknown", "mode="])("rejects invalid shared configuration %s", (input) => {
+  expect(() => readRuntimeConfig(new URLSearchParams(input))).toThrow();
+});
+
+it.each(["http://overpass-api.de/api/interpreter", "https://evil.test/query", "https://user:pass@overpass-api.de/api/interpreter", "https://overpass-api.de/api/interpreter?secret=x", "https://overpass-api.de.evil.test/api/interpreter", "javascript:alert(1)"])("rejects untrusted endpoint %s", (endpoint) => {
+  expect(() => readRuntimeConfig(new URLSearchParams({ mode: "open-world-live", provider: "osm", consent: "1", endpoint }))).toThrow();
+});
+
+it("permits only the exact development origin and path supplied by trusted code", () => {
+  const params = new URLSearchParams({ mode: "open-world-live", consent: "1", endpoint: "http://127.0.0.1:5180/__test-geo" });
+  const policy = { httpsEndpoints: [], developmentOrigin: "http://127.0.0.1:5180" };
+  expect(readRuntimeConfig(params, policy).live?.endpoint).toBe(params.get("endpoint"));
+  expect(() => readRuntimeConfig(params)).toThrow();
+  params.set("endpoint", "http://localhost.evil.test/__test-geo");
+  expect(() => readRuntimeConfig(params, policy)).toThrow();
 });

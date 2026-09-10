@@ -2,6 +2,35 @@ import { describe, expect, it } from "vitest";
 import { createPhysicsAdapter } from "./adapter.ts";
 
 describe("Rapier vehicle integration", () => {
+  it("contains every physical step and permits reverse and recovery", async () => {
+    const physics = await createPhysicsAdapter([]);
+    let state = physics.createVehicle({ x: 296, y: 40, heading: 0 });
+    let edge = 297.75;
+    const guard = (pose: { position: { x: number } }) => pose.position.x <= edge;
+    for (let i = 0; i < 300; i++) {
+      state = physics.stepVehicle(state, { throttle: 1, steer: 0, brake: 0 }, guard);
+      expect(state.position.x).toBeLessThanOrEqual(edge);
+    }
+    expect(state.blockedByAvailability).toBe(true);
+    const stopped = state.position.x;
+    for (let i = 0; i < 60; i++) state = physics.stepVehicle(state, { throttle: -1, steer: 0, brake: 0 }, guard);
+    expect(state.position.x).toBeLessThan(stopped);
+    edge = 600;
+    for (let i = 0; i < 300; i++) state = physics.stepVehicle(state, { throttle: 1, steer: 0, brake: 0 }, guard);
+    expect(state.position.x).toBeGreaterThan(300);
+    physics.dispose();
+  });
+
+  it("restores the previous valid pose if Rapier pushes it outside after a collision", async () => {
+    const physics = await createPhysicsAdapter([{ kind: "segment", featureId: "wall", a: { x: 0, y: -10 }, b: { x: 0, y: 10 } }]);
+    const initial = physics.createVehicle({ x: 1.9, y: 0, heading: 0 });
+    let checks = 0;
+    const next = physics.stepVehicle(initial, { throttle: 0, steer: 0, brake: 0 }, (pose) => { checks++; return pose.position.x <= 1.95; });
+    expect(checks).toBeGreaterThanOrEqual(2);
+    expect(next.position.x).toBeLessThanOrEqual(1.95);
+    expect(next.body.translation().x).toBeLessThanOrEqual(1.95);
+    physics.dispose();
+  });
   it("updates static chunks without replacing the vehicle and removes shared feature fragments independently", async () => {
     const physics = await createPhysicsAdapter([]);
     const vehicle = physics.createVehicle({ x: 0, y: 0, heading: 0 });

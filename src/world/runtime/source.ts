@@ -3,6 +3,7 @@ import { normalizeOsm, type RawOsm } from "../../geo/normalize/osm.ts";
 import { compileRegion, type CompileResult } from "../compiler/compiled.ts";
 import { createRequestScheduler, type AcquireOptions, type SchedulerOptions, type AttemptContext } from "./request-scheduler.ts";
 import { GeoDataSourceError } from "./source-error.ts";
+import { readBoundedJson, DEFAULT_RESPONSE_BYTES } from "./response-reader.ts";
 export { GeoDataSourceError, type GeoDataErrorCode } from "./source-error.ts";
 export type { AcquireOptions } from "./request-scheduler.ts";
 
@@ -25,12 +26,14 @@ export interface GeoDataResponse {
   readonly ok: boolean;
   readonly status: number;
   readonly headers?: { get(name: string): string | null };
+  readonly body?: ReadableStream<Uint8Array> | null;
   json(): Promise<unknown>;
 }
 
 export type GeoDataFetcher = (url: string, signal: AbortSignal, body?: string) => Promise<GeoDataResponse>;
 
-export interface OverpassOptions extends GeoDataSourceOptions {
+export interface HttpSourceOptions extends GeoDataSourceOptions { readonly maxResponseBytes?: number }
+export interface OverpassOptions extends HttpSourceOptions {
   readonly maxRetries?: number;
   readonly retryDelayMs?: number;
 }
@@ -66,10 +69,14 @@ function validateResponse(value: unknown, status?: number): RawOsm {
   return { elements } as RawOsm;
 }
 
-async function readResponse(response: GeoDataResponse, overpass = false): Promise<RawOsm> {
+async function readResponse(response: GeoDataResponse, signal: AbortSignal, maxBytes: number, overpass = false): Promise<RawOsm> {
   let payload: unknown;
-  try { payload = await response.json(); }
-  catch (cause) { throw new GeoDataSourceError("invalid-response", "OSM response is not valid JSON", response.status, cause); }
+  try {
+    // Native Fetch responses always have body, including null. json-only fakes
+    // remain injectable for tests; production never falls back from a missing stream.
+    payload = "body" in response ? await readBoundedJson({ body: response.body ?? null, status: response.status }, signal, maxBytes) : await response.json();
+  }
+  catch (cause) { if (cause instanceof GeoDataSourceError) throw cause; throw new GeoDataSourceError("invalid-response", "OSM response is not valid JSON", response.status, cause); }
   if (overpass && payload && typeof payload === "object" && "remark" in payload) {
     if (typeof payload.remark !== "string") throw new GeoDataSourceError("invalid-response", "OSM response has an invalid remark", response.status);
     if (payload.remark.length > 0) throw new GeoDataSourceError("provider-error", "OSM provider reported an incomplete response", response.status);
@@ -89,8 +96,10 @@ export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourc
   };
 }
 
-export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetcher = async (url, signal) => fetch(url, { signal })): GeoDataSource {
+export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetcher = async (url, signal) => fetch(url, { signal }), options: HttpSourceOptions = {}): GeoDataSource {
   const baseUrl = new URL(endpoint);
+  const maxBytes = options.maxResponseBytes ?? DEFAULT_RESPONSE_BYTES;
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RangeError("Invalid response byte budget");
   return createGeoDataSource(async (request, signal) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
@@ -105,15 +114,16 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
     try { response = await fetcher(url.toString(), signal); }
     catch (cause) { throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, cause); }
     if (!response.ok) throw new GeoDataSourceError("http", `geo data source returned HTTP ${response.status}`, response.status);
-    return readResponse(response);
-  }, { timeoutMs: 30_000, minIntervalMs: 1_000 });
+    return readResponse(response, signal, maxBytes);
+  }, { timeoutMs: 30_000, minIntervalMs: 1_000, ...options });
 }
 
+export const OSM_QUERY_PROFILE = "osm-v1-park-parking";
 export const DEFAULT_OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
 export function retryAfterMilliseconds(value: string | null | undefined, now: number): number | undefined {
   if (value == null || value.trim() === "") return undefined;
-  if (/^\d+(\.\d+)?$/.test(value.trim())) return Number(value) * 1000;
+  if (/^\d+(\.\d+)?$/.test(value.trim())) { const milliseconds = Number(value) * 1000; return Number.isFinite(milliseconds) ? milliseconds : undefined; }
   if (!/[A-Za-z]/.test(value)) return undefined;
   const date = Date.parse(value);
   return Number.isFinite(date) ? Math.max(0, date - now) : undefined;
@@ -127,6 +137,8 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
 }), options: OverpassOptions = {}): GeoDataSource {
   const maxRetries = options.maxRetries ?? 2;
   const retryDelayMs = options.retryDelayMs ?? 1_500;
+  const maxBytes = options.maxResponseBytes ?? DEFAULT_RESPONSE_BYTES;
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RangeError("Invalid response byte budget");
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
   const now = options.now ?? Date.now;
@@ -138,7 +150,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
     const north = request.origin.latitude + latitudeDelta;
     const east = request.origin.longitude + longitudeDelta;
     const bbox = `${south},${west},${north},${east}`;
-    const query = `[out:json][timeout:25];(nwr["building"](${bbox});nwr["highway"](${bbox});nwr["landuse"](${bbox});nwr["natural"](${bbox});nwr["waterway"](${bbox});nwr["barrier"](${bbox}););out body;>;out skel qt;`;
+    const query = `[out:json][timeout:25];(nwr["building"](${bbox});nwr["highway"](${bbox});nwr["landuse"](${bbox});nwr["natural"](${bbox});nwr["waterway"](${bbox});nwr["barrier"](${bbox});nwr["leisure"="park"](${bbox});nwr["amenity"="parking"](${bbox}););out body;>;out skel qt;`;
     for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       signal.throwIfAborted();
       if (attempt > 0) await context.attempt();
@@ -149,8 +161,9 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
       } catch (error: unknown) {
         networkError = error;
       }
+      signal.throwIfAborted();
       if (response?.ok) {
-        return readResponse(response, true);
+        return readResponse(response, signal, maxBytes, true);
       }
       const retryable = networkError !== undefined || response?.status === 429 || response?.status === 503 || (response?.status ?? 0) >= 500;
       const delay = retryAfterMilliseconds(response?.headers?.get("retry-after"), now()) ?? retryDelayMs * (attempt + 1);
