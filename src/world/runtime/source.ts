@@ -166,8 +166,9 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   }, { timeoutMs: 30_000, minIntervalMs: 2_000, ...options });
 }
 
-export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest): Promise<CompileResult> {
-  const raw = await source.acquire(request);
+export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest, options?: AcquireOptions): Promise<CompileResult> {
+  const raw = await source.acquire(request, options);
+  options?.signal?.throwIfAborted();
   const region = normalizeOsm(raw, createTangentProjector(request.origin), request.origin, request.regionId);
   return compileRegion(region);
 }

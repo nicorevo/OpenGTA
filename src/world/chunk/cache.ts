@@ -1,6 +1,7 @@
 export interface ChunkCacheKey {
   readonly chunkId: string;
   readonly compilerVersion: string;
+  readonly namespace?: string;
 }
 
 export interface ChunkCache<T> {
@@ -18,7 +19,7 @@ interface CacheEntry<T> {
 
 function cacheKey(key: ChunkCacheKey): string {
   if (!key.chunkId || !key.compilerVersion) throw new Error("chunk cache key must identify chunk and compiler version");
-  return JSON.stringify([key.chunkId, key.compilerVersion]);
+  return JSON.stringify([key.namespace ?? "legacy", key.chunkId, key.compilerVersion]);
 }
 
 export function createChunkCache<T>(capacity: number): ChunkCache<T> {

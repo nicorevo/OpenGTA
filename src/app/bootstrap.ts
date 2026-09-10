@@ -61,6 +61,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       compilerVersion: "v0-runtime",
       grid: createChunkGrid(300),
       source,
+      sourceIdentity: liveConfig ? `${liveConfig.provider}:${liveConfig.endpoint}` : "fixture:lecce-v0",
+      queryProfile: "osm-v0",
     });
     const activeWindow = await runtime.loadWindow({
       position: { x: 0, y: 0 },

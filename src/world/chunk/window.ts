@@ -30,15 +30,15 @@ function finiteBounds(bounds: Bounds2D): void {
   }
 }
 
-function cameraKeys(grid: ChunkGrid, bounds: Bounds2D): ChunkKey[] {
+function cameraKeys(grid: ChunkGrid, bounds: Bounds2D, center: ChunkKey): ChunkKey[] {
   const min = grid.keyForPoint({ x: bounds.minX, y: bounds.minY });
   const max = grid.keyForPoint({
     x: bounds.maxX - grid.cellSizeMeters * 1e-9,
     y: bounds.maxY - grid.cellSizeMeters * 1e-9,
   });
   const keys: ChunkKey[] = [];
-  for (let y = min.y; y <= max.y; y += 1) {
-    for (let x = min.x; x <= max.x; x += 1) keys.push({ x, y });
+  for (let y = Math.max(min.y, center.y - 3); y <= Math.min(max.y, center.y + 3); y += 1) {
+    for (let x = Math.max(min.x, center.x - 3); x <= Math.min(max.x, center.x + 3); x += 1) keys.push({ x, y });
   }
   return keys;
 }
@@ -62,9 +62,9 @@ export function selectActiveChunks(grid: ChunkGrid, input: ActiveWindowInput): r
       y: input.position.y + input.velocity.y / speed * grid.cellSizeMeters,
     }), "P1");
   }
-  for (const key of cameraKeys(grid, input.cameraBounds)) add(key, "P2");
+  for (const key of cameraKeys(grid, input.cameraBounds, current)) add(key, "P2");
 
-  return [...demands.values()].sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.key.y - b.key.y || a.key.x - b.key.x);
+  return [...demands.values()].sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority] || a.key.y - b.key.y || a.key.x - b.key.x).slice(0, 32);
 }
 
 export function sharedSeam(first: Bounds2D, second: Bounds2D): ChunkSeam | undefined {

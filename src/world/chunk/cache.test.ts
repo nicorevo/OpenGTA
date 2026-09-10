@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import { createChunkCache } from "./cache.ts";
 
 describe("in-memory chunk cache", () => {
+  it("isolates namespace and eviction while keeping a global capacity", () => {
+    const cache = createChunkCache<string>(2);
+    const key = { chunkId: "chunk:0:0", compilerVersion: "v1", namespace: "world-a" };
+    cache.set(key, "a"); cache.set({ ...key, namespace: "world-b" }, "b");
+    expect(cache.get(key)).toBe("a");
+    cache.evict(key);
+    expect(cache.get({ ...key, namespace: "world-b" })).toBe("b");
+  });
   it("hits only the exact chunk and compiler version", () => {
     const cache = createChunkCache<string>(2);
     const key = { chunkId: "chunk:0:0", compilerVersion: "compiler-v1" };

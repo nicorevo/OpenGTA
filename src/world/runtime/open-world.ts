@@ -3,7 +3,7 @@ import type { CompiledChunkV0 } from "../compiler/compiled.ts";
 import { partitionCompiledChunk, translateCompiledChunk } from "../compiler/partition.ts";
 import type { ChunkCache } from "../chunk/cache.ts";
 import type { ChunkKey, ChunkGrid } from "../chunk/grid.ts";
-import { createChunkLifecycle, type ChunkState } from "../chunk/lifecycle.ts";
+import { createChunkLifecycle, type ChunkState, type ChunkLoadContext } from "../chunk/lifecycle.ts";
 import { selectActiveChunks, type ActiveWindowInput, type ChunkDemand } from "../chunk/window.ts";
 import { compileRuntimeRegion, type GeoDataSource, type RuntimeRegionRequest } from "./source.ts";
 
@@ -13,7 +13,11 @@ export interface OpenWorldRuntimeOptions {
   readonly compilerVersion: string;
   readonly grid: ChunkGrid;
   readonly source: GeoDataSource;
-  readonly compile?: (key: ChunkKey, request: RuntimeRegionRequest) => Promise<CompiledChunkV0>;
+  readonly sourceIdentity?: string;
+  readonly queryProfile?: string;
+  readonly compile?: (key: ChunkKey, request: RuntimeRegionRequest, context: ChunkLoadContext) => Promise<CompiledChunkV0>;
+  readonly onChunkReady?: (chunk: CompiledChunkV0, key: ChunkKey) => void | Promise<void>;
+  readonly onChunkRemoved?: (key: ChunkKey) => void | Promise<void>;
 }
 
 export interface FailedChunkLoad {
@@ -28,16 +32,40 @@ export interface ActiveWindowResult {
 
 export interface OpenWorldRuntime {
   load(key: ChunkKey): Promise<CompiledChunkV0>;
-  loadWindow(input: ActiveWindowInput): Promise<ActiveWindowResult>;
+  loadWindow(input: ActiveWindowInput, options?: { readonly pinnedKeys?: readonly ChunkKey[]; readonly retry?: boolean }): Promise<ActiveWindowResult>;
   state(key: ChunkKey): ChunkState | undefined;
+  snapshot(): RuntimeSnapshot;
+  dispose(): Promise<void>;
+}
+
+export interface RuntimeSnapshot {
+  readonly generation: number;
+  readonly wanted: readonly string[];
+  readonly pinned: readonly string[];
+  readonly pending: readonly string[];
+  readonly ready: readonly string[];
+  readonly active: readonly string[];
+  readonly errors: Readonly<Record<string, string>>;
+  readonly records: number;
+  readonly cacheSize: number;
+}
+
+const sourceIds = new WeakMap<GeoDataSource, number>();
+let nextSourceId = 1;
+function sourceId(source: GeoDataSource): number {
+  if (!sourceIds.has(source)) sourceIds.set(source, nextSourceId++);
+  return sourceIds.get(source)!;
 }
 
 export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWorldRuntime {
   if (!options.compilerVersion) throw new Error("Open World compiler version is required");
   const projector = createTangentProjector(options.baseOrigin);
-  const lifecycle = createChunkLifecycle<CompiledChunkV0>(async (key) => {
+  const namespace = JSON.stringify(["tangent-wgs84-v1", 0, options.baseOrigin.latitude, options.baseOrigin.longitude, options.grid.cellSizeMeters, options.sourceIdentity ?? ["instance", sourceId(options.source)], options.queryProfile ?? "v0"]);
+  const signals = new Map<string, AbortSignal>();
+  const lifecycle = createChunkLifecycle<CompiledChunkV0>(async (key, context) => {
     const id = options.grid.idForKey(key);
-    const cached = options.cache.get({ chunkId: id, compilerVersion: options.compilerVersion });
+    signals.set(id, context.signal);
+    const cached = options.cache.get({ namespace, chunkId: id, compilerVersion: options.compilerVersion });
     if (cached) return cached;
     const bounds = options.grid.boundsForKey(key);
     const request: RuntimeRegionRequest = {
@@ -46,8 +74,9 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
       radiusMeters: options.grid.cellSizeMeters,
     };
     const compiled = options.compile
-      ? await options.compile(key, request)
-      : (await compileRuntimeRegion(options.source, request)).chunks[0];
+      ? await options.compile(key, request, context)
+      : (await compileRuntimeRegion(options.source, request, context)).chunks[0];
+    context.signal.throwIfAborted();
     if (!compiled) throw new Error(`runtime compiler produced no chunk for ${id}`);
     const worldChunk = options.compile
       ? compiled
@@ -56,7 +85,7 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
         y: (bounds.minY + bounds.maxY) / 2,
       }), options.grid, [key])[0];
     if (!worldChunk) throw new Error(`runtime compiler produced no geometry for ${id}`);
-    options.cache.set({ chunkId: id, compilerVersion: options.compilerVersion }, worldChunk);
+    options.cache.set({ namespace, chunkId: id, compilerVersion: options.compilerVersion }, worldChunk);
     return worldChunk;
   });
 
@@ -66,36 +95,84 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
     return record.value;
   };
 
+  let generation = 0;
+  let disposed = false;
+  let wanted = new Map<string, ChunkDemand>();
+  let pinned = new Map<string, ChunkKey>();
+  const active = new Map<string, ChunkKey>();
+  const pending = new Map<string, Promise<void>>();
+  const errors = new Map<string, unknown>();
+  let commits = Promise.resolve();
+  const enqueue = (apply: () => Promise<void>) => {
+    const result = commits.then(apply);
+    commits = result.catch(() => {});
+    return result;
+  };
+  const needed = (id: string) => !disposed && (wanted.has(id) || pinned.has(id));
+  const removeObsolete = () => enqueue(async () => {
+    for (const [id, key] of active) {
+      if (needed(id)) continue;
+      await options.onChunkRemoved?.(key); active.delete(id);
+    }
+  });
+  const ensure = (demand: ChunkDemand): Promise<void> => {
+    const { id, key } = demand;
+    const priority = demand.priority === "P0" ? 0 : demand.priority === "P1" ? 1 : 2;
+    const signal = signals.get(id); if (signal) options.source.promote?.(signal, priority);
+    if (pending.has(id)) return pending.get(id)!;
+    if (active.has(id) || errors.has(id)) return Promise.resolve();
+    let work!: Promise<void>;
+    work = (async () => {
+      try {
+        const record = await lifecycle.load(key, { priority });
+        await enqueue(async () => {
+          if (!needed(id) || active.has(id) || lifecycle.get(key)?.value !== record.value) return;
+          await options.onChunkReady?.(record.value!, key);
+          if (!needed(id) || lifecycle.get(key)?.value !== record.value) { await options.onChunkRemoved?.(key); return; }
+          lifecycle.activate(key); active.set(id, key);
+        });
+      } catch (error) { if (needed(id) && pending.get(id) === work) errors.set(id, error); }
+      finally {
+        if (pending.get(id) === work) { pending.delete(id); signals.delete(id); }
+      }
+    })();
+    pending.set(id, work);
+    return work;
+  };
+
   return {
     load,
-    async loadWindow(input) {
+    async loadWindow(input, windowOptions = {}) {
+      if (disposed) throw new Error("Open world runtime disposed");
       const demands = selectActiveChunks(options.grid, input);
-      const loaded: ChunkDemand[] = [];
-      const failed: FailedChunkLoad[] = [];
-      const first = demands.find((demand) => demand.priority === "P0") ?? demands[0];
-      if (!first) return { loaded, failed };
-      try {
-        await load(first.key);
-        lifecycle.activate(first.key);
-        loaded.push(first);
-      } catch (error: unknown) {
-        failed.push({ key: first.key, error });
-        return { loaded, failed };
+      generation++;
+      wanted = new Map(demands.map((demand) => [demand.id, demand]));
+      pinned = new Map((windowOptions.pinnedKeys ?? []).map((key) => [options.grid.idForKey(key), key]));
+      if (pinned.size > 32) throw new Error("Too many pinned chunks");
+      if (windowOptions.retry) errors.clear();
+      for (const record of lifecycle.records()) {
+        if (needed(record.id)) continue;
+        lifecycle.release(record.key); errors.delete(record.id); pending.delete(record.id); signals.delete(record.id);
       }
-      const neighbors = demands.filter((demand) => demand.id !== first.id);
-      for (const demand of neighbors) {
-        try {
-          await load(demand.key);
-          lifecycle.activate(demand.key);
-          loaded.push(demand);
-        } catch (error: unknown) {
-          failed.push({ key: demand.key, error });
-        }
+      const removal = removeObsolete();
+      const all = [...demands];
+      for (const [id, key] of pinned) {
+        if (!wanted.has(id)) all.push({ id, key, priority: "P0" });
       }
-      return { loaded, failed };
+      await Promise.all([removal, ...all.map(ensure)]);
+      return { loaded: demands.filter((demand) => active.has(demand.id)), failed: demands.filter((demand) => errors.has(demand.id)).map((demand) => ({ key: demand.key, error: errors.get(demand.id) })) };
     },
     state(key) {
       return lifecycle.get(key)?.state;
+    },
+    snapshot() {
+      const records = lifecycle.records();
+      return Object.freeze({ generation, wanted: Object.freeze([...wanted.keys()]), pinned: Object.freeze([...pinned.keys()]), pending: Object.freeze([...pending.keys()]), ready: Object.freeze(records.filter((record) => record.state === "READY").map((record) => record.id)), active: Object.freeze([...active.keys()]), errors: Object.freeze(Object.fromEntries([...errors].map(([id, error]) => [id, error && typeof error === "object" && "code" in error ? String(error.code) : "load-error"]))), records: records.length, cacheSize: options.cache.size });
+    },
+    async dispose() {
+      disposed = true; generation++; wanted.clear(); pinned.clear(); errors.clear();
+      lifecycle.dispose(); pending.clear(); signals.clear();
+      await removeObsolete();
     },
   };
 }
