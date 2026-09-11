@@ -29,10 +29,11 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `8cc4dc5` sul ramo `opcl`
-(2026-09-11, City Drive Stable). Verificata con 241 test unitari, 21 E2E su
-dev server (più canary live separata), 1 smoke del build di produzione,
-typecheck e build. Vedi [Prova della baseline](#prova-della-baseline).
+**Baseline stabile per test utente:** commit `f7d5fff` sul ramo `opcl`
+(2026-09-11, Provider-Neutral World Streaming). Verificata con 322 test
+unitari, 10 test bench, 22 E2E su dev server (più canary live separata),
+1 smoke del build di produzione, typecheck e build. Vedi
+[Prova della baseline](#prova-della-baseline).
 
 Tranche City Drive Stable (solidità, zoom a livelli discreti con LOD 2D,
 cache persistente, gate su Lecce):
@@ -40,12 +41,14 @@ cache persistente, gate su Lecce):
 `docs/results/CITY-DRIVE-STABLE-RESULT.md` · `docs/specs/city-drive-stable.md` ·
 `docs/adr/ADR-010-discrete-zoom-lod.md` · `docs/architecture/zoom-and-lod.md`
 
-Tranche in corso — Provider-Neutral World Streaming (migrazione
-Overpass → Vector Tiles con Overpass come fallback, ADR-011):
+Tranche Provider-Neutral World Streaming (migrazione Overpass → Vector
+Tiles con Overpass come reference/fallback, ADR-011; decisione parity
+GO VISUAL ONLY, flag `provider=openfreemap-mvt` sperimentale):
 
+`docs/results/PROVIDER-NEUTRAL-WORLD-STREAMING-RESULT.md` ·
 `docs/specs/provider-neutral-world-streaming.md` ·
-`docs/OpenGTA-DATA-SOURCE-MIGRATION.md` · `tasks/plan.md` ·
-`tasks/data/README.md`
+`docs/analysis/MVT-LECCE-PARITY.md` · `docs/OpenGTA-DATA-SOURCE-MIGRATION.md` ·
+`tasks/plan.md` · `tasks/data/README.md`
 
 Avvio di sessione per agenti:
 
@@ -185,6 +188,13 @@ alternativa, URL esplicito:
 
 ```text
 http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&consent=1
+```
+
+Modalità vettoriale sperimentale (OpenFreeMap z14, dataset pinnato
+`20260830_080001_pt`; endpoint fisso, mai input utente, mai default):
+
+```text
+http://127.0.0.1:5173/?mode=open-world-live&provider=openfreemap-mvt&consent=1
 ```
 
 Cosa verificare durante la prova:

@@ -1,15 +1,15 @@
 # MVT Parity Lecce — Overpass vs OpenFreeMap z14
 
-Generated: 2026-09-11T20:55:15.392Z. Decisione: vedi sezione dedicata.
+Generated: 2026-09-11T21:02:34.389Z. Decisione: vedi sezione dedicata.
 
 ## Ambiente
 
-- **date**: 2026-09-11T20:55:15.392Z
+- **date**: 2026-09-11T21:02:34.389Z
 - **node**: v26.4.0
 - **os**: Linux 7.2.4-200.fc44.x86_64
 - **cpu**: Intel(R) Core(TM) Ultra 7 258V
 - **ramMiB**: 33150
-- **commit**: c409952
+- **commit**: ea8f357
 - **overpassFixture**: lecce-sant-oronzo-v0.raw.json (300 m box, network unreachable from this environment)
 - **mvtFixture**: lecce-z14-openfreemap.pbf (tile 14/9019/6181, public z14 ceiling)
 
@@ -33,8 +33,8 @@ Generated: 2026-09-11T20:55:15.392Z. Decisione: vedi sezione dedicata.
 | Ground compilati | 24 | 10 |
 | Collisioni | 241 | 127 |
 | Label | 248 | 0 |
-| Decode/normalize ms | 17.3 | 16.3 + 33.0 (decode+map) |
-| Compile ms | 33.9 | 7.6 |
+| Decode/normalize ms | 31.4 | 17.3 + 33.9 (decode+map) |
+| Compile ms | 34.5 | 7.3 |
 | Area km² | 0.2827 | 3.4706 |
 | Finestra effettiva km² (box ∩ tile 9019) | n/d (box intero) | 0.2413 |
 | Densità roads/km² | 1375.8 | 310.8 |
