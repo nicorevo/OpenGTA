@@ -1,6 +1,6 @@
 # DATA-13: Normalizer MVT canonico
 
-**Stato:** pianificato. **Dipendenze:** DATA-12. **Persona:** fullstack-developer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-13.md`. **Dipendenze:** DATA-12. **Persona:** fullstack-developer. **Taglia:** M.
 
 ## Obiettivo
 `src/geo/normalize/mvt.ts`: `DecodedVectorTile → WorldRegion` (roads,
@@ -20,9 +20,9 @@ normalizer. Non cambiare compileRegion/renderer/fisica.
 2. Implementare; GREEN; E2E DATA-11 restano verdi.
 
 ## Accettazione
-- [ ] AC1: DecodedVectorTile → WorldRegion senza RawOsm finti.
-- [ ] AC2: un solo compiler; nessuna logica provider nel canonical.
-- [ ] AC3: suite verde; parity invariata.
+- [x] AC1: DecodedVectorTile → WorldRegion senza RawOsm finti.
+- [x] AC2: un solo compiler; nessuna logica provider nel canonical.
+- [x] AC3: suite verde; parity invariata.
 
 ## Verifica
 `npm run test:run -- src/geo/normalize` + E2E MVT + gate comune.
