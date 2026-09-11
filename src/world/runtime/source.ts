@@ -193,9 +193,9 @@ export async function compileRuntimeRegion(source: GeoDataSource, request: Runti
   const acquireMs = performance.now() - acquireStarted;
   options?.signal?.throwIfAborted();
   const normalizeStarted = performance.now();
-  const region = normalizeOsm(raw, createTangentProjector(request.origin), request.origin, request.regionId);
+  const region = normalizeOsm(raw, createTangentProjector(request.origin), request.origin, request.regionId, { signal: options?.signal });
   const normalizeMs = performance.now() - normalizeStarted;
-  const result = compileRegion(region);
+  const result = compileRegion(region, { signal: options?.signal });
   const compileMs = result.diagnostics.stageDurationsMs.compile ?? 0;
   const stageDurationsMs = { acquire: acquireMs, decode: phases.decodeMs ?? 0, normalize: normalizeMs, compile: compileMs, total: acquireMs + normalizeMs + compileMs };
   return { chunks: result.chunks.map((chunk) => ({ ...chunk, diagnostics: { ...chunk.diagnostics, stageDurationsMs } })), diagnostics: { ...result.diagnostics, stageDurationsMs } };

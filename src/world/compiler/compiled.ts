@@ -42,15 +42,20 @@ function roadSurface(points: readonly Vec2[], width: number): Polygon2D | undefi
 }
 function midpoint(points: readonly Vec2[]): { position: Vec2; angle: number } | undefined { if (points.length < 2) return undefined; let total = 0; for (let i = 1; i < points.length; i += 1) total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y); if (total === 0) return undefined; let distance = total / 2; for (let i = 1; i < points.length; i += 1) { const a = points[i - 1]; const b = points[i]; const length = Math.hypot(b.x - a.x, b.y - a.y); if (distance <= length) return { position: { x: a.x + (b.x - a.x) * distance / length, y: a.y + (b.y - a.y) * distance / length }, angle: Math.atan2(b.y - a.y, b.x - a.x) }; distance -= length; } return undefined; }
 
-export function compileRegion(region: WorldRegion): CompileResult {
+export interface CompileRegionOptions { readonly signal?: AbortSignal }
+
+export function compileRegion(region: WorldRegion, options: CompileRegionOptions = {}): CompileResult {
   const compileStarted = performance.now();
+  options.signal?.throwIfAborted();
   const roads: Array<CompiledChunkV0["roads"][number]> = []; const buildings: Array<CompiledChunkV0["buildings"][number]> = []; const ground: Array<CompiledChunkV0["ground"][number]> = []; const labels: CompiledLabel[] = [];
   const collisions: CollisionShape2D[] = []; const featureIndex: Record<string, { kind: string }> = {}; const warnings: string[] = [];
-  for (const area of region.landAreas) { ground.push({ featureId: area.id, area: area.area, styleKey: `land:${area.landClass}` }); featureIndex[area.id] = { kind: area.kind }; }
-  for (const water of region.waterAreas) { if (water.area) { ground.push({ featureId: water.id, area: water.area, styleKey: `water:${water.waterClass ?? "generic"}` }); featureIndex[water.id] = { kind: water.kind }; } }
+  let featureIndex2 = 0;
+  for (const area of region.landAreas) { if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted(); ground.push({ featureId: area.id, area: area.area, styleKey: `land:${area.landClass}` }); featureIndex[area.id] = { kind: area.kind }; }
+  for (const water of region.waterAreas) { if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted(); if (water.area) { ground.push({ featureId: water.id, area: water.area, styleKey: `water:${water.waterClass ?? "generic"}` }); featureIndex[water.id] = { kind: water.kind }; } }
   const footprints = createFootprintIndex(region.buildings.map((building) => building.footprint));
   let narrowedToMinimum = 0;
   for (const road of region.roads) {
+    if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted();
     const declared = road.widthMeters ?? (road.laneCount ? road.laneCount * 3 : widths[road.roadClass]);
     const points = road.centerline.points;
     const width = fitCarriagewayMeters(points, declared, footprints);
@@ -60,6 +65,7 @@ export function compileRegion(region: WorldRegion): CompileResult {
     roads.push({ featureId: road.id, surface, centerline: points, widthMeters: width, styleKey: `road:${road.roadClass}` }); featureIndex[road.id] = { kind: road.kind }; const name = road.tags?.name; const labelPosition = name ? midpoint(road.centerline.points) : undefined; if (name && labelPosition) labels.push({ featureId: road.id, text: name, position: labelPosition.position, angle: labelPosition.angle, kind: "road", priority: ({ motorway: 100, trunk: 95, primary: 90, secondary: 85, tertiary: 75, residential: 60, pedestrian: 55, service: 40, path: 30, "parking-aisle": 20, unknown: 10 })[road.roadClass] });
   }
   for (const building of region.buildings) {
+    if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted();
     const height = building.sourceHeightMeters ?? (building.sourceLevels ? building.sourceLevels * 3 : 9);
     buildings.push({ featureId: building.id, roof: building.footprint, visualHeightMeters: height, styleKey: `building:${building.buildingType}`, fakeDepth: { enabled: true, scale: Math.min(1, height / 12) } });
     featureIndex[building.id] = { kind: building.kind }; const name = building.tags?.name; if (name) labels.push({ featureId: building.id, text: name, position: building.footprint.outer.reduce((sum, point) => ({ x: sum.x + point.x / building.footprint.outer.length, y: sum.y + point.y / building.footprint.outer.length }), { x: 0, y: 0 }), angle: 0, kind: "place", priority: 110 });
@@ -68,6 +74,7 @@ export function compileRegion(region: WorldRegion): CompileResult {
   }
   let compiledBarrierCount = 0;
   for (const barrier of region.barriers) {
+    if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted();
     if (barrier.collisionPolicy !== "solid") continue;
     if ("outer" in barrier.geometry) collisions.push({ kind: "polygon", featureId: barrier.id, polygon: barrier.geometry });
     else for (let index = 1; index < barrier.geometry.points.length; index += 1) collisions.push({ kind: "segment", featureId: barrier.id, a: barrier.geometry.points[index - 1], b: barrier.geometry.points[index] });

@@ -1,6 +1,6 @@
 # SOLID-02: Compilazione cooperativamente cancellabile
 
-**Stato:** pianificato.
+**Stato:** completato (AC2 in SOLID-03). Log: `tasks/executions/2026-09-11-SOLID-02.md`.
 **Dipendenze:** SOLID-01.
 **Persona:** fullstack-developer.
 **Taglia:** M, 5 file di codice/test.
@@ -36,11 +36,11 @@ I punti di controllo devono essere deterministici e a costo trascurabile.
 
 ## Accettazione
 
-- [ ] AC1: richiesta abortita interrompe normalize/compile; nessun risultato
+- [x] AC1: richiesta abortita interrompe normalize/compile; nessun risultato
   obsoleto applicato (guardie lifecycle esistenti).
 - [ ] AC2: nessun task sul main thread oltre il budget dichiarato senza yield
   su fixture patologica.
-- [ ] AC3: suite completa, typecheck, build ed E2E verdi; output invariato
+- [x] AC3: suite completa, typecheck, build ed E2E verdi; output invariato
   senza abort.
 
 ## Verifica

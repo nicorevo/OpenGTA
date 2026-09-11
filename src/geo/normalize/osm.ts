@@ -193,6 +193,7 @@ function assembleNodeRings(
   warnings: WorldWarning[],
   relationId: string,
   role: "outer" | "inner",
+  signal?: AbortSignal,
 ): number[][] {
   const pending: number[][] = [];
   for (const member of members.filter((entry) => entry.type === "way" && entry.role === role)) {
@@ -206,8 +207,10 @@ function assembleNodeRings(
 
   const rings: number[][] = [];
   while (pending.length > 0) {
+    signal?.throwIfAborted();
     let chain = pending.shift()!;
     while (chain.length > 1 && chain[0] !== chain.at(-1)) {
+      signal?.throwIfAborted();
       const nextIndex = pending.findIndex((candidate) => joinNodeChains(chain, candidate) !== undefined);
       if (nextIndex < 0) break;
       chain = joinNodeChains(chain, pending.splice(nextIndex, 1)[0])!;
@@ -278,6 +281,7 @@ function addRelationBuildings(
   projector: GeoProjector,
   buildings: BuildingFeature[],
   warnings: WorldWarning[],
+  signal?: AbortSignal,
 ): void {
   const tags = tagsOf(relation.tags);
   const tag = tags.building;
@@ -296,14 +300,14 @@ function addRelationBuildings(
     return normalizedRing(points, winding);
   };
 
-  const outerRings = assembleNodeRings(relation.members, waysById, warnings, relationId, "outer")
+  const outerRings = assembleNodeRings(relation.members, waysById, warnings, relationId, "outer", signal)
     .map((ring) => projectRing(ring, "outer"))
     .filter((ring): ring is Vec2[] => ring !== undefined);
   if (outerRings.length === 0) {
     warning(warnings, "missing-relation-member", "building relation has no valid outer ring", relationId);
     return;
   }
-  const innerRings = assembleNodeRings(relation.members, waysById, warnings, relationId, "inner")
+  const innerRings = assembleNodeRings(relation.members, waysById, warnings, relationId, "inner", signal)
     .map((ring) => projectRing(ring, "inner"))
     .filter((ring): ring is Vec2[] => ring !== undefined);
   const holesByOuter = outerRings.map(() => [] as Vec2[][]);
@@ -332,13 +336,17 @@ function addRelationBuildings(
   });
 }
 
+export interface NormalizeOptions { readonly signal?: AbortSignal }
+
 export function normalizeOsm(
   raw: RawOsm,
   projector: GeoProjector,
   origin: WorldRegion["geoOrigin"],
   id = "osm-v0",
+  options: NormalizeOptions = {},
 ): WorldRegion {
   if (!raw || !Array.isArray(raw.elements)) throw new TypeError("OSM input must contain an elements array");
+  options.signal?.throwIfAborted();
   const warnings: WorldWarning[] = [];
   if (raw.elements.length > MAX_ELEMENTS) {
     warning(warnings, "element-limit", `input was truncated to ${MAX_ELEMENTS} elements`);
@@ -347,7 +355,9 @@ export function normalizeOsm(
   const nodes = new Map<number, RawOsmNode>();
   const ways: RawOsmWay[] = [];
   const relations: RawOsmRelation[] = [];
+  let partitionIndex = 0;
   for (const element of raw.elements.slice(0, MAX_ELEMENTS)) {
+    if (partitionIndex++ % 256 === 0) options.signal?.throwIfAborted();
     if (element.type === "node") {
       if (isValidNode(element)) nodes.set(element.id, element);
       else warning(warnings, "invalid-node", "node has invalid identity or coordinates", `osm:node:${element.id}`);
@@ -387,7 +397,9 @@ export function normalizeOsm(
     return points;
   };
 
+  let wayIndex = 0;
   for (const way of ways) {
+    if (wayIndex++ % 64 === 0) options.signal?.throwIfAborted();
     const tags = tagsOf(way.tags);
     const featureId = `osm:way:${way.id}`;
     const points = pointsFor(way);
@@ -479,7 +491,7 @@ export function normalizeOsm(
   }
 
   for (const relation of relations) {
-    addRelationBuildings(relation, waysById, nodes, projector, buildings, warnings);
+    addRelationBuildings(relation, waysById, nodes, projector, buildings, warnings, options.signal);
   }
 
   for (const node of nodes.values()) {

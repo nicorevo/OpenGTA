@@ -175,3 +175,12 @@ describe("V0 compiler timing diagnostics", () => {
     expect(stageDurationsMs.total).toBeGreaterThanOrEqual(stageDurationsMs.compile ?? 0);
   });
 });
+
+describe("V0 compiler cancellation", () => {
+  it("aborts compilation when the signal is already cancelled", () => {
+    const region: WorldRegion = { id: "abort", geoOrigin: { latitude: 0, longitude: 0 }, bounds: { minX: -50, minY: -50, maxX: 50, maxY: 50 }, buildings: [{ id: "b", kind: "building", footprint: { outer: [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 5 }, { x: 0, y: 5 }], holes: [] }, buildingType: "residential", collisionPolicy: "solid" }], roads: [], landAreas: [], waterAreas: [], barriers: [], trees: [], warnings: [] };
+    const controller = new AbortController();
+    controller.abort();
+    expect(() => compileRegion(region, { signal: controller.signal })).toThrow(/abort/i);
+  });
+});

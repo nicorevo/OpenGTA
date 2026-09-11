@@ -133,3 +133,30 @@ describe("OSM normalization", () => {
     expect(region.warnings.map((entry) => entry.code)).toContain("invalid-node");
   });
 });
+
+describe("OSM normalization cancellation", () => {
+  const ringRaw = (ways: number): RawOsm => {
+    const elements: RawOsm["elements"][number][] = [];
+    for (let i = 1; i <= ways * 2; i += 1) elements.push({ type: "node", id: i, lat: 40.35 + (i % 2), lon: 18.17 + (i % 3) });
+    const memberWays = [];
+    for (let w = 0; w < ways; w += 1) {
+      const a = w * 2 + 1; const b = a + 1; const c = ((w + 1) * 2) % (ways * 2) + 1;
+      elements.push({ type: "way", id: 1000 + w, nodes: [a, b, c], tags: {} });
+      memberWays.push({ type: "way", ref: 1000 + w, role: "outer" });
+    }
+    elements.push({ type: "relation", id: 5000, members: memberWays, tags: { type: "multipolygon", landuse: "grass" } });
+    return { elements };
+  };
+
+  it("aborts a large multipolygon assembly when the signal is cancelled", () => {
+    const controller = new AbortController();
+    controller.abort();
+    expect(() => normalizeOsm(ringRaw(500), identityProjector, origin, "abort-test", { signal: controller.signal })).toThrow(/abort/i);
+  });
+
+  it("aborts the element partition loop with a cancelled signal", () => {
+    const controller = new AbortController();
+    controller.abort();
+    expect(() => normalizeOsm({ elements: Array.from({ length: 600 }, (_, i) => ({ type: "node" as const, id: i, lat: 0, lon: 0 })) }, identityProjector, origin, "abort-test", { signal: controller.signal })).toThrow(/abort/i);
+  });
+});
