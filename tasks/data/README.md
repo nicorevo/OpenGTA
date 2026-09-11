@@ -1,6 +1,6 @@
 # Esecuzione dei task DATA (Provider-Neutral World Streaming)
 
-Data: 2026-09-11. Stato: contratti pianificati, non ancora implementati.
+Data: 2026-09-11. Stato: linea principale completata (DATA-00..14, checkpoint D-A/D-B/D-C); DATA-15..18 restano da dettagliare.
 Indice operativo: [piano](../plan.md), [checklist](../todo.md).
 Spec: [`docs/specs/provider-neutral-world-streaming.md`](../../docs/specs/provider-neutral-world-streaming.md).
 ADR: [`docs/adr/ADR-011-mvt-provider-neutral-source.md`](../../docs/adr/ADR-011-mvt-provider-neutral-source.md).

@@ -65,21 +65,21 @@ riuso), DATA-18 curated region package.
 
 ### D-A: fondazioni, dopo DATA-00..05
 
-- [ ] Failure diagnosticabili senza indovinare; fallback dev rispettoso.
-- [ ] Tile math e decoder bounded con fixture reale; provider cancellabile.
-- [ ] Suite completa, typecheck, build, E2E verdi.
+- [x] Failure diagnosticabili senza indovinare; fallback dev rispettoso.
+- [x] Tile math e decoder bounded con fixture reale; provider cancellabile.
+- [x] Suite completa, typecheck, build, E2E verdi.
 
 ### D-B: mapping e parity, dopo DATA-06..10
 
-- [ ] Mapping OMT→OpenGTA coperto con warning; parity Lecce misurata.
-- [ ] Decisione GO/GO-VISUAL/NO-GO documentata con numeri.
-- [ ] Benchmark con ambiente dichiarato.
+- [x] Mapping OMT→OpenGTA coperto con warning; parity Lecce misurata.
+- [x] Decisione GO/GO-VISUAL/NO-GO documentata con numeri.
+- [x] Benchmark con ambiente dichiarato.
 
 ### D-C: runtime e seam, dopo DATA-11..14
 
-- [ ] MVT dietro feature flag guida 10+ chunk con lo stesso runtime.
-- [ ] Seam senza gap/duplicati; normalizer canonico; contratto unico.
-- [ ] Suite completa, typecheck, build, E2E verdi.
+- [x] MVT dietro feature flag guida 10+ chunk con lo stesso runtime.
+- [x] Seam senza gap/duplicati; normalizer canonico; contratto unico.
+- [x] Suite completa, typecheck, build, E2E verdi.
 
 ## Rischi e scelte esplicite
 

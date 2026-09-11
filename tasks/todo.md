@@ -14,7 +14,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 - [x] [DATA-03](data/DATA-03.md): coverage resolver.
 - [x] [DATA-04](data/DATA-04.md): provider OpenFreeMap.
 - [x] [DATA-05](data/DATA-05.md): modello decodificato.
-- [ ] D-A: fondazioni.
+- [x] D-A: fondazioni.
 
 ## Mapping e parity
 
@@ -23,7 +23,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 - [x] [DATA-08](data/DATA-08.md): mapping land/water.
 - [x] [DATA-09](data/DATA-09.md): parity Lecce.
 - [x] [DATA-10](data/DATA-10.md): benchmark.
-- [ ] D-B: mapping e parity.
+- [x] D-B: mapping e parity.
 
 ## Runtime e seam
 
@@ -31,7 +31,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 - [x] [DATA-12](data/DATA-12.md): seam tests.
 - [x] [DATA-13](data/DATA-13.md): normalizer MVT.
 - [x] [DATA-14](data/DATA-14.md): CanonicalRegionSource.
-- [ ] D-C: runtime e seam.
+- [x] D-C: runtime e seam.
 
 ## Fasi successive (senza scheda: da dettagliare prima dell'esecuzione)
 
