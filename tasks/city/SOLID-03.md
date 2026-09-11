@@ -1,6 +1,6 @@
 # SOLID-03: Benchmark OSM patologici e assemblaggio ring
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-SOLID-03.md`.
 **Dipendenze:** SOLID-02.
 **Persona:** test-engineer.
 **Taglia:** M, 4 file di test/benchmark.
@@ -36,10 +36,10 @@ o limiti pubblici. I benchmark non entrano nella suite normale se superano i
 
 ## Accettazione
 
-- [ ] AC1: fixture 100/500/1k/5k/20k membri riproducibile, nessun crash.
-- [ ] AC2: budget dichiarato rispettato (es. nessun task > 50 ms senza
+- [x] AC1: fixture 100/500/1k/5k/20k membri riproducibile, nessun crash.
+- [x] AC2: budget dichiarato rispettato (es. nessun task > 50 ms senza
   yield su hardware di riferimento) o fix documentato con misure.
-- [ ] AC3: output equivalente alle fixture esistenti; decisione documentata.
+- [x] AC3: output equivalente alle fixture esistenti; decisione documentata.
 
 ## Verifica
 

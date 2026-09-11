@@ -11,7 +11,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
 - [x] [SOLID-01](city/SOLID-01.md): metriche compiler reali.
 - [x] [SOLID-02](city/SOLID-02.md): cancellazione compile.
-- [ ] [SOLID-03](city/SOLID-03.md): benchmark patologici.
+- [x] [SOLID-03](city/SOLID-03.md): benchmark patologici.
 - [ ] [SOLID-04](city/SOLID-04.md): renderer incrementale.
 - [ ] [SOLID-05](city/SOLID-05.md): long-drive regression.
 - [x] [SOLID-06](city/SOLID-06.md): SECURITY e gate docs.

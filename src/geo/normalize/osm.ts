@@ -175,16 +175,41 @@ function pointInRing(point: Vec2, ring: readonly Vec2[]): boolean {
   return inside;
 }
 
-function joinNodeChains(chain: number[], candidate: readonly number[]): number[] | undefined {
-  const first = chain[0];
-  const last = chain.at(-1)!;
-  const candidateFirst = candidate[0];
-  const candidateLast = candidate.at(-1)!;
-  if (last === candidateFirst) return [...chain, ...candidate.slice(1)];
-  if (last === candidateLast) return [...chain, ...[...candidate].reverse().slice(1)];
-  if (first === candidateLast) return [...candidate.slice(0, -1), ...chain];
-  if (first === candidateFirst) return [...[...candidate].reverse().slice(0, -1), ...chain];
+/**
+ * A chain stored as two part stacks (head/tail): every join mutates in O(1)
+ * with push, so large multipolygons stay linear instead of copying the
+ * growing part list (or node array) on every join. Traversal order is
+ * headParts from the top, then tailParts in order; each part carries its
+ * own node direction. Candidates from the pending set are single-part.
+ */
+interface ChainPart { readonly nodes: readonly number[]; readonly reversed: boolean }
+interface PendingChain { headParts: ChainPart[]; tailParts: ChainPart[]; first: number; last: number; length: number }
+
+function joinNodeChains(chain: PendingChain, candidate: PendingChain): PendingChain | undefined {
+  const flip = (part: ChainPart): ChainPart => ({ nodes: part.nodes, reversed: !part.reversed });
+  // Candidate parts in chain traversal order (optionally reversed and flipped).
+  const traversal = (reversed: boolean): ChainPart[] => reversed
+    ? [...[...candidate.tailParts].reverse().map(flip), ...candidate.headParts.map(flip)]
+    : [...[...candidate.headParts].reverse(), ...candidate.tailParts];
+  if (chain.last === candidate.first) { chain.tailParts.push(...traversal(false)); chain.last = candidate.last; chain.length += candidate.length - 1; return chain; }
+  if (chain.last === candidate.last) { chain.tailParts.push(...traversal(true)); chain.last = candidate.first; chain.length += candidate.length - 1; return chain; }
+  if (chain.first === candidate.last) { chain.headParts.push(...[...traversal(false)].reverse()); chain.first = candidate.first; chain.length += candidate.length - 1; return chain; }
+  if (chain.first === candidate.first) { chain.headParts.push(...[...traversal(true)].reverse()); chain.first = candidate.last; chain.length += candidate.length - 1; return chain; }
   return undefined;
+}
+
+function materializeChain(chain: PendingChain): number[] {
+  const result: number[] = [];
+  const push = (part: ChainPart): void => {
+    for (let index = 0; index < part.nodes.length; index += 1) {
+      const id = part.reversed ? part.nodes[part.nodes.length - 1 - index] : part.nodes[index];
+      if (result.length > 0 && result[result.length - 1] === id) continue; // shared endpoints appear once
+      result.push(id);
+    }
+  };
+  for (let index = chain.headParts.length - 1; index >= 0; index -= 1) push(chain.headParts[index]);
+  for (const part of chain.tailParts) push(part);
+  return result;
 }
 
 function assembleNodeRings(
@@ -195,27 +220,72 @@ function assembleNodeRings(
   role: "outer" | "inner",
   signal?: AbortSignal,
 ): number[][] {
-  const pending: number[][] = [];
+  const pending: (PendingChain | undefined)[] = [];
   for (const member of members.filter((entry) => entry.type === "way" && entry.role === role)) {
     const way = waysById.get(member.ref);
     if (!way) {
       warning(warnings, "missing-relation-member", `${role} relation member is missing`, relationId);
       continue;
     }
-    pending.push([...way.nodes]);
+    const nodes = [...way.nodes];
+    pending.push({ headParts: [], tailParts: [{ nodes, reversed: false }], first: nodes[0], last: nodes.at(-1)!, length: nodes.length });
   }
 
-  const rings: number[][] = [];
-  while (pending.length > 0) {
-    signal?.throwIfAborted();
-    let chain = pending.shift()!;
-    while (chain.length > 1 && chain[0] !== chain.at(-1)) {
-      signal?.throwIfAborted();
-      const nextIndex = pending.findIndex((candidate) => joinNodeChains(chain, candidate) !== undefined);
-      if (nextIndex < 0) break;
-      chain = joinNodeChains(chain, pending.splice(nextIndex, 1)[0])!;
+  // Endpoint index: chains are looked up by their head/tail node ids, so a
+  // join costs O(candidates) instead of scanning the whole pending array
+  // for every member. Join choices stay identical to the member order.
+  const byEndpoint = new Map<number, number[]>();
+  const register = (index: number): void => {
+    const chain = pending[index]!;
+    for (const endpoint of [chain.first, chain.last]) {
+      const bucket = byEndpoint.get(endpoint);
+      if (bucket) bucket.push(index); else byEndpoint.set(endpoint, [index]);
     }
-    if (chain.length > 3 && chain[0] === chain.at(-1)) rings.push(chain);
+  };
+  for (let index = 0; index < pending.length; index += 1) register(index);
+  const unregister = (index: number): void => {
+    const chain = pending[index]!;
+    for (const endpoint of [chain.first, chain.last]) {
+      const bucket = byEndpoint.get(endpoint);
+      if (!bucket) continue;
+      const at = bucket.indexOf(index);
+      if (at >= 0) bucket.splice(at, 1);
+    }
+  };
+  const findJoiningIndex = (chain: PendingChain): number => {
+    const candidates = new Set<number>();
+    for (const endpoint of [chain.first, chain.last]) {
+      for (const index of byEndpoint.get(endpoint) ?? []) candidates.add(index);
+    }
+    // Probe only: the actual join must not mutate the chain here, otherwise
+    // the caller would join the same candidate twice. Member order preserves
+    // the original first-join choice exactly.
+    return [...candidates].sort((a, b) => a - b).find((index) => {
+      const candidate = pending[index]!;
+      return chain.last === candidate.first || chain.last === candidate.last
+        || chain.first === candidate.last || chain.first === candidate.first;
+    }) ?? -1;
+  };
+
+  const rings: number[][] = [];
+  let head = 0;
+  while (head < pending.length) {
+    signal?.throwIfAborted();
+    const startIndex = head; head += 1;
+    const start = pending[startIndex];
+    if (!start) continue;
+    unregister(startIndex);
+    pending[startIndex] = undefined;
+    let chain = start;
+    while (chain.length > 1 && chain.first !== chain.last) {
+      signal?.throwIfAborted();
+      const nextIndex = findJoiningIndex(chain);
+      if (nextIndex < 0) break;
+      unregister(nextIndex);
+      chain = joinNodeChains(chain, pending[nextIndex]!)!;
+      pending[nextIndex] = undefined;
+    }
+    if (chain.length > 3 && chain.first === chain.last) rings.push(materializeChain(chain));
     else warning(warnings, "invalid-multipolygon", `${role} members do not form a closed ring`, relationId);
   }
   return rings;
