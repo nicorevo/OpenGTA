@@ -1,6 +1,6 @@
 # DATA-02: Tile math e decoder MVT isolato
 
-**Stato:** pianificato. **Dipendenze:** Nessuna. **Persona:** fullstack-developer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-02.md`. **Dipendenze:** Nessuna. **Persona:** fullstack-developer. **Taglia:** M.
 
 ## Obiettivo
 `src/geo/mvt/`: tile math (latLonToTile con clamp Web Mercator, tileBounds,
@@ -28,9 +28,9 @@ fisica/normalizer OSM. Nessuna dipendenza package.json senza giustificazione
 3. Test su tile vuota e su geometrie punto/linea/poligono.
 
 ## Accettazione
-- [ ] AC1: lat/lon→tile deterministico con clamp; nessun NaN/Infinity.
-- [ ] AC2: fixture reale decodificata con layer leggibili.
-- [ ] AC3: input malformato/oltre-limiti non crasha; errori tipizzati.
+- [x] AC1: lat/lon→tile deterministico con clamp; nessun NaN/Infinity.
+- [x] AC2: fixture reale decodificata con layer leggibili.
+- [x] AC3: input malformato/oltre-limiti non crasha; errori tipizzati.
 
 ## Verifica
 `npm run test:run -- src/geo/mvt` + gate comune.

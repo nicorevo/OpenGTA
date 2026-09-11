@@ -1,6 +1,6 @@
 # DATA-05: Modello decodificato
 
-**Stato:** pianificato. **Dipendenze:** DATA-02. **Persona:** fullstack-developer. **Taglia:** S.
+**Stato:** completato (modello consegnato in `src/geo/mvt/decode.ts` da DATA-02). Log: `tasks/executions/2026-09-11-DATA-02.md`. **Dipendenze:** DATA-02. **Persona:** fullstack-developer. **Taglia:** S.
 
 ## Obiettivo
 `DecodedVectorTile`/`DecodedVectorFeature` (layer, id?, properties,
@@ -20,9 +20,9 @@ Modificabili: `src/geo/mvt/model.ts` + test.
 2. Implementare; GREEN.
 
 ## Accettazione
-- [ ] AC1: modello tipizzato con geometrie complete (holes preservati).
-- [ ] AC2: nessun oggetto decoder esposto fuori da src/geo/mvt.
-- [ ] AC3: tile vuota = vuoto valido; suite verde.
+- [x] AC1: modello tipizzato con geometrie complete (holes preservati).
+- [x] AC2: nessun oggetto decoder esposto fuori da src/geo/mvt.
+- [x] AC3: tile vuota = vuoto valido; suite verde.
 
 ## Verifica
 `npm run test:run -- src/geo/mvt` + gate comune.
