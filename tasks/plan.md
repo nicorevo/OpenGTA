@@ -46,7 +46,7 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [x] | [SOLID-02 Cancellazione compile](city/SOLID-02.md) | SOLID-01 | M | Abort osservabile durante normalize/compile |
 | [x] | [SOLID-03 Benchmark patologici](city/SOLID-03.md) | SOLID-02 | M | Fixture 100..20k membri con budget dichiarato |
 | [x] | [SOLID-04 Renderer incrementale](city/SOLID-04.md) | Nessuna | L | setChunk/removeChunk con zero rebuild dei chunk invariati |
-| [ ] | [SOLID-05 Long-drive regression](city/SOLID-05.md) | SOLID-04 | M | 100+ transizioni senza crash, risorse bounded |
+| [x] | [SOLID-05 Long-drive regression](city/SOLID-05.md) | SOLID-04 | M | 100+ transizioni senza crash, risorse bounded |
 | [x] | [SOLID-06 SECURITY e gate docs](city/SOLID-06.md) | Nessuna | S | SECURITY.md allineato; gate consistenza documentato |
 | [x] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
 | [ ] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |

@@ -128,6 +128,38 @@ it("ignores a late response for a chunk abandoned by a rapid reversal", async ()
   await session.dispose();
 });
 
+
+it("drives a long looped route across 100+ windows with bounded resources", async () => {
+  const physics = await createPhysicsAdapter([]);
+  const scene = renderer(); let position = { x: 0, y: 0 };
+  scene.updateVehicle = (next?: { x: number; y: number }) => { if (next) position = next; };
+  scene.cameraBounds = () => ({ minX: position.x - 200, maxX: position.x + 200, minY: position.y - 100, maxY: position.y + 100 });
+  const session = createRuntimeSession({ source: createGeoDataSource(async () => liveWorld, { minIntervalMs: 0 }), origin: liveOrigin, renderer: scene, physics });
+  await session.start();
+  let now = 0;
+  const leg = async (throttle: number, steps: number) => {
+    for (let step = 0; step < steps; step++) {
+      session.step({ throttle, steer: 0, brake: 0 });
+      now += 1000 / 60;
+      void session.stream(now);
+      const snapshot = session.snapshot();
+      expect(snapshot.runtime.records).toBeLessThanOrEqual(12);
+      expect(snapshot.runtime.cacheSize).toBeLessThanOrEqual(9);
+      expect(snapshot.runtime.pending.length).toBeLessThanOrEqual(32);
+      expect(snapshot.state).not.toBe("error");
+    }
+  };
+  for (let cycle = 0; cycle < 20; cycle++) {
+    await leg(1, 2400);   // forward ~750 m, several window changes
+    await leg(-1, 1800);  // back, releasing and re-demanding chunks
+  }
+  expect(session.snapshot().runtime.generation).toBeGreaterThan(100);
+  expect(session.snapshot().colliders).toBeLessThanOrEqual(20);
+  await session.dispose();
+  expect(scene.chunks()).toEqual([]);
+  expect(physics.colliderCount()).toBe(0);
+});
+
 it("stops at a disconnected neighbor and resumes without resetting after explicit retry", async () => {
   let unavailable = true; let failures = 0;
   const physics = await createPhysicsAdapter([]);

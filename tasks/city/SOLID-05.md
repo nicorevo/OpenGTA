@@ -1,6 +1,6 @@
 # SOLID-05: Long-drive regression
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-SOLID-05.md`.
 **Dipendenze:** SOLID-04.
 **Persona:** test-engineer.
 **Taglia:** M, 3 file di test.
@@ -35,9 +35,9 @@ responsabile con riproduzione.
 
 ## Accettazione
 
-- [ ] AC1: 100+ transizioni senza crash/unhandled rejection/stale apply.
-- [ ] AC2: record <= limite, cache <= 9, collider bounded, pending <= 32.
-- [ ] AC3: nessun ingresso in celle non applicate; guardia sempre attiva.
+- [x] AC1: 100+ transizioni senza crash/unhandled rejection/stale apply.
+- [x] AC2: record <= limite, cache <= 9, collider bounded, pending <= 32.
+- [x] AC3: nessun ingresso in celle non applicate; guardia sempre attiva.
 
 ## Verifica
 
