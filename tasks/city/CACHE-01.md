@@ -1,6 +1,6 @@
 # CACHE-01: Contratto storage persistente
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-CACHE-01.md`.
 **Dipendenze:** Nessuna.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -33,9 +33,9 @@ slice (la chiave va riusata, non duplicata).
 
 ## Accettazione
 
-- [ ] AC1: contratto testato con errori tipizzati e roundtrip.
-- [ ] AC2: chiave = namespace + versioni; nessun segreto possibile.
-- [ ] AC3: nessuna dipendenza browser nel contratto (testabile in Node).
+- [x] AC1: contratto testato con errori tipizzati e roundtrip.
+- [x] AC2: chiave = namespace + versioni; nessun segreto possibile.
+- [x] AC3: nessuna dipendenza browser nel contratto (testabile in Node).
 
 ## Verifica
 
