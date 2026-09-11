@@ -86,7 +86,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const session = current;
       const vehicleSnapshot = () => session ? session.vehicle() : offlineVehicle ? { position: { ...offlineVehicle.position }, velocity: { ...offlineVehicle.velocity }, heading: offlineVehicle.heading } : undefined;
       const metrics = new RuntimeMetrics();
-      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot() }) });
+      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), presentation: () => renderer.presentationCounts() }) });
       Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: Object.freeze({ snapshot: () => metrics.snapshot() }) });
       const updateStatus = () => {
         const snapshot = session?.snapshot(); if (!snapshot) return;

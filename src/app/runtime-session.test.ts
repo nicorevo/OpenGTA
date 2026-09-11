@@ -6,8 +6,8 @@ import { liveWorld, liveOrigin } from "../../tests/fixtures/live-world.ts";
 import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
 
 function renderer() {
-  let chunks: readonly CompiledChunkV0[] = [];
-  return { render(next: readonly CompiledChunkV0[]) { chunks = next; }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { chunks = []; }, chunks: () => chunks };
+  const byId = new Map<string, CompiledChunkV0>();
+  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
 }
 
 it("starts before the window finishes and disposes a pending source", async () => {
@@ -30,7 +30,7 @@ it("starts before the window finishes and disposes a pending source", async () =
 it("rolls physics back if the renderer rejects an application", async () => {
   const physics = await createPhysicsAdapter([]);
   const scene = renderer();
-  scene.render = (chunks) => { if (chunks.length) throw new Error("render failed"); };
+  scene.setChunk = () => { throw new Error("render failed"); };
   const session = createRuntimeSession({ source: createGeoDataSource(async () => liveWorld), origin: liveOrigin, renderer: scene, physics });
   await session.start();
   expect(session.snapshot().state).toBe("error");

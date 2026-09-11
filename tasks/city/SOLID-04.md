@@ -1,6 +1,6 @@
 # SOLID-04: Renderer incrementale per chunk
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-SOLID-04.md`.
 **Dipendenze:** Nessuna.
 **Persona:** fullstack-developer.
 **Taglia:** L, 6 file di codice/test.
@@ -37,9 +37,9 @@ buildings < labels) e le mask. Preservare `render`, `updateVehicle`,
 
 ## Accettazione
 
-- [ ] AC1: chunk invariato conserva le stesse risorse (nessun rebuild).
-- [ ] AC2: 1 chunk nuovo non ricrea gli altri; 1 rimosso distrugge solo il suo.
-- [ ] AC3: E2E streaming e V0 senza regressioni visive (screenshot di
+- [x] AC1: chunk invariato conserva le stesse risorse (nessun rebuild).
+- [x] AC2: 1 chunk nuovo non ricrea gli altri; 1 rimosso distrugge solo il suo.
+- [x] AC3: E2E streaming e V0 senza regressioni visive (screenshot di
   confronto dichiarati nel log).
 
 ## Verifica

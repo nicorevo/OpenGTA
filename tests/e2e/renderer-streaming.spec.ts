@@ -15,12 +15,15 @@ test("static updates preserve vehicle, camera and labels, including resize", asy
     const before = { position: { x: vehicle.x, y: vehicle.y }, rotation: vehicle.rotation, camera: renderer.cameraBounds() };
     renderer.render([a, { ...a, id: "b" }]);
     const staticLayer = world.children[0];
+    // Incremental structure: staticLayer holds the layer containers; the
+    // per-chunk ground graphics live in the first (ground) layer.
+    const groundLayer = world.children[0].children[0];
     renderer.render([{ ...a, id: "b" }]);
-    const revision = world.children[0].children[0];
+    const revision = groundLayer.children[0];
     renderer.render([a]);
-    const same = world.children[0].children[0];
+    const same = groundLayer.children[0];
     renderer.render([a]);
-    const noAllocation = same === world.children[0].children[0];
+    const noAllocation = same === groundLayer.children[0];
     renderer.render([]);
     const preserved = vehicle === world.children.at(-1) && vehicle.x === before.position.x && vehicle.rotation === before.rotation;
     const labelsVisible = world.children[0].children.at(-1)?.visible;

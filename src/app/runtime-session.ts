@@ -11,7 +11,7 @@ import { createOpenWorldRuntime } from "../world/runtime/open-world.ts";
 import type { GeoDataSource } from "../world/runtime/source.ts";
 
 export type SessionState = "loading" | "ready" | "degraded" | "empty" | "error";
-interface SessionRenderer extends Pick<PixiRenderer, "cameraBounds" | "updateVehicle" | "dispose"> { render(chunks: readonly CompiledChunkV0[]): void }
+interface SessionRenderer extends Pick<PixiRenderer, "cameraBounds" | "updateVehicle" | "dispose"> { setChunk(chunk: CompiledChunkV0): void; removeChunk(chunkId: string): void }
 export interface RuntimeSessionOptions {
   readonly source: GeoDataSource;
   readonly sourceIdentity?: string;
@@ -36,18 +36,6 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
   let lastDemand = "";
   const available = () => [...chunks.values()].map((entry) => entry.key);
   const values = () => [...chunks.values()].map((entry) => entry.chunk);
-  // Removals can burst (window shifts, dispose): coalesce the scene rebuilds
-  // into one render per microtask flush instead of one full rebuild each.
-  let renderScheduled = false;
-  const scheduleRender = () => {
-    if (renderScheduled || disposed) return;
-    renderScheduled = true;
-    queueMicrotask(() => {
-      if (!renderScheduled || disposed) return;
-      renderScheduled = false;
-      try { options.renderer.render(values()); } catch { fatal = true; }
-    });
-  };
   const runtime = createOpenWorldRuntime({
     baseOrigin: options.origin, grid, cache: options.cache ?? createChunkCache(9), compilerVersion: "v0-runtime",
     source: options.source, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile,
@@ -57,12 +45,11 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const next = new Map(chunks); next.set(id, { key, chunk });
       try {
         options.physics.setChunk(id, chunk.collisions);
-        renderScheduled = false; // the synchronous render supersedes pending removals
-        options.renderer.render([...next.values()].map((entry) => entry.chunk));
+        options.renderer.setChunk(chunk);
       } catch (error) {
         try {
           if (previous) options.physics.setChunk(id, previous.chunk.collisions); else options.physics.removeChunk(id);
-          options.renderer.render(values());
+          if (previous) options.renderer.setChunk(previous.chunk); else options.renderer.removeChunk(id);
         } catch { fatal = true; }
         throw error;
       }
@@ -82,7 +69,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const previous = chunks.get(id); if (!previous) return;
       try {
         options.physics.removeChunk(id); chunks.delete(id);
-        scheduleRender();
+        options.renderer.removeChunk(id);
       } catch { fatal = true; }
     },
   });
