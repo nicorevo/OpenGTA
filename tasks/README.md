@@ -17,11 +17,16 @@ Questa cartella contiene il materiale operativo attivo del progetto.
 
 ## Stato attuale
 
-Il ripristino online e lo streaming sono completati: ONLINE-01..16 verificati,
-checkpoint C1..C6 superati (2026-09-10). Risultato con matrice e misure:
-[`docs/results/ONLINE-RUNTIME-RESULT.md`](../docs/results/ONLINE-RUNTIME-RESULT.md).
-I log sono in `executions/`; il backlog differito e' in
-[`online/FOLLOW-UPS.md`](online/FOLLOW-UPS.md) e non fa parte della consegna.
+Il ripristino online e lo streaming sono completati (ONLINE-01..16, C1..C6;
+risultato in [`docs/results/ONLINE-RUNTIME-RESULT.md`](../docs/results/ONLINE-RUNTIME-RESULT.md)).
+
+Il lavoro corrente e' la tranche **City Drive Stable** (solidità, zoom
+discreto con LOD 2D, cache persistente, gate su Lecce): piano
+[`plan.md`](plan.md), checklist [`todo.md`](todo.md), contratti e schede in
+[`city/`](city/README.md), spec
+[`docs/specs/city-drive-stable.md`](../docs/specs/city-drive-stable.md) e
+ADR-010. Nessun task avviato. Il backlog differito resta in
+[`online/FOLLOW-UPS.md`](online/FOLLOW-UPS.md).
 
 Ogni scheda contiene dipendenze, letture, file modificabili, passi TDD,
 accettazione, comandi e handoff per un esecutore senza il contesto della chat.

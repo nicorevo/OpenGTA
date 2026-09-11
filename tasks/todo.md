@@ -1,54 +1,58 @@
-# Checklist: ripristino online
+# Checklist: City Drive Stable
 
-Data: 2026-09-10.
-Stato: completata; tutti i task e i checkpoint verificati nei log.
+Data: 2026-09-11.
+Stato: pianificato; nessun task avviato.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
-[contratti e procedura](online/README.md). Le checkbox sono una vista sintetica:
-l'accettazione resta nella scheda, il dettaglio delle prove nel log di esecuzione.
+[contratti e procedura](city/README.md). Le checkbox sono una vista sintetica:
+l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
-## Acquisizione
+## Solidità
 
-- [x] [ONLINE-01](online/ONLINE-01.md): provider e risposte.
-- [x] [ONLINE-02](online/ONLINE-02.md): coda e cancellazione.
-- [x] [ONLINE-03](online/ONLINE-03.md): retry e Retry-After.
-- [x] C1: dati affidabili.
+- [ ] [SOLID-01](city/SOLID-01.md): metriche compiler reali.
+- [ ] [SOLID-02](city/SOLID-02.md): cancellazione compile.
+- [ ] [SOLID-03](city/SOLID-03.md): benchmark patologici.
+- [ ] [SOLID-04](city/SOLID-04.md): renderer incrementale.
+- [ ] [SOLID-05](city/SOLID-05.md): long-drive regression.
+- [ ] [SOLID-06](city/SOLID-06.md): SECURITY e gate docs.
+- [ ] C-A: solidità.
 
-## Risorse
+## Zoom
 
-- [x] [ONLINE-04](online/ONLINE-04.md): scena aggiornabile.
-- [x] [ONLINE-05](online/ONLINE-05.md): collisioni aggiornabili.
-- [x] [ONLINE-06](online/ONLINE-06.md): rilascio lifecycle.
-- [x] C2: risorse aggiornabili.
+- [ ] [ZOOM-01](city/ZOOM-01.md): stato camera.
+- [ ] [ZOOM-02](city/ZOOM-02.md): API zoom renderer.
+- [ ] [ZOOM-03](city/ZOOM-03.md): controlli +/−.
+- [ ] [ZOOM-04](city/ZOOM-04.md): streaming reagisce allo zoom.
+- [ ] [ZOOM-05](city/ZOOM-05.md): test zoom.
+- [ ] C-B: zoom base.
 
-## Coordinamento
+## LOD
 
-- [x] [ONLINE-07](online/ONLINE-07.md): identita' cache.
-- [x] [ONLINE-08](online/ONLINE-08.md): runtime progressivo.
-- [x] [ONLINE-09](online/ONLINE-09.md): spawn percorribile.
-- [x] C3: coordinamento e spawn.
+- [ ] [LOD-01](city/LOD-01.md): politica zoom→LOD.
+- [ ] [LOD-02](city/LOD-02.md): label per tier.
+- [ ] [LOD-03](city/LOD-03.md): facade per tier.
+- [ ] [LOD-04](city/LOD-04.md): road detail per tier.
+- [ ] [LOD-05](city/LOD-05.md): culling feature.
+- [ ] C-C: LOD.
 
-## Sessione e guida
+## Cache persistente
 
-- [x] [ONLINE-10](online/ONLINE-10.md): avvio e riprova.
-- [x] [ONLINE-11](online/ONLINE-11.md): confine disponibile.
-- [x] [ONLINE-12](online/ONLINE-12.md): guida con streaming.
-- [x] C4: live giocabile e streaming.
+- [ ] [CACHE-01](city/CACHE-01.md): contratto storage.
+- [ ] [CACHE-02](city/CACHE-02.md): esperimento IndexedDB.
+- [ ] [CACHE-03](city/CACHE-03.md): versioning e integrità.
+- [ ] [CACHE-04](city/CACHE-04.md): eviction.
+- [ ] C-D: cache persistente.
 
-## Robustezza
+## Gate
 
-- [x] [ONLINE-13](online/ONLINE-13.md): limite payload.
-- [x] [ONLINE-14](online/ONLINE-14.md): profilo OSM.
-- [x] [ONLINE-15](online/ONLINE-15.md): ingresso e consenso.
-- [x] C5: robustezza del prototipo.
-
-## Consegna
-
-- [x] [ONLINE-16](online/ONLINE-16.md): verifiche complete e misure.
-- [x] C6: handoff coerente con prove e codice.
+- [ ] [CITY-01](city/CITY-01.md): canary reale.
+- [ ] [CITY-02](city/CITY-02.md): gate City Drive Stable.
+- [ ] C-E: gate finale.
 
 ## Storico
 
-I task V0/P2/P3 completati sono conservati nella
-[checklist precedente](archive/2026-08-26-todo.md).
-Il [backlog differito](online/FOLLOW-UPS.md) non fa parte di questa consegna.
+La tranche ONLINE completata (ONLINE-01..16, C1..C6) è conservata in
+[archivio piano](archive/2026-09-10-plan.md) e
+[archivio checklist](archive/2026-09-10-todo.md).
+Il [backlog differito](online/FOLLOW-UPS.md) resta fuori da questa consegna
+salvo riapertura esplicita (cache persistente = NEXT-03).

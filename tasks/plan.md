@@ -1,154 +1,128 @@
-# Piano: ripristino online e streaming Open World
+# Piano: City Drive Stable (solidità, zoom e LOD)
 
-Data: 2026-09-09. Analisi di riferimento: 2026-09-08.
-Stato: completato; ONLINE-01..16 verificati, checkpoint C1..C6 superati.
-Evidenze in `tasks/executions/`, [todo](todo.md) e
-`docs/results/ONLINE-RUNTIME-RESULT.md`. Il backlog differito resta in
-[FOLLOW-UPS](online/FOLLOW-UPS.md).
-Baseline codice: `4ad9836`. Responsabile della pianificazione: tech-lead-planner.
+Data: 2026-09-11. Analisi di riferimento: review della tranche ONLINE
+(2026-09-10) e proposta esterna `docs/OpenGTA_SOLIDITY_ZOOM_ROADMAP.md`,
+riconciliata con il codice.
+Stato: pianificato; implementazione non avviata.
+Baseline codice: `77312aa`. Responsabile della pianificazione: tech-lead-planner.
 
 ## Obiettivo
 
-Rendere il live OSM capace di acquisire dati reali, avviare una prima area
-giocabile, recuperare dagli errori e aggiornare mondo e collisioni durante
-la guida, con richieste e memoria limitate. Conservare il V0 offline e il
-core TypeScript/PixiJS/Rapier esistenti.
-
-Evidenza: [analisi online](../docs/analysis/ONLINE-RUNTIME-ANALYSIS-2026-09-08.md).
-Le riproduzioni hanno trovato dati vuoti accettati come successo, neighbor
-respinti dal rate limiter, assenza di streaming e retry difettosi. I 89 test
-unitari e i 3 E2E passavano comunque: i conteggi sono baseline storica, non
-un obiettivo di copertura.
+Rendere OpenGTA un motore realmente solido per attraversare città reali in
+modo continuo: metriche reali, compilazione cancellabile, renderer
+incrementale, guida lunga senza perdite, zoom a livelli discreti con LOD 2D,
+cache persistente fra sessioni e un gate "City Drive Stable" verificato su
+Lecce. Nessun gameplay avanzato prima di questa milestone
+(spec `docs/specs/city-drive-stable.md`, ADR-010,
+design `docs/architecture/zoom-and-lod.md`).
 
 ## Come usare il piano
 
-1. Leggere [istruzioni e contratti comuni](online/README.md).
+1. Leggere [istruzioni e contratti comuni](city/README.md).
 2. Assegnare un solo task; leggere la sua scheda e verificare le dipendenze.
 3. Eseguire TDD, verifica nativa e log di consegna secondo la scheda.
-4. Aggiornare la riga qui e in [todo](todo.md) solo con evidenza di completamento.
+4. Aggiornare la riga qui e in [todo](todo.md) solo con evidenza.
 
-Le schede sono autosufficienti insieme al README comune e ai file indicati.
-Non richiedono la conversazione originale, script in `/tmp` o un servizio OSM
-funzionante per la CI. Il piano non autorizza implicitamente un deploy.
+Il piano non autorizza deploy; il canary live e' separato dalla CI e mai
+bloccante per i test deterministici.
 
 ## Confini
 
-Inclusi: fix F1-F7, avvio progressivo, spawn percorribile, streaming locale
-con backpressure, rilascio risorse, payload limitati, completamento dei filtri
-OSM gia' supportati, ingresso live esplicito e verifica finale.
+Inclusi: metriche compiler reali, cancellazione cooperativa di
+normalize/compile, benchmark patologici, renderer incrementale per chunk,
+long-drive regression, zoom discreti +/− con LOD near/medium/far, cache
+persistente (contratto, esperimento IndexedDB, versioning, eviction), canary
+reale e gate finale su Lecce.
 
-Differiti: multiplayer, AI, cambio stack, worker obbligatori, IndexedDB,
-pacchettizzazione/CDN implementata, servizio backend e deploy pubblico.
-Le decisioni di produzione sono raccolte in
-[backlog successivo](online/FOLLOW-UPS.md), con condizioni di apertura.
-
-Le API nuove nel README comune sono contratti pianificati, non API gia'
-esistenti. Ogni task aggiorna solo il contratto che implementa e riporta
-eventuali scostamenti nel proprio log.
+Differiti: Worker (solo dopo misure), wheel/pinch continui, traffico,
+pedoni, missioni, multiplayer, AI, hosting/CDN/SLA di produzione. Le
+condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 
 ## Task ordinati
 
-Ogni scheda contiene obiettivo, READ, MAY MODIFY, DO NOT TOUCH, passi TDD,
-tre criteri di accettazione, comandi, rischi e consegna. S/M indica la
-superficie stimata di codice e test; documentazione e log non sono conteggiati.
-
 | Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
 | --- | --- | --- | --- | --- |
-| [x] | [ONLINE-01 Provider e risposte](online/ONLINE-01.md) | Nessuna | M | OSM non vuoto sul percorso reale; errore provider distinto dal vuoto valido |
-| [x] | [ONLINE-02 Coda di acquisizione](online/ONLINE-02.md) | ONLINE-01 | M | Quattro richieste rapide servite in ordine e cancellabili |
-| [x] | [ONLINE-03 Retry rispettosi](online/ONLINE-03.md) | ONLINE-02 | M | Backoff, Retry-After e deadline verificati senza cambiare mirror |
-| [x] | [ONLINE-04 Scena aggiornabile](online/ONLINE-04.md) | Nessuna | M | Cambio chunk preserva auto, camera e label |
-| [x] | [ONLINE-05 Collisioni aggiornabili](online/ONLINE-05.md) | Nessuna | M | Aggiunta/rimozione dei collider senza ricreare il veicolo |
-| [x] | [ONLINE-06 Rilascio lifecycle](online/ONLINE-06.md) | Nessuna | S | Cancellazione e rilascio senza risultati obsoleti |
-| [x] | [ONLINE-07 Identita' cache](online/ONLINE-07.md) | ONLINE-01, ONLINE-06 | M | Nessun riuso fra origini/provider incompatibili |
-| [x] | [ONLINE-08 Runtime progressivo](online/ONLINE-08.md) | ONLINE-03, ONLINE-06, ONLINE-07 | M | Ogni chunk pronto pubblicato subito; generazioni e memoria limitate |
-| [x] | [ONLINE-09 Spawn percorribile](online/ONLINE-09.md) | ONLINE-05 | M | Posizione iniziale su strada, libera e interna ai chunk disponibili |
-| [x] | [ONLINE-10 Sessione live recuperabile](online/ONLINE-10.md) | ONLINE-04, ONLINE-05, ONLINE-08, ONLINE-09 | M | Gioco avviato prima dei neighbor; errore/vuoto/riprova espliciti |
-| [x] | [ONLINE-11 Confine disponibile](online/ONLINE-11.md) | ONLINE-05, ONLINE-09 | M | Movimento fisico confinato ai chunk applicati |
-| [x] | [ONLINE-12 Guida con streaming](online/ONLINE-12.md) | ONLINE-10, ONLINE-11 | M | Tre confini attraversati con aggiornamento e rilascio del mondo |
-| [x] | [ONLINE-13 Risposte limitate](online/ONLINE-13.md) | ONLINE-03 | M | Lettura interrotta al budget byte anche senza Content-Length |
-| [x] | [ONLINE-14 Profilo OSM coerente](online/ONLINE-14.md) | ONLINE-07, ONLINE-13 | M | Parchi e parcheggi richiesti e compilati |
-| [x] | [ONLINE-15 Ingresso live esplicito](online/ONLINE-15.md) | ONLINE-10, ONLINE-12, ONLINE-13, ONLINE-14 | M | Coordinate/consenso/policy endpoint verificati prima della rete |
-| [x] | [ONLINE-16 Gate finale](online/ONLINE-16.md) | ONLINE-01..ONLINE-15 | M | E2E completo, build, misure e handoff allineati |
+| [ ] | [SOLID-01 Metriche compiler reali](city/SOLID-01.md) | Nessuna | S | Nessun `total: 0`; overlay con tempi reali |
+| [ ] | [SOLID-02 Cancellazione compile](city/SOLID-02.md) | SOLID-01 | M | Abort osservabile durante normalize/compile |
+| [ ] | [SOLID-03 Benchmark patologici](city/SOLID-03.md) | SOLID-02 | M | Fixture 100..20k membri con budget dichiarato |
+| [ ] | [SOLID-04 Renderer incrementale](city/SOLID-04.md) | Nessuna | L | setChunk/removeChunk con zero rebuild dei chunk invariati |
+| [ ] | [SOLID-05 Long-drive regression](city/SOLID-05.md) | SOLID-04 | M | 100+ transizioni senza crash, risorse bounded |
+| [ ] | [SOLID-06 SECURITY e gate docs](city/SOLID-06.md) | Nessuna | S | SECURITY.md allineato; gate consistenza documentato |
+| [ ] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
+| [ ] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |
+| [ ] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
+| [ ] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
+| [ ] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
+| [ ] | [LOD-01 Politica zoom→LOD](city/LOD-01.md) | ZOOM-01 | S | lodForZoom pura e testata |
+| [ ] | [LOD-02 Label per tier](city/LOD-02.md) | LOD-01, SOLID-04 | S | Soglie di importanza per tier |
+| [ ] | [LOD-03 Facade per tier](city/LOD-03.md) | LOD-01 | S | Forza facade decrescente con lo zoom out |
+| [ ] | [LOD-04 Road detail per tier](city/LOD-04.md) | LOD-01 | S | FAR body / MEDIUM casing / NEAR marking |
+| [ ] | [LOD-05 Culling feature](city/LOD-05.md) | LOD-01 | M | Skip visuale sotto soglia px², world model intatto |
+| [ ] | [CACHE-01 Contratto storage](city/CACHE-01.md) | Nessuna | S | Interfaccia astratta con quota/errori |
+| [ ] | [CACHE-02 Esperimento IndexedDB](city/CACHE-02.md) | CACHE-01 | M | Misure write/read/quota con decisione documentata |
+| [ ] | [CACHE-03 Versioning e integrità](city/CACHE-03.md) | CACHE-02 | S | Entry incompatibile scartata, mai usata |
+| [ ] | [CACHE-04 Eviction](city/CACHE-04.md) | CACHE-03 | S | Budget dichiarato e rispettato |
+| [ ] | [CITY-01 Canary reale](city/CITY-01.md) | SOLID-01..06, ZOOM-05 | M | Report separato, Lecce + lista estesa |
+| [ ] | [CITY-02 Gate City Drive Stable](city/CITY-02.md) | Tutti i precedenti | M | Matrice requisiti→prove, misure e handoff allineati |
 
 ## Checkpoint
 
-### C1: dati affidabili, dopo ONLINE-01..03
+### C-A: solidità, dopo SOLID-01..06
 
-- [x] Risposta non vuota attraversa source/normalize/compile.
-- [x] Il caso 1 caricato + 3 falliti diventa 4 caricati.
-- [x] 429, Retry-After assente/data/secondi, cancellazione e timeout coperti.
-- [x] Test pertinenti, suite completa, typecheck e build passano.
+- [ ] Compile misurato e cancellabile; benchmark patologici con budget.
+- [ ] Renderer incrementale senza regressioni di ordine/mask/hole.
+- [ ] 100+ transizioni: memoria, cache, collider bounded.
+- [ ] SECURITY.md riallineato; suite completa, typecheck, build, E2E verdi.
 
-C1 corregge l'acquisizione; non certifica ancora avvio progressivo o streaming.
+### C-B: zoom base, dopo ZOOM-01..05
 
-### C2: risorse aggiornabili, dopo ONLINE-04..06
+- [ ] 5 livelli con clamp e centro invariato; fisica e fixed-step intatti.
+- [ ] Pulsanti +/− accessibili; guida continua dopo i click.
+- [ ] Domanda di streaming aggiornata con debounce; nessuna tempesta.
+- [ ] Fattori benchmarkati e documentati; E2E zoom verdi.
 
-- [x] Rendering e fisica gestiscono chunk in ingresso/uscita senza reset auto.
-- [x] Lifecycle rilascia anche richieste pendenti senza risurrezione dei record.
-- [x] Test e spot check V0 passano; nessuna regressione di hole o collisioni.
+### C-C: LOD, dopo LOD-01..05
 
-### C3: coordinamento, dopo ONLINE-07..09
+- [ ] Tier coerenti per zoom; costo per metro quadro decrescente con lo
+  zoom out misurato.
+- [ ] Nessun LOD nel canonical world; culling solo visuale.
+- [ ] Suite completa, typecheck, build, E2E verdi.
 
-- [x] Cache isolata per mondo; priorita', stale result e retention verificati.
-- [x] P0 viene pubblicato anche con neighbor pendente.
-- [x] Spawn e impronta fisica sicuri sui bordi e nei casi senza strada.
+### C-D: cache persistente, dopo CACHE-01..04
 
-### C4: live giocabile e streaming, dopo ONLINE-10..12
+- [ ] Reload riusa i chunk validi; entry corrotta/stale scartata.
+- [ ] Quota gestita; sessione funziona anche senza storage.
+- [ ] Misure cold/warm con ambiente dichiarato.
 
-- [x] Avvio su P0 applicato; errore e vuoto distinti; riprova senza reload.
-- [x] Tre confini, ritorno su cache e disconnessione coperti con fixture.
-- [x] Auto confinata alla zona pronta; risorse e richieste bounded.
-- [x] Suite completa, typecheck, build ed E2E passano.
+### C-E: gate, CITY-01..02
 
-C4 e' la prima consegna che puo' essere chiamata ripristino online con streaming.
-ONLINE-10 da solo consegna l'avvio progressivo, non l'esplorazione continua.
+- [ ] Canary Lecce + lista estesa con report separato, mai bloccante per CI.
+- [ ] Matrice requisiti→prove completa; misure con ambiente dichiarato.
+- [ ] `docs/handoff/CURRENT.md`, piano e checklist concordi col codice.
 
-### C5: robustezza del prototipo, dopo ONLINE-13..15
-
-- [x] Payload e input rifiutati prima del lavoro eccessivo o della rete.
-- [x] Consenso revocato cancella la sessione; default offline preservato.
-- [x] Parchi/parcheggi e namespace cache aggiornati senza download extra in CI.
-
-### C6: consegna, ONLINE-16
-
-- [x] Ogni criterio delle schede e' collegato a un test o a evidenza manuale.
-- [x] Misure con ambiente dichiarato; nessuna pretesa di SLA pubblico.
-- [x] `docs/handoff/CURRENT.md`, piano e checklist concordano con il codice.
-
-I checkpoint sono gate tecnici. Non richiedono di interrompere una tranche
-gia' assegnata per domandare di nuovo il permesso di proseguire. Il lavoro
-oltre la tranche assegnata, merge e deploy conservano il proprio perimetro.
+I checkpoint sono gate tecnici e non richiedono nuova autorizzazione per
+proseguire una tranche gia' assegnata.
 
 ## Dipendenze e ordine di esecuzione
 
-L'ordine numerico e' valido per un singolo modello e riduce i conflitti.
-Il ramo 04-06 e' preparatorio al runtime; 09 dipende dalla geometria fisica
-definita in 05; 11 deve precedere l'attivazione dello streaming in 12.
-Nessun task di solo test lascia deliberatamente la suite rossa a fine consegna.
-
-Non avviare esecuzioni concorrenti sullo stesso checkout. Eventuale lavoro
-parallelo esplicitamente assegnato puo' riguardare 04 (renderer), 05 (fisica)
-e 06 (lifecycle); 01-03 e 07-08 condividono moduli e vanno serializzati.
-I prerequisiti tecnici sono piccoli incrementi testati attraverso le API
-esistenti; non autorizzano riscritture generali dei sottosistemi.
+L'ordine numerico e' valido per un singolo esecutore. SOLID-04 (renderer)
+e' prerequisito del LOD applicato ma puo' procedere in parallelo con
+SOLID-01..03 se assegnato esplicitamente; ZOOM-01 e CACHE-01 sono indipendenti
+dal resto. Nessun task di solo test lascia la suite rossa a fine consegna.
 
 ## Rischi e scelte esplicite
 
 | Rischio | Gestione prevista |
 | --- | --- |
-| Provider pubblico disponibile oggi ma non domani | Default di prototipo configurabile; CI senza rete; produzione differita |
-| Rate limiter e retry duplicano le attese | Un solo scheduler governa ogni tentativo; tempo in coda distinto dal timeout attivo |
-| Solo rendering aggiornato, collider obsoleti | Commit del chunk in sessione prima di marcarlo ACTIVE |
-| Resize o velocita' causano valanga di richieste | Domanda deduplicata, coda limitata, priorita', generazioni e cancellazione |
-| Cache espelle ma lifecycle trattiene tutto | Rilascio record e risorse; test di 100 finestre |
-| Strada sul bordo ancora indisponibile | Impronta fisica, pinned chunk e guardia di disponibilita' |
-| Scope troppo ampio per una sessione | Una scheda S/M alla volta; dettagliare una sotto-slice prima di oltrepassare i confini |
-| Vecchi documenti fanno ripartire task chiusi | Handoff corrente e copie storiche collegate sotto |
+| Zoom out senza LOD aumenta il carico | LOD prima della pubblicizzazione dei fattori; benchmark per livello |
+| Renderer incrementale rompe z-order/mask | Container per tipo di layer; regressioni V0 di hole/ordine |
+| Compilazione lunga blocca il main thread | Yield cooperativo + budget per task; Worker solo con misure |
+| Relation patologiche | Indicizzazione per endpoint se i benchmark lo richiedono |
+| Cache persistente corrotta/incompatibile | Versioning nel namespace; discard mai uso silenzioso |
+| Canary contatta servizi pubblici | Suite separata, mai in CI, richieste limitate e riportate |
 
 ## Storico preservato
 
-Il piano completato fino a P3.4 e la relativa checklist sono conservati in
-[archivio piano](archive/2026-08-26-plan.md) e
-[archivio checklist](archive/2026-08-26-todo.md). Gli execution log gia'
-presenti restano evidenza storica e non sono task da rieseguire.
+Piano e checklist della tranche ONLINE completata: [archivio
+piano](archive/2026-09-10-plan.md) e [archivio checklist](archive/2026-09-10-todo.md).
+I log in `tasks/executions/` restano evidenza storica.

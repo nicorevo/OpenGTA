@@ -33,6 +33,12 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 (2026-09-10). Verificata con 175 test unitari, 14 E2E su dev server, 1 smoke
 del build di produzione, typecheck e build. Vedi [Prova della baseline](#prova-della-baseline).
 
+Prossima tranche pianificata — City Drive Stable (solidità, zoom a livelli
+discreti con LOD 2D, cache persistente, gate su Lecce):
+
+`docs/specs/city-drive-stable.md` · `docs/adr/ADR-010-discrete-zoom-lod.md` ·
+`docs/architecture/zoom-and-lod.md` · `tasks/plan.md` · `tasks/city/README.md`
+
 Avvio di sessione per agenti:
 
 `docs/handoff/CURRENT.md`

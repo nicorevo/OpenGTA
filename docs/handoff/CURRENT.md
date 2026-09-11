@@ -43,9 +43,12 @@ anche con suite verde.
 - Stato: tranche ONLINE completata il 2026-09-10 (ONLINE-01..16, checkpoint
   C1..C6, log in `tasks/executions/`). Risultato con matrice, misure e
   limiti: [ONLINE-RUNTIME-RESULT](../results/ONLINE-RUNTIME-RESULT.md).
-  Nessun lavoro online pendente nel piano; i filoni differiti restano in
-  [tasks/online/FOLLOW-UPS.md](../../tasks/online/FOLLOW-UPS.md) con le
-  condizioni di apertura.
+- Lavoro corrente: tranche **City Drive Stable** pianificata il 2026-09-11
+  (SOLID/ZOOM/LOD/CACHE/CITY in [tasks/plan.md](../../tasks/plan.md),
+  contratti in [tasks/city/README.md](../../tasks/city/README.md), spec
+  [city-drive-stable](../specs/city-drive-stable.md), ADR-010). Nessun task
+  avviato; i filoni differiti restano in
+  [tasks/online/FOLLOW-UPS.md](../../tasks/online/FOLLOW-UPS.md).
 - Baseline stabile per test utente: commit `77312aa` (correzioni post-review
   su `a5b076b`, vedi `docs/results/ONLINE-RUNTIME-RESULT.md`); istruzioni di
   prova, stati attesi e limiti noti nella sezione "Prova della baseline" del
