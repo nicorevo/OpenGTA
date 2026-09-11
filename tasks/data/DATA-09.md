@@ -1,6 +1,6 @@
 # DATA-09: Parity Lecce (Overpass vs OpenFreeMap)
 
-**Stato:** pianificato. **Dipendenze:** DATA-06..08. **Persona:** test-engineer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-09.md`. **Dipendenze:** DATA-06..08. **Persona:** test-engineer. **Taglia:** M.
 
 ## Obiettivo
 Confrontare, su Piazza Sant'Oronzo, la baseline Overpass (fixture
@@ -25,9 +25,9 @@ doc di analisi. Non cambiare mapping per migliorare i numeri.
 3. Analisi documentata con decisione motivata.
 
 ## Accettazione
-- [ ] AC1: matrice completa con numeri reali e ambiente dichiarato.
-- [ ] AC2: decisione GO/GO-VISUAL/NO-GO motivata e documentata.
-- [ ] AC3: gap dichiarati; nessun dato inventato.
+- [x] AC1: matrice completa con numeri reali e ambiente dichiarato.
+- [x] AC2: decisione GO/GO-VISUAL/NO-GO motivata e documentata.
+- [x] AC3: gap dichiarati; nessun dato inventato.
 
 ## Verifica
 `npx vitest run --config vitest.bench.config.ts tests/bench/mvt-parity.test.ts` + gate comune.
