@@ -1,6 +1,6 @@
 # DATA-12: Seam tests MVT
 
-**Stato:** pianificato. **Dipendenze:** DATA-11. **Persona:** test-engineer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-12.md`. **Dipendenze:** DATA-11. **Persona:** test-engineer. **Taglia:** M.
 
 ## Obiettivo
 Tile sintetiche con: strada che attraversa il bordo, edificio a cavallo,
@@ -21,9 +21,9 @@ Modificabili: normalizer MVT e test. Non cambiare compiler/physics.
 2. Implementare clip/deduplica/ID deterministici; GREEN.
 
 ## Accettazione
-- [ ] AC1: no gap/duplicati/doppie facade sui bordi.
-- [ ] AC2: ID deterministici; clip ai bounds OpenGTA.
-- [ ] AC3: suite verde; obbligatorio prima di dichiarare MVT gameplay-ready.
+- [x] AC1: no gap/duplicati/doppie facade sui bordi.
+- [x] AC2: ID deterministici; clip ai bounds OpenGTA.
+- [x] AC3: suite verde; obbligatorio prima di dichiarare MVT gameplay-ready.
 
 ## Verifica
 `npm run test:run -- src/geo/normalize` + gate comune.
