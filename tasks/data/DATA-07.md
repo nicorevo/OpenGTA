@@ -1,6 +1,6 @@
 # DATA-07: Mapping building
 
-**Stato:** pianificato. **Dipendenze:** DATA-05. **Persona:** fullstack-developer. **Taglia:** S.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-07.md`. **Dipendenze:** DATA-05. **Persona:** fullstack-developer. **Taglia:** S.
 
 ## Obiettivo
 Layer `building` → `BuildingFeature`: poligoni con holes; altezza da
@@ -20,9 +20,9 @@ Modificabili: `src/geo/normalize/mvt-buildings.ts` (nuovo) + test.
 2. Implementare; GREEN.
 
 ## Accettazione
-- [ ] AC1: render_height/fallback deterministico.
-- [ ] AC2: holes preservati; geometrie invalide con warning, no crash.
-- [ ] AC3: suite verde.
+- [x] AC1: render_height/fallback deterministico.
+- [x] AC2: holes preservati; geometrie invalide con warning, no crash.
+- [x] AC3: suite verde.
 
 ## Verifica
 `npm run test:run -- src/geo/normalize` + gate comune.

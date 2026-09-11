@@ -1,6 +1,6 @@
 # DATA-06: Mapping transportation
 
-**Stato:** pianificato. **Dipendenze:** DATA-05. **Persona:** fullstack-developer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-06.md`. **Dipendenze:** DATA-05. **Persona:** fullstack-developer. **Taglia:** M.
 
 ## Obiettivo
 Mappare il layer `transportation` OpenMapTiles verso `RoadFeature`:
@@ -24,9 +24,9 @@ compiler/OSM normalizer/renderer.
 2. Implementare; GREEN.
 
 ## Accettazione
-- [ ] AC1: mapping classi OMT→OpenGTA con fallback documentati.
-- [ ] AC2: non guidabili mai trasformati in carreggiata; warning ignote.
-- [ ] AC3: larghezza dai fallback; suite verde.
+- [x] AC1: mapping classi OMT→OpenGTA con fallback documentati.
+- [x] AC2: non guidabili mai trasformati in carreggiata; warning ignote.
+- [x] AC3: larghezza dai fallback; suite verde.
 
 ## Verifica
 `npm run test:run -- src/geo/normalize` + gate comune.
