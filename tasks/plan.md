@@ -53,7 +53,7 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [ ] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
 | [ ] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
 | [ ] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
-| [ ] | [LOD-01 Politica zoom→LOD](city/LOD-01.md) | ZOOM-01 | S | lodForZoom pura e testata |
+| [x] | [LOD-01 Politica zoom→LOD](city/LOD-01.md) | ZOOM-01 | S | lodForZoom pura e testata |
 | [ ] | [LOD-02 Label per tier](city/LOD-02.md) | LOD-01, SOLID-04 | S | Soglie di importanza per tier |
 | [ ] | [LOD-03 Facade per tier](city/LOD-03.md) | LOD-01 | S | Forza facade decrescente con lo zoom out |
 | [ ] | [LOD-04 Road detail per tier](city/LOD-04.md) | LOD-01 | S | FAR body / MEDIUM casing / NEAR marking |

@@ -28,7 +28,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
 ## LOD
 
-- [ ] [LOD-01](city/LOD-01.md): politica zoom→LOD.
+- [x] [LOD-01](city/LOD-01.md): politica zoom→LOD.
 - [ ] [LOD-02](city/LOD-02.md): label per tier.
 - [ ] [LOD-03](city/LOD-03.md): facade per tier.
 - [ ] [LOD-04](city/LOD-04.md): road detail per tier.

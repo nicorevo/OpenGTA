@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { ZOOM_STEPS, cameraBounds, clampZoom, lodForZoom, zoomFactor } from "./camera.ts";
+import { ZOOM_STEPS, cameraBounds, clampZoom, lodForZoom, zoomFactor, type LodTier, type ZoomLevel } from "./camera.ts";
 
 const SCREEN = { width: 1280, height: 720 };
 const POSITION = { x: 120, y: -45 };
 const DEFAULT_ZOOM = 2;
+const LEVELS: readonly ZoomLevel[] = [0, 1, 2, 3, 4];
 
 describe("camera zoom levels", () => {
   it("clamps levels outside 0..4 to the discrete range", () => {
@@ -31,6 +32,46 @@ describe("camera zoom levels", () => {
 
   it("maps levels to the initial LOD tiers of the design", () => {
     expect([0, 1, 2, 3, 4].map((level) => lodForZoom(clampZoom(level)))).toEqual(["far", "far", "medium", "near", "near"]);
+  });
+});
+
+describe("camera zoom to LOD policy", () => {
+  const TIER_BY_LEVEL: readonly (readonly [ZoomLevel, LodTier])[] = [
+    [0, "far"],
+    [1, "far"],
+    [2, "medium"],
+    [3, "near"],
+    [4, "near"],
+  ];
+  const TIER_RANK: Readonly<Record<LodTier, number>> = { far: 0, medium: 1, near: 2 };
+
+  it("covers every discrete level with exactly one tier", () => {
+    for (const [level, tier] of TIER_BY_LEVEL) {
+      expect(lodForZoom(level)).toBe(tier);
+    }
+
+    const tiers = TIER_BY_LEVEL.map(([, tier]) => tier);
+    expect(new Set(tiers)).toEqual(new Set(["far", "medium", "near"]));
+    expect(lodForZoom(LEVELS[0])).toBe("far");
+    expect(lodForZoom(LEVELS[LEVELS.length - 1])).toBe("near");
+  });
+
+  it("clamps out-of-range levels before mapping them", () => {
+    expect(lodForZoom(-1 as ZoomLevel)).toBe("far");
+    expect(lodForZoom(5 as ZoomLevel)).toBe("near");
+    expect(lodForZoom(42 as ZoomLevel)).toBe("near");
+    expect(lodForZoom(1.6 as ZoomLevel)).toBe("medium");
+  });
+
+  it("stays deterministic and never loses detail as the camera zooms in", () => {
+    const ranks = LEVELS.map((level) => TIER_RANK[lodForZoom(level)]);
+
+    expect(lodForZoom(2)).toBe(lodForZoom(2));
+    expect(ranks.every((rank, index) => index === 0 || rank >= ranks[index - 1])).toBe(true);
+    expect(lodForZoom(0)).toBe(lodForZoom(1));
+    expect(lodForZoom(3)).toBe(lodForZoom(4));
+    expect(TIER_RANK[lodForZoom(0)]).toBeLessThan(TIER_RANK[lodForZoom(2)]);
+    expect(TIER_RANK[lodForZoom(2)]).toBeLessThan(TIER_RANK[lodForZoom(4)]);
   });
 });
 

@@ -9,7 +9,9 @@ export interface ScreenSize { readonly width: number; readonly height: number; }
 
 const ZOOM_LEVELS: readonly ZoomLevel[] = [0, 1, 2, 3, 4];
 const DEFAULT_ZOOM_LEVEL: ZoomLevel = 2;
-const LOD_BY_ZOOM: readonly LodTier[] = ["far", "far", "medium", "near", "near"];
+/** LOD-01 policy: tier range boundaries over the discrete levels (0-1 far, 2 medium, 3-4 near). */
+const FAR_MAX_ZOOM_LEVEL: ZoomLevel = 1;
+const MEDIUM_MAX_ZOOM_LEVEL: ZoomLevel = 2;
 
 /** Non-finite input has no clampable order, so it falls back to the default level. */
 export function clampZoom(level: number): ZoomLevel {
@@ -19,8 +21,19 @@ export function clampZoom(level: number): ZoomLevel {
 
 export function zoomFactor(level: ZoomLevel): number { return ZOOM_STEPS[clampZoom(level)]; }
 
-/** Placeholder mapping for LOD-01, which will replace it with the real profile. */
-export function lodForZoom(level: ZoomLevel): LodTier { return LOD_BY_ZOOM[clampZoom(level)]; }
+/**
+ * Total and deterministic tier for every level: out-of-range input is clamped
+ * before the mapping, so the 0..4 range always yields exactly one tier. The
+ * boundaries are experimental and get recalibrated with the factors fixed by
+ * ZOOM-05; the presentation parameters per tier live in `src/render/lod-profile.ts`,
+ * which is keyed by the tiers returned here.
+ */
+export function lodForZoom(level: ZoomLevel): LodTier {
+  const clamped = clampZoom(level);
+  if (clamped <= FAR_MAX_ZOOM_LEVEL) return "far";
+  if (clamped <= MEDIUM_MAX_ZOOM_LEVEL) return "medium";
+  return "near";
+}
 
 /** World-space box seen by a centered camera: 1 meter canonical -> scale pixels. */
 export function cameraBounds(position: Vec2, screenSize: ScreenSize, scale: number): Bounds2D {

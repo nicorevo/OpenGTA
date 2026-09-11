@@ -1,6 +1,6 @@
 # LOD-01: Politica zoom→LOD
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-LOD-01.md`.
 **Dipendenze:** ZOOM-01.
 **Persona:** fullstack-developer.
 **Taglia:** S, 2 file di codice/test.
@@ -35,9 +35,9 @@ collisioni.
 
 ## Accettazione
 
-- [ ] AC1: mapping totale e deterministico, testato per ogni livello.
-- [ ] AC2: profilo centralizzato senza dipendenze da Pixi nel contratto.
-- [ ] AC3: nessuna modifica al canonical world; suite verde.
+- [x] AC1: mapping totale e deterministico, testato per ogni livello.
+- [x] AC2: profilo centralizzato senza dipendenze da Pixi nel contratto.
+- [x] AC3: nessuna modifica al canonical world; suite verde.
 
 ## Verifica
 
