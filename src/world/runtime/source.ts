@@ -13,7 +13,8 @@ export interface RuntimeRegionRequest {
   readonly radiusMeters: number;
 }
 
-export type GeoDataLoader = (request: RuntimeRegionRequest, signal: AbortSignal, context: AttemptContext) => Promise<unknown>;
+export interface CompilePhaseTimings { decodeMs?: number }
+export type GeoDataLoader = (request: RuntimeRegionRequest, signal: AbortSignal, context: AttemptContext, phases?: CompilePhaseTimings) => Promise<unknown>;
 
 export interface GeoDataSource {
   acquire(request: RuntimeRegionRequest, options?: AcquireOptions): Promise<RawOsm>;
@@ -91,7 +92,7 @@ export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourc
     async acquire(request, input) {
       try { validateRequest(request); }
       catch (cause) { throw new GeoDataSourceError("invalid-request", cause instanceof Error ? cause.message : "Invalid region request", undefined, cause); }
-      return scheduler.run(async (context) => validateResponse(await loader({ ...request, origin: { ...request.origin } }, context.signal, context)), input);
+      return scheduler.run(async (context) => validateResponse(await loader({ ...request, origin: { ...request.origin } }, context.signal, context, input?.phases)), input);
     },
   };
 }
@@ -100,7 +101,7 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
   const baseUrl = new URL(endpoint);
   const maxBytes = options.maxResponseBytes ?? DEFAULT_RESPONSE_BYTES;
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RangeError("Invalid response byte budget");
-  return createGeoDataSource(async (request, signal) => {
+  return createGeoDataSource(async (request, signal, _context, phases) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
     const url = new URL(baseUrl);
@@ -114,7 +115,10 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
     try { response = await fetcher(url.toString(), signal); }
     catch (cause) { throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, cause); }
     if (!response.ok) throw new GeoDataSourceError("http", `geo data source returned HTTP ${response.status}`, response.status);
-    return readResponse(response, signal, maxBytes);
+    const decodeStarted = performance.now();
+    const raw = await readResponse(response, signal, maxBytes);
+    if (phases) phases.decodeMs = performance.now() - decodeStarted;
+    return raw;
   }, { timeoutMs: 30_000, minIntervalMs: 1_000, ...options });
 }
 
@@ -142,7 +146,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
   const now = options.now ?? Date.now;
-  return createGeoDataSource(async (request, signal, context) => {
+  return createGeoDataSource(async (request, signal, context, phases) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
     const south = request.origin.latitude - latitudeDelta;
@@ -163,7 +167,10 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
       }
       signal.throwIfAborted();
       if (response?.ok) {
-        return readResponse(response, signal, maxBytes, true);
+        const decodeStarted = performance.now();
+        const raw = await readResponse(response, signal, maxBytes, true);
+        if (phases) phases.decodeMs = performance.now() - decodeStarted;
+        return raw;
       }
       const retryable = networkError !== undefined || response?.status === 429 || response?.status === 503 || (response?.status ?? 0) >= 500;
       const delay = retryAfterMilliseconds(response?.headers?.get("retry-after"), now()) ?? retryDelayMs * (attempt + 1);
@@ -180,8 +187,16 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
 }
 
 export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest, options?: AcquireOptions): Promise<CompileResult> {
-  const raw = await source.acquire(request, options);
+  const phases: CompilePhaseTimings = {};
+  const acquireStarted = performance.now();
+  const raw = await source.acquire(request, { ...options, phases });
+  const acquireMs = performance.now() - acquireStarted;
   options?.signal?.throwIfAborted();
+  const normalizeStarted = performance.now();
   const region = normalizeOsm(raw, createTangentProjector(request.origin), request.origin, request.regionId);
-  return compileRegion(region);
+  const normalizeMs = performance.now() - normalizeStarted;
+  const result = compileRegion(region);
+  const compileMs = result.diagnostics.stageDurationsMs.compile ?? 0;
+  const stageDurationsMs = { acquire: acquireMs, decode: phases.decodeMs ?? 0, normalize: normalizeMs, compile: compileMs, total: acquireMs + normalizeMs + compileMs };
+  return { chunks: result.chunks.map((chunk) => ({ ...chunk, diagnostics: { ...chunk.diagnostics, stageDurationsMs } })), diagnostics: { ...result.diagnostics, stageDurationsMs } };
 }

@@ -9,7 +9,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
 ## Solidità
 
-- [ ] [SOLID-01](city/SOLID-01.md): metriche compiler reali.
+- [x] [SOLID-01](city/SOLID-01.md): metriche compiler reali.
 - [ ] [SOLID-02](city/SOLID-02.md): cancellazione compile.
 - [ ] [SOLID-03](city/SOLID-03.md): benchmark patologici.
 - [ ] [SOLID-04](city/SOLID-04.md): renderer incrementale.

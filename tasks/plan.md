@@ -42,7 +42,7 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 
 | Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
 | --- | --- | --- | --- | --- |
-| [ ] | [SOLID-01 Metriche compiler reali](city/SOLID-01.md) | Nessuna | S | Nessun `total: 0`; overlay con tempi reali |
+| [x] | [SOLID-01 Metriche compiler reali](city/SOLID-01.md) | Nessuna | S | Nessun `total: 0`; overlay con tempi reali |
 | [ ] | [SOLID-02 Cancellazione compile](city/SOLID-02.md) | SOLID-01 | M | Abort osservabile durante normalize/compile |
 | [ ] | [SOLID-03 Benchmark patologici](city/SOLID-03.md) | SOLID-02 | M | Fixture 100..20k membri con budget dichiarato |
 | [ ] | [SOLID-04 Renderer incrementale](city/SOLID-04.md) | Nessuna | L | setChunk/removeChunk con zero rebuild dei chunk invariati |

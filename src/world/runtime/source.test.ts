@@ -174,3 +174,14 @@ describe("runtime geo data source", () => {
     expect(calls).toBe(2);
   });
 });
+
+it("records real acquisition, decode, normalize and compile phases", async () => {
+  const source = createHttpGeoDataSource("https://example.test", async () => new Response(JSON.stringify({ elements: [{ type: "node", id: 1, lat: request.origin.latitude, lon: request.origin.longitude }, { type: "way", id: 10, nodes: [1, 1], tags: { highway: "residential" } }] })));
+  const result = await compileRuntimeRegion(source, request);
+  const phases = result.diagnostics.stageDurationsMs;
+  expect(phases.acquire).toBeGreaterThan(0);
+  expect(phases.decode).toBeGreaterThan(0);
+  expect(phases.normalize).toBeGreaterThan(0);
+  expect(phases.compile).toBeGreaterThan(0);
+  expect(phases.total).toBeGreaterThanOrEqual((phases.acquire ?? 0) + (phases.normalize ?? 0) + (phases.compile ?? 0));
+});

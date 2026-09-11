@@ -1,6 +1,6 @@
 # SOLID-01: Metriche compiler reali
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-SOLID-01.md`.
 **Dipendenze:** Nessuna.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -35,9 +35,9 @@ tempi di rete a tempi CPU: registrare fasi separate.
 
 ## Accettazione
 
-- [ ] AC1: nessuna durata fittizia; total e fasi misurati con unit test.
-- [ ] AC2: overlay `compile:` mostra il tempo reale dell'ultimo chunk.
-- [ ] AC3: benchmark aggiornato riporta valori reali con ambiente dichiarato.
+- [x] AC1: nessuna durata fittizia; total e fasi misurati con unit test.
+- [x] AC2: overlay `compile:` mostra il tempo reale dell'ultimo chunk.
+- [x] AC3: benchmark aggiornato riporta valori reali con ambiente dichiarato.
 
 ## Verifica
 

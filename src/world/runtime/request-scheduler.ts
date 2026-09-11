@@ -1,6 +1,6 @@
 import { GeoDataSourceError } from "./source-error.ts";
 
-export interface AcquireOptions { readonly signal?: AbortSignal; readonly priority?: 0 | 1 | 2 }
+export interface AcquireOptions { readonly signal?: AbortSignal; readonly priority?: 0 | 1 | 2; readonly phases?: { decodeMs?: number } }
 export interface SchedulerOptions {
   readonly timeoutMs?: number;
   readonly minIntervalMs?: number;

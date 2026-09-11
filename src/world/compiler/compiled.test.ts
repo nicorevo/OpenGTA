@@ -25,7 +25,12 @@ describe("V0 world compiler", () => {
     expect(chunk.roads).toHaveLength(2);
     expect(chunk.labels).toHaveLength(0);
     expect(chunk.collisions.every((shape) => shape.kind === "polygon")).toBe(true);
-    expect(result.chunks[0]).toEqual(compileRegion(fixture as unknown as WorldRegion).chunks[0]);
+    const other = compileRegion(fixture as unknown as WorldRegion).chunks[0];
+    // Timing is volatile by definition: determinism compares the rest, and the
+    // real-duration contract is asserted separately.
+    const withoutTiming = (value: typeof chunk) => ({ ...value, diagnostics: { ...value.diagnostics, stageDurationsMs: {} } });
+    expect(withoutTiming(result.chunks[0])).toEqual(withoutTiming(other));
+    expect(chunk.diagnostics.stageDurationsMs.compile).toBeGreaterThan(0);
   });
 
   it("exposes a renderer-neutral centerline and width for each road", () => {
@@ -159,5 +164,14 @@ describe("V0 world compiler", () => {
 
     expect(chunk.collisions).toHaveLength(1);
     expect(chunk.diagnostics.warnings[0]).toContain("unknown collision policy");
+  });
+});
+
+describe("V0 compiler timing diagnostics", () => {
+  it("reports real stage durations instead of a fixed total", () => {
+    const result = compileRegion(fixture as unknown as WorldRegion);
+    const { stageDurationsMs } = result.chunks[0].diagnostics;
+    expect(stageDurationsMs.compile).toBeGreaterThan(0);
+    expect(stageDurationsMs.total).toBeGreaterThanOrEqual(stageDurationsMs.compile ?? 0);
   });
 });
