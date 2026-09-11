@@ -1,6 +1,6 @@
 # CITY-02: Gate City Drive Stable
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-CITY-02.md`.
 **Dipendenze:** Tutti i task della tranche.
 **Persona:** test-engineer.
 **Taglia:** M, documentazione di risultato e verifiche complete.
@@ -36,11 +36,11 @@ task responsabile con riproduzione.
 
 ## Accettazione
 
-- [ ] AC1: matrice completa con prove passate; zero dipendenze dai servizi
+- [x] AC1: matrice completa con prove passate; zero dipendenze dai servizi
   pubblici nei test deterministici.
-- [ ] AC2: misure con ambiente dichiarato e limiti espliciti; canary
+- [x] AC2: misure con ambiente dichiarato e limiti espliciti; canary
   separata dalla CI.
-- [ ] AC3: risultato, handoff, piano e checklist concordi col codice;
+- [x] AC3: risultato, handoff, piano e checklist concordi col codice;
   nessun task incompleto marcato chiuso.
 
 ## Verifica

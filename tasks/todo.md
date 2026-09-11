@@ -1,7 +1,7 @@
 # Checklist: City Drive Stable
 
 Data: 2026-09-11.
-Stato: pianificato; nessun task avviato.
+Stato: completata; tutti i task e i checkpoint verificati nei log.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
 [contratti e procedura](city/README.md). Le checkbox sono una vista sintetica:
@@ -46,8 +46,8 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 ## Gate
 
 - [x] [CITY-01](city/CITY-01.md): canary reale.
-- [ ] [CITY-02](city/CITY-02.md): gate City Drive Stable.
-- [ ] C-E: gate finale.
+- [x] [CITY-02](city/CITY-02.md): gate City Drive Stable.
+- [x] C-E: gate finale.
 
 ## Storico
 

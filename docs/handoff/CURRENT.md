@@ -17,6 +17,7 @@ Non rieseguirli come backlog corrente.
 | 1 Vertical slice V0 | Implementata; remediation R1-R8 completata |
 | 2 Fondazione Open World | Implementata; difetti del live riprodotti e aperti |
 | Ripristino online | Completata — ONLINE-01..16 verificati, C1..C6; risultato in `docs/results/ONLINE-RUNTIME-RESULT.md` |
+| City Drive Stable | Completata — SOLID/ZOOM/LOD/CACHE/CITY verificati, C-A..C-E; risultato in `docs/results/CITY-DRIVE-STABLE-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -43,11 +44,11 @@ anche con suite verde.
 - Stato: tranche ONLINE completata il 2026-09-10 (ONLINE-01..16, checkpoint
   C1..C6, log in `tasks/executions/`). Risultato con matrice, misure e
   limiti: [ONLINE-RUNTIME-RESULT](../results/ONLINE-RUNTIME-RESULT.md).
-- Lavoro corrente: tranche **City Drive Stable** pianificata il 2026-09-11
-  (SOLID/ZOOM/LOD/CACHE/CITY in [tasks/plan.md](../../tasks/plan.md),
-  contratti in [tasks/city/README.md](../../tasks/city/README.md), spec
-  [city-drive-stable](../specs/city-drive-stable.md), ADR-010). Nessun task
-  avviato; i filoni differiti restano in
+- Lavoro corrente: tranche **City Drive Stable** completata il 2026-09-11
+  (SOLID/ZOOM/LOD/CACHE/CITY, checkpoint C-A..C-E; risultato
+  [CITY-DRIVE-STABLE-RESULT](../results/CITY-DRIVE-STABLE-RESULT.md),
+  spec [city-drive-stable](../specs/city-drive-stable.md), ADR-010). Nessun
+  task pendente nel piano; i filoni differiti restano in
   [tasks/online/FOLLOW-UPS.md](../../tasks/online/FOLLOW-UPS.md).
 - Baseline stabile per test utente: commit `77312aa` (correzioni post-review
   su `a5b076b`, vedi `docs/results/ONLINE-RUNTIME-RESULT.md`); istruzioni di
