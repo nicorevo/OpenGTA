@@ -105,6 +105,13 @@ export function normalizeMvtTiles(options: NormalizeMvtOptions): NormalizedMvtRe
   for (const { tile, decoded } of options.tiles) {
     const clipBox = intersectBounds(tileOwnBounds(tile, projector), MVT_REGION_BOUNDS);
     const layerFeatures = (name: string) => decoded.layers.find((layer) => layer.name === name)?.features ?? [];
+    // OpenMapTiles keeps road names in the separate transportation_name
+    // layer keyed by the same OSM id: join them here, never invent them.
+    const roadNames = new Map<number, string>();
+    for (const feature of layerFeatures("transportation_name")) {
+      const name = typeof feature.properties.name === "string" && feature.properties.name.length > 0 ? feature.properties.name : undefined;
+      if (name !== undefined && feature.id !== undefined) roadNames.set(feature.id, name);
+    }
     const rawRoads = transportationRoadFeatures(layerFeatures("transportation"), projector, tile, 4096, warnings);
     const rawBuildings = buildingFeatures(layerFeatures("building"), projector, tile, 4096, warnings);
     const { landAreas: rawLand, waterAreas: rawWater } = landAndWaterFeatures(
@@ -114,9 +121,12 @@ export function normalizeMvtTiles(options: NormalizeMvtOptions): NormalizedMvtRe
     raw.roads += rawRoads.length; raw.buildings += rawBuildings.length; raw.land += rawLand.length; raw.water += rawWater.length;
     if (!clipBox) continue; // this tile contributes nothing inside the region box
     for (const road of rawRoads) {
+      const sourceId = Number(road.source?.sourceId);
+      const name = Number.isFinite(sourceId) ? roadNames.get(sourceId) : undefined;
+      const tags = name ? { name } : road.tags;
       for (const points of clipPolylineToBounds(road.centerline.points, clipBox)) {
         if (points.length < 2) continue;
-        roadParts.push({ ...road, centerline: { points } });
+        roadParts.push({ ...road, tags, centerline: { points } });
       }
     }
     const canonicalId = (layer: string, sourceId: string | undefined, index: number, suffix: string) =>

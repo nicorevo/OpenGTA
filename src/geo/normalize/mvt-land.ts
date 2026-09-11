@@ -37,17 +37,19 @@ export function landAndWaterFeatures(
     const layer = feature.layer;
     const waterClass = layer === "water" ? (typeof feature.properties.class === "string" ? feature.properties.class : "water") : undefined;
     const landKey = layer === "park" ? "park" : typeof feature.properties.class === "string" ? feature.properties.class : undefined;
+    const name = typeof feature.properties.name === "string" && feature.properties.name.length > 0 ? feature.properties.name : undefined;
     for (const polygon of feature.geometry.polygons) {
       const area = decodedPolygonToArea(polygon, projector, tile, extent);
       const featureId = stableTileFeatureId(tile, layer, feature.id, waterClass ? waterAreas.length : landAreas.length);
       if (validatePolygon(area).length > 0) { skipWarning(warnings, "invalid-area", `${layer} polygon is not valid`, featureId); continue; }
+      const tags: Readonly<Record<string, string>> = name ? { name } : {};
       if (waterClass !== undefined) {
-        waterAreas.push({ id: featureId, kind: "water", area, waterClass, source: { provider: "openfreemap", sourceType: "tile", sourceId: String(feature.id ?? "") }, tags: {} });
+        waterAreas.push({ id: featureId, kind: "water", area, waterClass, source: { provider: "openfreemap", sourceType: "tile", sourceId: String(feature.id ?? "") }, tags });
         continue;
       }
       const landClass = landKey ? LAND_CLASS[landKey] : undefined;
       if (!landClass) { skipWarning(warnings, "unsupported-landuse", `${layer} class ${landKey ?? "(missing)"} is not mapped`, featureId); continue; }
-      landAreas.push({ id: featureId, kind: "land", area, landClass, source: { provider: "openfreemap", sourceType: "tile", sourceId: String(feature.id ?? "") }, tags: {} });
+      landAreas.push({ id: featureId, kind: "land", area, landClass, source: { provider: "openfreemap", sourceType: "tile", sourceId: String(feature.id ?? "") }, tags });
     }
   }
   return { landAreas, waterAreas };

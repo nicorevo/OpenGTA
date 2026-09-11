@@ -1,15 +1,15 @@
 # MVT Parity Lecce — Overpass vs OpenFreeMap z14
 
-Generated: 2026-09-11T21:02:34.389Z. Decisione: vedi sezione dedicata.
+Generated: 2026-09-11T21:18:33.617Z. Decisione: vedi sezione dedicata.
 
 ## Ambiente
 
-- **date**: 2026-09-11T21:02:34.389Z
+- **date**: 2026-09-11T21:18:33.617Z
 - **node**: v26.4.0
 - **os**: Linux 7.2.4-200.fc44.x86_64
 - **cpu**: Intel(R) Core(TM) Ultra 7 258V
 - **ramMiB**: 33150
-- **commit**: ea8f357
+- **commit**: 55c463d
 - **overpassFixture**: lecce-sant-oronzo-v0.raw.json (300 m box, network unreachable from this environment)
 - **mvtFixture**: lecce-z14-openfreemap.pbf (tile 14/9019/6181, public z14 ceiling)
 
@@ -32,9 +32,9 @@ Generated: 2026-09-11T21:02:34.389Z. Decisione: vedi sezione dedicata.
 | Buildings compilati | 164 | 127 |
 | Ground compilati | 24 | 10 |
 | Collisioni | 241 | 127 |
-| Label | 248 | 0 |
-| Decode/normalize ms | 31.4 | 17.3 + 33.9 (decode+map) |
-| Compile ms | 34.5 | 7.3 |
+| Label | 248 | 19 |
+| Decode/normalize ms | 34.9 | 18.6 + 46.1 (decode+map) |
+| Compile ms | 47.9 | 10.2 |
 | Area km² | 0.2827 | 3.4706 |
 | Finestra effettiva km² (box ∩ tile 9019) | n/d (box intero) | 0.2413 |
 | Densità roads/km² | 1375.8 | 310.8 |
@@ -91,9 +91,10 @@ Motivazione, sui numeri della matrice (stessa origine Sant'Oronzo):
   3,47 km²) e **~4× meno ms/km²** (normalize ≈18 ms vs decode+map ≈52 ms
   per l'intera tile).
 - Il gameplay NON è pronto con z14 pubblico: collisioni 241 vs 127 (**53%**),
-  barriere 33 vs 0 e alberi 11 vs 0 (gap dichiarati), label 248 vs 0 (layer
-  poi non mappato nel PoC). La guida funzionerebbe su strade principali, ma
-  con collisioni incomplete e rete minore bucata.
+  barriere 33 vs 0 e alberi 11 vs 0 (gap dichiarati). La guida funzionerebbe
+  su strade principali, ma con collisioni incomplete e rete minore bucata.
+  Le label ci sono per i nomi stradali (join transportation_name) e i
+  parchi; mancano i nomi di edifici/poi (non presenti nel tile a z14).
 - Percorso di upgrade dichiarato: un dataset self-hosted/PMTiles a z16
   (DATA-15..18) riporterebbe minor roads, barriere e poi senza toccare
   canonical/compiler; questa matrice resta la baseline di confronto.

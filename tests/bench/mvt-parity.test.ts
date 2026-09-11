@@ -228,9 +228,10 @@ Motivazione, sui numeri della matrice (stessa origine Sant'Oronzo):
   3,47 km²) e **~4× meno ms/km²** (normalize ≈18 ms vs decode+map ≈52 ms
   per l'intera tile).
 - Il gameplay NON è pronto con z14 pubblico: collisioni 241 vs 127 (**53%**),
-  barriere 33 vs 0 e alberi 11 vs 0 (gap dichiarati), label 248 vs 0 (layer
-  poi non mappato nel PoC). La guida funzionerebbe su strade principali, ma
-  con collisioni incomplete e rete minore bucata.
+  barriere 33 vs 0 e alberi 11 vs 0 (gap dichiarati). La guida funzionerebbe
+  su strade principali, ma con collisioni incomplete e rete minore bucata.
+  Le label ci sono per i nomi stradali (join transportation_name) e i
+  parchi; mancano i nomi di edifici/poi (non presenti nel tile a z14).
 - Percorso di upgrade dichiarato: un dataset self-hosted/PMTiles a z16
   (DATA-15..18) riporterebbe minor roads, barriere e poi senza toccare
   canonical/compiler; questa matrice resta la baseline di confronto.

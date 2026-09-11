@@ -24,6 +24,10 @@ it("turns a decoded tile into a canonical WorldRegion coherent with the DATA-09 
   expect(region.id).toBe("mvt-canonical");
   for (const road of region.roads) expect(road.id.startsWith("mvt:transportation:")).toBe(true);
   for (const building of region.buildings) expect(building.id.startsWith("mvt:building:")).toBe(true);
+  // Names come from the transportation_name join and the park layer: the
+  // tile carries them, so labels must not stay empty.
+  expect(region.roads.filter((road) => road.tags?.name !== undefined).length).toBeGreaterThan(0);
+  expect(region.landAreas.some((area) => area.tags?.name !== undefined)).toBe(true);
 });
 
 it("compiles through the single canonical compiler with the DATA-09 compiled counts", () => {
@@ -35,6 +39,7 @@ it("compiles through the single canonical compiler with the DATA-09 compiled cou
   expect(chunk.buildings).toHaveLength(127);
   expect(chunk.collisions).toHaveLength(127);
   expect(chunk.featureIndex).toBeDefined();
+  expect(chunk.labels.length).toBeGreaterThan(0);
 });
 
 it("is deterministic across runs of the same tile", () => {
