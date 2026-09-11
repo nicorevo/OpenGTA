@@ -29,15 +29,17 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `77312aa` sul ramo `opcl`
-(2026-09-10). Verificata con 175 test unitari, 14 E2E su dev server, 1 smoke
-del build di produzione, typecheck e build. Vedi [Prova della baseline](#prova-della-baseline).
+**Baseline stabile per test utente:** commit `8cc4dc5` sul ramo `opcl`
+(2026-09-11, City Drive Stable). Verificata con 241 test unitari, 21 E2E su
+dev server (più canary live separata), 1 smoke del build di produzione,
+typecheck e build. Vedi [Prova della baseline](#prova-della-baseline).
 
-Prossima tranche pianificata — City Drive Stable (solidità, zoom a livelli
-discreti con LOD 2D, cache persistente, gate su Lecce):
+Tranche City Drive Stable (solidità, zoom a livelli discreti con LOD 2D,
+cache persistente, gate su Lecce):
 
-`docs/specs/city-drive-stable.md` · `docs/adr/ADR-010-discrete-zoom-lod.md` ·
-`docs/architecture/zoom-and-lod.md` · `tasks/plan.md` · `tasks/city/README.md`
+`docs/results/CITY-DRIVE-STABLE-RESULT.md` · `docs/specs/city-drive-stable.md` ·
+`docs/adr/ADR-010-discrete-zoom-lod.md` · `docs/architecture/zoom-and-lod.md` ·
+`tasks/plan.md` · `tasks/city/README.md`
 
 Avvio di sessione per agenti:
 
@@ -201,5 +203,11 @@ Limiti noti della baseline (dettagli in `docs/results/ONLINE-RUNTIME-RESULT.md`)
   servizio occupato producono `empty`/`error` espliciti, non un mondo finto;
 - le misure di prestazione sono headless con GPU software: non promettono
   FPS dell'hardware dell'utente;
+- lo zoom `+/−` (pulsanti in alto a destra o tasti `+`/`-`) ha 5 livelli con
+  LOD near/medium/far; il dettaglio si riduce allontanandosi e la domanda
+  di streaming segue la camera;
+- un reload della pagina riusa i chunk compilati dalla cache persistente
+  (IndexedDB) senza nuove richieste al provider;
 - la porta E2E è configurabile con `OPENGTA_E2E_PORT` (default 5180);
-  lo smoke degli asset costruiti con `OPENGTA_E2E_PREVIEW=1`.
+  lo smoke degli asset costruiti con `OPENGTA_E2E_PREVIEW=1`; la canary live
+  reale si esegue con `npm run test:canary` (mai nella CI).

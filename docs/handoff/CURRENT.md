@@ -42,18 +42,16 @@ anche con suite verde.
 - Checklist: [tasks/todo.md](../../tasks/todo.md).
 - Ingresso esecutore: [tasks/online/README.md](../../tasks/online/README.md).
 - Stato: tranche ONLINE completata il 2026-09-10 (ONLINE-01..16, checkpoint
-  C1..C6, log in `tasks/executions/`). Risultato con matrice, misure e
-  limiti: [ONLINE-RUNTIME-RESULT](../results/ONLINE-RUNTIME-RESULT.md).
-- Lavoro corrente: tranche **City Drive Stable** completata il 2026-09-11
-  (SOLID/ZOOM/LOD/CACHE/CITY, checkpoint C-A..C-E; risultato
+  C1..C6, log in `tasks/executions/`). Risultato: [ONLINE-RUNTIME-RESULT](../results/ONLINE-RUNTIME-RESULT.md).
+- Tranche **City Drive Stable** completata il 2026-09-11 (SOLID/ZOOM/LOD/
+  CACHE/CITY, checkpoint C-A..C-E; risultato
   [CITY-DRIVE-STABLE-RESULT](../results/CITY-DRIVE-STABLE-RESULT.md),
   spec [city-drive-stable](../specs/city-drive-stable.md), ADR-010). Nessun
   task pendente nel piano; i filoni differiti restano in
   [tasks/online/FOLLOW-UPS.md](../../tasks/online/FOLLOW-UPS.md).
-- Baseline stabile per test utente: commit `77312aa` (correzioni post-review
-  su `a5b076b`, vedi `docs/results/ONLINE-RUNTIME-RESULT.md`); istruzioni di
-  prova, stati attesi e limiti noti nella sezione "Prova della baseline" del
-  [README](../../README.md).
+- Baseline stabile per test utente: commit `8cc4dc5` (City Drive Stable);
+  istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
+  baseline" del [README](../../README.md).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log
