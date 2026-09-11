@@ -59,7 +59,7 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [ ] | [LOD-04 Road detail per tier](city/LOD-04.md) | LOD-01 | S | FAR body / MEDIUM casing / NEAR marking |
 | [ ] | [LOD-05 Culling feature](city/LOD-05.md) | LOD-01 | M | Skip visuale sotto soglia px², world model intatto |
 | [x] | [CACHE-01 Contratto storage](city/CACHE-01.md) | Nessuna | S | Interfaccia astratta con quota/errori |
-| [ ] | [CACHE-02 Esperimento IndexedDB](city/CACHE-02.md) | CACHE-01 | M | Misure write/read/quota con decisione documentata |
+| [x] | [CACHE-02 Esperimento IndexedDB](city/CACHE-02.md) | CACHE-01 | M | Misure write/read/quota con decisione documentata |
 | [ ] | [CACHE-03 Versioning e integrità](city/CACHE-03.md) | CACHE-02 | S | Entry incompatibile scartata, mai usata |
 | [ ] | [CACHE-04 Eviction](city/CACHE-04.md) | CACHE-03 | S | Budget dichiarato e rispettato |
 | [ ] | [CITY-01 Canary reale](city/CITY-01.md) | SOLID-01..06, ZOOM-05 | M | Report separato, Lecce + lista estesa |

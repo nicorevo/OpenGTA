@@ -1,6 +1,6 @@
 # CACHE-02: Esperimento IndexedDB
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-CACHE-02.md`.
 **Dipendenze:** CACHE-01.
 **Persona:** fullstack-developer.
 **Taglia:** M, 4 file di codice/test.
@@ -33,9 +33,9 @@ riallineare CACHE-01/03/04; nessuna scrittura automatica senza consenso live.
 
 ## Accettazione
 
-- [ ] AC1: roundtrip fedele (featureId, collisioni, diagnostica inclusi).
-- [ ] AC2: misure write/read/quota con ambiente e metodo dichiarati.
-- [ ] AC3: decisione documentata (adotta/rimanda) con numeri.
+- [x] AC1: roundtrip fedele (featureId, collisioni, diagnostica inclusi).
+- [x] AC2: misure write/read/quota con ambiente e metodo dichiarati.
+- [x] AC3: decisione documentata (adotta/rimanda) con numeri.
 
 ## Verifica
 
