@@ -50,9 +50,9 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [x] | [SOLID-06 SECURITY e gate docs](city/SOLID-06.md) | Nessuna | S | SECURITY.md allineato; gate consistenza documentato |
 | [x] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
 | [x] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |
-| [ ] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
-| [ ] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
-| [ ] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
+| [x] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
+| [x] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
+| [x] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
 | [x] | [LOD-01 Politica zoom→LOD](city/LOD-01.md) | ZOOM-01 | S | lodForZoom pura e testata |
 | [ ] | [LOD-02 Label per tier](city/LOD-02.md) | LOD-01, SOLID-04 | S | Soglie di importanza per tier |
 | [ ] | [LOD-03 Facade per tier](city/LOD-03.md) | LOD-01 | S | Forza facade decrescente con lo zoom out |
@@ -76,10 +76,10 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 
 ### C-B: zoom base, dopo ZOOM-01..05
 
-- [ ] 5 livelli con clamp e centro invariato; fisica e fixed-step intatti.
-- [ ] Pulsanti +/− accessibili; guida continua dopo i click.
-- [ ] Domanda di streaming aggiornata con debounce; nessuna tempesta.
-- [ ] Fattori benchmarkati e documentati; E2E zoom verdi.
+- [x] 5 livelli con clamp e centro invariato; fisica e fixed-step intatti.
+- [x] Pulsanti +/− accessibili; guida continua dopo i click.
+- [x] Domanda di streaming aggiornata con debounce; nessuna tempesta.
+- [x] Fattori benchmarkati e documentati; E2E zoom verdi.
 
 ### C-C: LOD, dopo LOD-01..05
 

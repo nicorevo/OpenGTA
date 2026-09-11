@@ -34,7 +34,17 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   const message = document.createElement("span"); message.textContent = messages.loading;
   const retry = document.createElement("button"); retry.textContent = "Riprova"; retry.hidden = true;
   const stop = document.createElement("button"); stop.textContent = "Interrompi";
-  status.append(message, retry, stop); root.append(canvas, overlay, hint, status);
+  status.append(message, retry, stop);
+  const zoom = { in: () => {}, out: () => {}, level: () => 2 as 0 | 1 | 2 | 3 | 4 };
+  const zoomOutButton = document.createElement("button"); zoomOutButton.textContent = "−"; zoomOutButton.setAttribute("aria-label", "Riduci zoom");
+  const zoomInButton = document.createElement("button"); zoomInButton.textContent = "+"; zoomInButton.setAttribute("aria-label", "Aumenta zoom");
+  const zoomBar = document.createElement("div");
+  zoomBar.style.cssText = "position:fixed;top:8px;right:8px;display:flex;gap:4px;z-index:3;background:#202225dd;padding:4px;border-radius:4px";
+  zoomBar.append(zoomOutButton, zoomInButton);
+  const updateZoomState = () => { zoomOutButton.disabled = zoom.level() <= 0; zoomInButton.disabled = zoom.level() >= 4; };
+  zoomInButton.onclick = () => { zoom.in(); zoomInButton.blur(); updateZoomState(); };
+  zoomOutButton.onclick = () => { zoom.out(); zoomOutButton.blur(); updateZoomState(); };
+  root.append(canvas, overlay, hint, status, zoomBar);
   const params = new URLSearchParams(window.location.search);
   const policy = { ...DEFAULT_ENDPOINT_POLICY, developmentOrigin: import.meta.env.DEV ? window.location.origin : undefined };
   let config: RuntimeConfig;
@@ -72,6 +82,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       if (openWorld) {
         const liveSession = createRuntimeSession({ source, origin, renderer, physics, cache, sourceIdentity, queryProfile: OSM_QUERY_PROFILE });
         current = liveSession;
+        zoom.in = () => liveSession.zoomIn(); zoom.out = () => liveSession.zoomOut(); zoom.level = () => liveSession.snapshot().zoomLevel;
         disposeCurrent = async () => { try { await liveSession.dispose(); } catch { /* teardown is best-effort */ } };
         void current.start();
       } else {
@@ -80,6 +91,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         physics.setChunk("offline", result.chunks.flatMap((chunk) => chunk.collisions)); renderer.render(result.chunks);
         offlineCounts = { buildings: region.buildings.length, roads: region.roads.length, compiled: result.diagnostics.compiledFeatureCount };
         offlineVehicle = physics.createVehicle({ x: 0, y: 0, heading: 0 });
+        zoom.in = () => renderer.zoomIn(); zoom.out = () => renderer.zoomOut(); zoom.level = () => renderer.cameraState().zoomLevel;
         disposeCurrent = async () => { try { physics.dispose(); renderer.dispose(); } catch { /* teardown is best-effort */ } };
         status.dataset.state = "ready"; message.textContent = "Offline"; stop.hidden = true;
       }
@@ -118,6 +130,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         if (event.target instanceof HTMLTextAreaElement) return;
         keys.add(event.key.toLowerCase());
         if (event.key === "F3") { event.preventDefault(); overlay.hidden = !overlay.hidden; updateOverlay(); }
+        if (event.key === "+" || event.key === "=") { event.preventDefault(); zoom.in(); updateZoomState(); }
+        if (event.key === "-" || event.key === "_") { event.preventDefault(); zoom.out(); updateZoomState(); }
         if (!event.repeat && event.key.toLowerCase() === "l") hint.textContent = (renderer.toggleLabels() ? "Nomi attivi" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`;
         if (event.key.startsWith("Arrow")) event.preventDefault();
       }, { signal: listeners.signal });
@@ -138,7 +152,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         }
         if (offlineVehicle) renderer.updateVehicle(offlineVehicle.position, offlineVehicle.heading);
         metrics.recordFrame(frameMs);
-        if (now - lastUpdate >= 200) { lastUpdate = now; void session?.stream(now); updateStatus(); if (!overlay.hidden || params.get("benchmark") === "1") updateOverlay(); }
+        if (now - lastUpdate >= 200) { lastUpdate = now; void session?.stream(now); updateStatus(); updateZoomState(); if (!overlay.hidden || params.get("benchmark") === "1") updateOverlay(); }
         if (params.get("benchmark") === "1" && now - benchmarkStart >= 30000) { document.body.dataset.benchmarkComplete = "true"; document.body.dataset.benchmarkResult = JSON.stringify(metrics.snapshot()); }
         raf = requestAnimationFrame(frame);
       };

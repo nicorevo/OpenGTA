@@ -8,7 +8,7 @@ import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
 function renderer() {
   const byId = new Map<string, CompiledChunkV0>();
   let zoom = 2 as 0 | 1 | 2 | 3 | 4;
-  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, setZoom(level: 0 | 1 | 2 | 3 | 4) { zoom = level; }, zoomIn() { zoom = Math.min(4, zoom + 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, zoomOut() { zoom = Math.max(0, zoom - 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, cameraState() { return { zoomLevel: zoom }; }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
+  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, setZoom(level: 0 | 1 | 2 | 3 | 4) { zoom = level; }, zoomIn(): 0 | 1 | 2 | 3 | 4 { zoom = Math.min(4, zoom + 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, zoomOut(): 0 | 1 | 2 | 3 | 4 { zoom = Math.max(0, zoom - 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, cameraState() { return { zoomLevel: zoom }; }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
 }
 
 it("starts before the window finishes and disposes a pending source", async () => {
@@ -129,6 +129,49 @@ it("ignores a late response for a chunk abandoned by a rapid reversal", async ()
   await session.dispose();
 });
 
+
+
+it("updates the streaming demand when zooming out at a cell boundary", async () => {
+  const physics = await createPhysicsAdapter([]);
+  const byId = new Map<string, CompiledChunkV0>();
+  let zoom = 2;
+  let position = { x: 0, y: 0 };
+  const scene = {
+    setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); },
+    removeChunk(id: string) { byId.delete(id); },
+    setZoom(level: number) { zoom = level; },
+    zoomIn(): 0 | 1 | 2 | 3 | 4 { zoom = Math.min(4, zoom + 1); return zoom as 0 | 1 | 2 | 3 | 4; },
+    zoomOut(): 0 | 1 | 2 | 3 | 4 { zoom = Math.max(0, zoom - 1); return zoom as 0 | 1 | 2 | 3 | 4; },
+    cameraState() { return { zoomLevel: zoom as 0 | 1 | 2 | 3 | 4 }; },
+    cameraBounds() { const scale = [0.7, 0.85, 1.0, 1.2, 1.45][zoom]!; return { minX: position.x - 200 / scale, maxX: position.x + 200 / scale, minY: position.y - 100 / scale, maxY: position.y + 100 / scale }; },
+    updateVehicle(next?: { x: number; y: number }) { if (next) position = next; },
+    dispose() { byId.clear(); },
+  };
+  const calls: string[] = [];
+  const session = createRuntimeSession({ source: createGeoDataSource(async (request) => { calls.push(request.regionId); return liveWorld; }, { minIntervalMs: 0 }), origin: liveOrigin, renderer: scene, physics });
+  await session.start();
+  let now = 0;
+  // Drive into the x 100..138 band (braking overshoots ~17 m): at level 2 the
+  // camera spans cells -1..1, at level 4 only -1..0 — the zoomed-in demand
+  // is strictly smaller.
+  for (let i = 0; i < 2000 && session.vehicle()!.position.x < 100; i++) { session.step({ throttle: 1, steer: 0, brake: 0 }); now += 1000 / 60; void session.stream(now); }
+  // Stop: with no velocity the P1 lookahead disappears and the camera is the
+  // only driver of the demand set.
+  for (let i = 0; i < 300; i++) { session.step({ throttle: 0, steer: 0, brake: 1 }); now += 1000 / 60; void session.stream(now); }
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const settled = session.snapshot().runtime.wanted;
+  expect(settled.some((id) => id.includes("chunk:-1:0"))).toBe(true);
+  expect(settled.some((id) => id.includes("chunk:1:0"))).toBe(true);
+  session.zoomIn(); // level 3
+  session.zoomIn(); // level 4: the narrower camera drops the far column
+  await session.stream(now + 200);
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  const zoomedIn = session.snapshot().runtime.wanted;
+  expect(zoomedIn.some((id) => id.includes("chunk:1:0"))).toBe(false);
+  expect(zoomedIn.length).toBeLessThan(settled.length);
+  expect(session.snapshot().runtime.pending.length).toBeLessThanOrEqual(32);
+  await session.dispose();
+});
 
 it("drives a long looped route across 100+ windows with bounded resources", async () => {
   const physics = await createPhysicsAdapter([]);

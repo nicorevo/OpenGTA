@@ -1,6 +1,6 @@
 # ZOOM-05: Test zoom completi e benchmark fattori
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-ZOOM-05.md`.
 **Dipendenze:** ZOOM-04.
 **Persona:** test-engineer.
 **Taglia:** M, 3 file di test.
@@ -33,9 +33,9 @@ Non cambiare il motore per far passare le misure.
 
 ## Accettazione
 
-- [ ] AC1: unit ed E2E coprono limiti, centro, bounds e stabilita'.
-- [ ] AC2: report per livello con ambiente dichiarato; fattori giustificati.
-- [ ] AC3: suite completa, typecheck, build ed E2E verdi.
+- [x] AC1: unit ed E2E coprono limiti, centro, bounds e stabilita'.
+- [x] AC2: report per livello con ambiente dichiarato; fattori giustificati.
+- [x] AC3: suite completa, typecheck, build ed E2E verdi.
 
 ## Verifica
 

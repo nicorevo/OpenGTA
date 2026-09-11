@@ -1,6 +1,6 @@
 # ZOOM-04: Streaming reagisce allo zoom
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-ZOOM-04.md`.
 **Dipendenze:** ZOOM-03.
 **Persona:** fullstack-developer.
 **Taglia:** M, 3 file di codice/test.
@@ -36,9 +36,9 @@ guardia fisica. Non aggiungere fetch per frame.
 
 ## Accettazione
 
-- [ ] AC1: domanda aggiornata al cambio zoom entro 200 ms, deduplicata.
-- [ ] AC2: nessuna tempesta di richieste su raffiche; limiti coda rispettati.
-- [ ] AC3: confinamento fisico invariato; suite completa ed E2E verdi.
+- [x] AC1: domanda aggiornata al cambio zoom entro 200 ms, deduplicata.
+- [x] AC2: nessuna tempesta di richieste su raffiche; limiti coda rispettati.
+- [x] AC3: confinamento fisico invariato; suite completa ed E2E verdi.
 
 ## Verifica
 

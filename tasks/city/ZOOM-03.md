@@ -1,6 +1,6 @@
 # ZOOM-03: Controlli zoom +/−
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-ZOOM-03.md`.
 **Dipendenze:** ZOOM-02.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -33,9 +33,9 @@ inline), test E2E. Non cambiare renderer, sessione o input di guida.
 
 ## Accettazione
 
-- [ ] AC1: + zoom in, - zoom out, limiti rispettati con stato disabilitato.
-- [ ] AC2: guida continua dopo i click (nessun focus trap); tastiera +/−.
-- [ ] AC3: responsive 1280x720/390x844; nessun page error; attribuzione e
+- [x] AC1: + zoom in, - zoom out, limiti rispettati con stato disabilitato.
+- [x] AC2: guida continua dopo i click (nessun focus trap); tastiera +/−.
+- [x] AC3: responsive 1280x720/390x844; nessun page error; attribuzione e
   legenda restano visibili.
 
 ## Verifica
