@@ -6,6 +6,8 @@ import type { ChunkKey, ChunkGrid } from "../chunk/grid.ts";
 import { createChunkLifecycle, type ChunkState, type ChunkLoadContext } from "../chunk/lifecycle.ts";
 import { selectActiveChunks, type ActiveWindowInput, type ChunkDemand } from "../chunk/window.ts";
 import { compileRuntimeRegion, type GeoDataSource, type RuntimeRegionRequest } from "./source.ts";
+import { persistentKeyFrom, type PersistentChunkStore } from "../chunk/persistent.ts";
+import { deserializeCompiledChunk, serializeCompiledChunk } from "../chunk/persistent-codec.ts";
 
 export interface OpenWorldRuntimeOptions {
   readonly baseOrigin: { readonly latitude: number; readonly longitude: number };
@@ -18,6 +20,7 @@ export interface OpenWorldRuntimeOptions {
   readonly compile?: (key: ChunkKey, request: RuntimeRegionRequest, context: ChunkLoadContext) => Promise<CompiledChunkV0>;
   readonly onChunkReady?: (chunk: CompiledChunkV0, key: ChunkKey) => void | Promise<void>;
   readonly onChunkRemoved?: (key: ChunkKey) => void | Promise<void>;
+  readonly persistentStore?: PersistentChunkStore;
 }
 
 export interface FailedChunkLoad {
@@ -65,8 +68,16 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
   const lifecycle = createChunkLifecycle<CompiledChunkV0>(async (key, context) => {
     const id = options.grid.idForKey(key);
     signals.set(id, context.signal);
-    const cached = options.cache.get({ namespace, chunkId: id, compilerVersion: options.compilerVersion });
+    const cacheKey = { namespace, chunkId: id, compilerVersion: options.compilerVersion };
+    const cached = options.cache.get(cacheKey);
     if (cached) return cached;
+    if (options.persistentStore) {
+      const stored = await options.persistentStore.get(persistentKeyFrom(cacheKey, 0));
+      if (stored.status === "hit") {
+        const compiled = deserializeCompiledChunk(stored.value);
+        if (compiled) { options.cache.set(cacheKey, compiled); return compiled; }
+      }
+    }
     const bounds = options.grid.boundsForKey(key);
     const request: RuntimeRegionRequest = {
       regionId: `open-world:${id}`,
@@ -85,7 +96,11 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
         y: (bounds.minY + bounds.maxY) / 2,
       }), options.grid, [key])[0];
     if (!worldChunk) throw new Error(`runtime compiler produced no geometry for ${id}`);
-    options.cache.set({ namespace, chunkId: id, compilerVersion: options.compilerVersion }, worldChunk);
+    options.cache.set(cacheKey, worldChunk);
+    if (options.persistentStore) {
+      try { await options.persistentStore.put(persistentKeyFrom(cacheKey, 0), serializeCompiledChunk(worldChunk)); }
+      catch { /* quota or unavailable storage: persistence is best-effort */ }
+    }
     return worldChunk;
   });
 

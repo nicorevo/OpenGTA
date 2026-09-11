@@ -8,6 +8,7 @@ import { selectActiveChunks } from "../world/chunk/window.ts";
 import { createChunkCache, type ChunkCache } from "../world/chunk/cache.ts";
 import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
 import { createOpenWorldRuntime } from "../world/runtime/open-world.ts";
+import type { PersistentChunkStore } from "../world/chunk/persistent.ts";
 import type { GeoDataSource } from "../world/runtime/source.ts";
 import { lodForZoom, type ZoomLevel } from "./camera.ts";
 
@@ -21,6 +22,7 @@ export interface RuntimeSessionOptions {
   readonly renderer: SessionRenderer;
   readonly physics: PhysicsAdapter;
   readonly cache?: ChunkCache<CompiledChunkV0>;
+  readonly persistentStore?: PersistentChunkStore;
 }
 
 export function createRuntimeSession(options: RuntimeSessionOptions) {
@@ -39,7 +41,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
   const values = () => [...chunks.values()].map((entry) => entry.chunk);
   const runtime = createOpenWorldRuntime({
     baseOrigin: options.origin, grid, cache: options.cache ?? createChunkCache(9), compilerVersion: "v0-runtime",
-    source: options.source, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile,
+    source: options.source, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile, persistentStore: options.persistentStore,
     onChunkReady(chunk, key) {
       if (disposed) return;
       const id = grid.idForKey(key); const previous = chunks.get(id);

@@ -3,6 +3,7 @@ import { createTangentProjector } from "../geo/coordinates/projector.ts";
 import { normalizeOsm } from "../geo/normalize/osm.ts";
 import { compileRegion, type CompiledChunkV0 } from "../world/compiler/compiled.ts";
 import { createChunkCache } from "../world/chunk/cache.ts";
+import { createIndexedDbChunkStore } from "../world/chunk/persistent-indexeddb.ts";
 import { createGeoDataSource, createHttpGeoDataSource, createOverpassGeoDataSource, OSM_QUERY_PROFILE } from "../world/runtime/source.ts";
 import { DEFAULT_ENDPOINT_POLICY, readRuntimeConfig, type RuntimeConfig } from "../world/runtime/live-config.ts";
 import { createLiveControls } from "./live-controls.ts";
@@ -54,6 +55,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   // Source and warm cache outlive retries, so restarting cannot bypass cooldown.
   const sources = new Map<string, ReturnType<typeof createGeoDataSource>>();
   const cache = createChunkCache<CompiledChunkV0>(9);
+  const persistentStore = (() => { try { return createIndexedDbChunkStore(); } catch { return undefined; } })();
   let disposeCurrent: (() => Promise<void>) | undefined;
   let current: RuntimeSession | undefined;
   let epoch = 0; let busy = false; let stopLoop = () => {};
@@ -80,7 +82,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       let offlineVehicle: PhysicsVehicleState | undefined;
       let offlineCounts = { buildings: 0, roads: 0, compiled: 0 };
       if (openWorld) {
-        const liveSession = createRuntimeSession({ source, origin, renderer, physics, cache, sourceIdentity, queryProfile: OSM_QUERY_PROFILE });
+        const liveSession = createRuntimeSession({ source, origin, renderer, physics, cache, sourceIdentity, queryProfile: OSM_QUERY_PROFILE, persistentStore });
         current = liveSession;
         zoom.in = () => liveSession.zoomIn(); zoom.out = () => liveSession.zoomOut(); zoom.level = () => liveSession.snapshot().zoomLevel;
         disposeCurrent = async () => { try { await liveSession.dispose(); } catch { /* teardown is best-effort */ } };

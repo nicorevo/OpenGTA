@@ -39,9 +39,9 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
 - [x] [CACHE-01](city/CACHE-01.md): contratto storage.
 - [x] [CACHE-02](city/CACHE-02.md): esperimento IndexedDB.
-- [ ] [CACHE-03](city/CACHE-03.md): versioning e integrità.
-- [ ] [CACHE-04](city/CACHE-04.md): eviction.
-- [ ] C-D: cache persistente.
+- [x] [CACHE-03](city/CACHE-03.md): versioning e integrità.
+- [x] [CACHE-04](city/CACHE-04.md): eviction.
+- [x] C-D: cache persistente.
 
 ## Gate
 

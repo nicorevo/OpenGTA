@@ -1,6 +1,6 @@
 # CACHE-03: Versioning e integrità della cache persistente
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-CACHE-03.md`.
 **Dipendenze:** CACHE-02.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -33,9 +33,9 @@ il bump di compilerVersion deve bastare a invalidare.
 
 ## Accettazione
 
-- [ ] AC1: entry incompatibile/corrotta scartata, mai usata.
-- [ ] AC2: refetch pulito dopo discard; nessun errore non gestito.
-- [ ] AC3: hit valido verificato; suite verde.
+- [x] AC1: entry incompatibile/corrotta scartata, mai usata.
+- [x] AC2: refetch pulito dopo discard; nessun errore non gestito.
+- [x] AC3: hit valido verificato; suite verde.
 
 ## Verifica
 

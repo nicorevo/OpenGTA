@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import rawFixture from "../../src/fixtures/geo/lecce-sant-oronzo-v0.raw.json" with { type: "json" };
 import type { CompiledChunkV0 } from "../../src/world/compiler/compiled.ts";
+import { liveWorld } from "../fixtures/live-world.ts";
 
 /**
  * CACHE-02: the IndexedDB backend exercised with the real browser IndexedDB.
@@ -251,4 +252,27 @@ test("degrades without a usable IndexedDB factory and keeps the session running"
   expect(denied.quota).toEqual({ budgetBytes: 0, usedBytes: 0, entries: 0 });
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   expect(unexpected).toEqual([]);
+});
+
+test("reloads reuse compiled chunks from IndexedDB without new provider calls", async ({ page, baseURL }) => {
+  let requests = 0;
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.route("**/*", (route) => {
+    const url = route.request().url();
+    if (url.includes("/__test-geo")) { requests++; return route.fulfill({ json: liveWorld }); }
+    if (url.startsWith(baseURL!)) return route.continue();
+    errors.push("Unexpected remote request"); return route.abort();
+  });
+  const url = `/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`;
+  await page.goto(url);
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
+  await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { runtime: { pending: string[] } } } }).__opengtaV0Debug.session().runtime.pending.length)), { timeout: 20000 }).toBe(0);
+  const firstLoadRequests = requests;
+  expect(firstLoadRequests).toBeGreaterThan(0);
+  await page.reload();
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
+  await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { runtime: { pending: string[] } } } }).__opengtaV0Debug.session().runtime.pending.length)), { timeout: 20000 }).toBe(0);
+  expect(requests).toBe(firstLoadRequests); // every window cell came from IndexedDB
+  expect(errors).toEqual([]);
 });

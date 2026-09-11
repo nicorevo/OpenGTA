@@ -60,8 +60,8 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [x] | [LOD-05 Culling feature](city/LOD-05.md) | LOD-01 | M | Skip visuale sotto soglia px², world model intatto |
 | [x] | [CACHE-01 Contratto storage](city/CACHE-01.md) | Nessuna | S | Interfaccia astratta con quota/errori |
 | [x] | [CACHE-02 Esperimento IndexedDB](city/CACHE-02.md) | CACHE-01 | M | Misure write/read/quota con decisione documentata |
-| [ ] | [CACHE-03 Versioning e integrità](city/CACHE-03.md) | CACHE-02 | S | Entry incompatibile scartata, mai usata |
-| [ ] | [CACHE-04 Eviction](city/CACHE-04.md) | CACHE-03 | S | Budget dichiarato e rispettato |
+| [x] | [CACHE-03 Versioning e integrità](city/CACHE-03.md) | CACHE-02 | S | Entry incompatibile scartata, mai usata |
+| [x] | [CACHE-04 Eviction](city/CACHE-04.md) | CACHE-03 | S | Budget dichiarato e rispettato |
 | [ ] | [CITY-01 Canary reale](city/CITY-01.md) | SOLID-01..06, ZOOM-05 | M | Report separato, Lecce + lista estesa |
 | [ ] | [CITY-02 Gate City Drive Stable](city/CITY-02.md) | Tutti i precedenti | M | Matrice requisiti→prove, misure e handoff allineati |
 
@@ -90,9 +90,9 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 
 ### C-D: cache persistente, dopo CACHE-01..04
 
-- [ ] Reload riusa i chunk validi; entry corrotta/stale scartata.
-- [ ] Quota gestita; sessione funziona anche senza storage.
-- [ ] Misure cold/warm con ambiente dichiarato.
+- [x] Reload riusa i chunk validi; entry corrotta/stale scartata.
+- [x] Quota gestita; sessione funziona anche senza storage.
+- [x] Misure cold/warm con ambiente dichiarato.
 
 ### C-E: gate, CITY-01..02
 

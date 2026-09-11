@@ -1,6 +1,6 @@
 # CACHE-04: Budget ed eviction della cache persistente
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-CACHE-04.md`.
 **Dipendenze:** CACHE-03.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -32,10 +32,10 @@ il default numerico non e' una promessa di servizio.
 
 ## Accettazione
 
-- [ ] AC1: budget rispettato con eviction LRU deterministica.
-- [ ] AC2: quota piena gestita senza corruzione; sessione funziona senza
+- [x] AC1: budget rispettato con eviction LRU deterministica.
+- [x] AC2: quota piena gestita senza corruzione; sessione funziona senza
   storage.
-- [ ] AC3: contatori in snapshot; suite verde.
+- [x] AC3: contatori in snapshot; suite verde.
 
 ## Verifica
 
