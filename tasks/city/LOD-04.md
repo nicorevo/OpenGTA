@@ -1,6 +1,6 @@
 # LOD-04: Dettaglio stradale per tier
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-LOD-04.md`.
 **Dipendenze:** LOD-01.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -31,9 +31,9 @@ compiler ne' le collisioni.
 
 ## Accettazione
 
-- [ ] AC1: dettaglio stradale per tier applicato e reversibile.
-- [ ] AC2: nessun cambiamento a compiler/fisica.
-- [ ] AC3: E2E streaming e bootstrap verdi.
+- [x] AC1: dettaglio stradale per tier applicato e reversibile.
+- [x] AC2: nessun cambiamento a compiler/fisica.
+- [x] AC3: E2E streaming e bootstrap verdi.
 
 ## Verifica
 

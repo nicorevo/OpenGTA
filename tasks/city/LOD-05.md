@@ -1,6 +1,6 @@
 # LOD-05: Culling visuale delle micro-feature
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-LOD-05.md`.
 **Dipendenze:** LOD-01.
 **Persona:** fullstack-developer.
 **Taglia:** M, 4 file di codice/test.
@@ -33,9 +33,9 @@ le feature escluse dalla vista restano comunque compilate e collidibili.
 
 ## Accettazione
 
-- [ ] AC1: culling per tier applicato, reversibile, solo visuale.
-- [ ] AC2: collider invariati; world model intatto.
-- [ ] AC3: overlay espone il conteggio; E2E verdi.
+- [x] AC1: culling per tier applicato, reversibile, solo visuale.
+- [x] AC2: collider invariati; world model intatto.
+- [x] AC3: overlay espone il conteggio; E2E verdi.
 
 ## Verifica
 

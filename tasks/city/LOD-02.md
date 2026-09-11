@@ -1,6 +1,6 @@
 # LOD-02: Etichette per tier
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-LOD-02.md`.
 **Dipendenze:** LOD-01, SOLID-04.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -32,9 +32,9 @@ compiler ne' `toggleLabels`; il toggle utente resta prioritario sul tier.
 
 ## Accettazione
 
-- [ ] AC1: soglie per tier applicate e reversibili cambiando zoom.
-- [ ] AC2: nessun effetto su featureIndex/geometria; solo presentazione.
-- [ ] AC3: E2E renderer-streaming e bootstrap verdi.
+- [x] AC1: soglie per tier applicate e reversibili cambiando zoom.
+- [x] AC2: nessun effetto su featureIndex/geometria; solo presentazione.
+- [x] AC3: E2E renderer-streaming e bootstrap verdi.
 
 ## Verifica
 

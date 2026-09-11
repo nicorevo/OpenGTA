@@ -54,10 +54,10 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [x] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
 | [x] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
 | [x] | [LOD-01 Politica zoom→LOD](city/LOD-01.md) | ZOOM-01 | S | lodForZoom pura e testata |
-| [ ] | [LOD-02 Label per tier](city/LOD-02.md) | LOD-01, SOLID-04 | S | Soglie di importanza per tier |
-| [ ] | [LOD-03 Facade per tier](city/LOD-03.md) | LOD-01 | S | Forza facade decrescente con lo zoom out |
-| [ ] | [LOD-04 Road detail per tier](city/LOD-04.md) | LOD-01 | S | FAR body / MEDIUM casing / NEAR marking |
-| [ ] | [LOD-05 Culling feature](city/LOD-05.md) | LOD-01 | M | Skip visuale sotto soglia px², world model intatto |
+| [x] | [LOD-02 Label per tier](city/LOD-02.md) | LOD-01, SOLID-04 | S | Soglie di importanza per tier |
+| [x] | [LOD-03 Facade per tier](city/LOD-03.md) | LOD-01 | S | Forza facade decrescente con lo zoom out |
+| [x] | [LOD-04 Road detail per tier](city/LOD-04.md) | LOD-01 | S | FAR body / MEDIUM casing / NEAR marking |
+| [x] | [LOD-05 Culling feature](city/LOD-05.md) | LOD-01 | M | Skip visuale sotto soglia px², world model intatto |
 | [x] | [CACHE-01 Contratto storage](city/CACHE-01.md) | Nessuna | S | Interfaccia astratta con quota/errori |
 | [x] | [CACHE-02 Esperimento IndexedDB](city/CACHE-02.md) | CACHE-01 | M | Misure write/read/quota con decisione documentata |
 | [ ] | [CACHE-03 Versioning e integrità](city/CACHE-03.md) | CACHE-02 | S | Entry incompatibile scartata, mai usata |
@@ -83,10 +83,10 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 
 ### C-C: LOD, dopo LOD-01..05
 
-- [ ] Tier coerenti per zoom; costo per metro quadro decrescente con lo
-  zoom out misurato.
-- [ ] Nessun LOD nel canonical world; culling solo visuale.
-- [ ] Suite completa, typecheck, build, E2E verdi.
+- [x] Tier coerenti per zoom; costo per metro quadro decrescente con lo
+  zoom out misurato (diagnostica per tier nel harness).
+- [x] Nessun LOD nel canonical world; culling solo visuale.
+- [x] Suite completa, typecheck, build, E2E verdi.
 
 ### C-D: cache persistente, dopo CACHE-01..04
 

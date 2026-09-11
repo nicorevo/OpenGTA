@@ -29,11 +29,11 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 ## LOD
 
 - [x] [LOD-01](city/LOD-01.md): politica zoom→LOD.
-- [ ] [LOD-02](city/LOD-02.md): label per tier.
-- [ ] [LOD-03](city/LOD-03.md): facade per tier.
-- [ ] [LOD-04](city/LOD-04.md): road detail per tier.
-- [ ] [LOD-05](city/LOD-05.md): culling feature.
-- [ ] C-C: LOD.
+- [x] [LOD-02](city/LOD-02.md): label per tier.
+- [x] [LOD-03](city/LOD-03.md): facade per tier.
+- [x] [LOD-04](city/LOD-04.md): road detail per tier.
+- [x] [LOD-05](city/LOD-05.md): culling feature.
+- [x] C-C: LOD.
 
 ## Cache persistente
 

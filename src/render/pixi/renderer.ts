@@ -3,7 +3,8 @@ import type { CompiledChunkV0, CompiledLabel } from "../../world/compiler/compil
 import type { Bounds2D, Polygon2D } from "../../world/model/types.ts";
 import { createPresentationState, toggleLabels, type PresentationState } from "./presentation.ts";
 import { groupRoadsByWidth, sortBuildingsForPainter, type RoadStrokeGroup } from "./scene-order.ts";
-import { clampZoom, zoomFactor, type ZoomLevel } from "../../app/camera.ts";
+import { clampZoom, lodForZoom, zoomFactor, type LodTier, type ZoomLevel } from "../../app/camera.ts";
+import { lodProfileForTier, type LodPresentationProfile } from "../lod-profile.ts";
 
 export interface CameraState { readonly zoomLevel: ZoomLevel; readonly zoomFactor: number; readonly bounds: Bounds2D }
 export interface PixiRenderer {
@@ -16,6 +17,8 @@ export interface PixiRenderer {
   removeChunk(chunkId: string): void;
   /** Read-only diagnostics for tests and the debug overlay. */
   presentationCounts(): { chunkPresentations: number; graphicsObjects: number };
+  /** LOD observability: how the current tier shaped the presentations. */
+  presentationDiagnostics(): { culledFeatures: number; facades: number; roadCasing: boolean; labels: number };
   /** Discrete zoom: presentation-only, vehicle world pose and physics untouched. */
   setZoom(level: ZoomLevel): void;
   zoomIn(): ZoomLevel;
@@ -68,7 +71,12 @@ function strokeRoadNetwork(graphics: Graphics, groups: readonly RoadStrokeGroup<
   }
 }
 function readableLabelAngle(angle: number): number { let result = -angle; if (result > Math.PI / 2) result -= Math.PI; if (result < -Math.PI / 2) result += Math.PI; return result; }
-function visibleLabels(labels: readonly CompiledLabel[]): CompiledLabel[] { const places = labels.filter((label) => label.kind === "place").slice(0, 16); const roads = labels.filter((label) => label.kind === "road").slice(0, 16); return [...places, ...roads]; }
+function visibleLabels(labels: readonly CompiledLabel[], profile: LodPresentationProfile): CompiledLabel[] {
+  const withinTier = labels.filter((label) => label.priority >= profile.labelMinPriority);
+  const places = withinTier.filter((label) => label.kind === "place").slice(0, 16);
+  const roads = withinTier.filter((label) => label.kind === "road").slice(0, 16);
+  return [...places, ...roads];
+}
 
 type CompiledBuilding = CompiledChunkV0["buildings"][number];
 function buildingDepthKey(building: CompiledBuilding): number {
@@ -77,6 +85,14 @@ function buildingDepthKey(building: CompiledBuilding): number {
   let sum = 0;
   for (const point of points) sum += point.y - point.x;
   return sum / points.length;
+}
+function polygonArea(outer: readonly { x: number; y: number }[]): number {
+  let sum = 0;
+  for (let index = 0; index < outer.length; index += 1) {
+    const a = outer[index]; const b = outer[(index + 1) % outer.length];
+    sum += a.x * b.y - b.x * a.y;
+  }
+  return sum / 2;
 }
 
 interface ChunkPresentation {
@@ -91,6 +107,9 @@ interface ChunkPresentation {
   // wide roads and south-east buildings paint later, matching scene-order.ts.
   readonly roadOrder: number;
   readonly buildingOrder: number;
+  culledFeatures: number;
+  facades: number;
+  hasRoadCasing: boolean;
 }
 
 export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<PixiRenderer> {
@@ -127,32 +146,61 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   };
   app.ticker.add(updateCamera);
   let presentation: PresentationState = createPresentationState();
+  let currentProfileTier: LodTier = lodForZoom(2);
+  let currentProfile: LodPresentationProfile = lodProfileForTier(currentProfileTier);
+
+  const applyTier = (): void => {
+    const chunks = [...presentations.values()].map((entry) => entry.chunk);
+    for (const entry of [...presentations.values()]) { presentations.delete(entry.chunk.id); destroyPresentation(entry); }
+    for (const chunk of chunks) { const entry = buildPresentation(chunk); presentations.set(chunk.id, entry); insertPresentation(entry); }
+    rebuildLabels();
+  };
+  const changeZoom = (level: ZoomLevel): void => {
+    const tier = lodForZoom(level);
+    if (tier !== currentProfileTier) {
+      currentProfileTier = tier;
+      currentProfile = lodProfileForTier(tier);
+      if (presentations.size > 0) applyTier();
+    }
+    zoomLevel = level;
+    updateCamera();
+  };
 
   const buildPresentation = (chunk: CompiledChunkV0): ChunkPresentation => {
+    const profile = currentProfile;
+    let culledFeatures = 0; let facades = 0;
+    const screenAreaPx2 = (outer: readonly { x: number; y: number }[]): number => Math.abs(polygonArea(outer)) * viewScale() * viewScale();
     const ground = new Graphics();
-    chunk.ground.forEach((area) => drawPolygon(ground, area.area, worldScale, 0, area.styleKey.startsWith("water:") ? 0x668ca3 : area.styleKey.includes("park") ? 0x70915a : 0x8b9d70));
+    for (const area of chunk.ground) {
+      if (profile.cullMinAreaPx2 > 0 && screenAreaPx2(area.area.outer) < profile.cullMinAreaPx2) { culledFeatures += 1; continue; }
+      drawPolygon(ground, area.area, worldScale, 0, area.styleKey.startsWith("water:") ? 0x668ca3 : area.styleKey.includes("park") ? 0x70915a : 0x8b9d70);
+    }
     const roadGroups = groupRoadsByWidth(chunk.roads);
     const roadCasing = new Graphics();
     const roadSurface = new Graphics();
-    strokeRoadNetwork(roadCasing, roadGroups, worldScale, ROAD_EDGE, roadCasingPx);
+    if (profile.roadDetail !== "body") strokeRoadNetwork(roadCasing, roadGroups, worldScale, ROAD_EDGE, roadCasingPx);
     strokeRoadNetwork(roadSurface, roadGroups, worldScale, ROAD_FILL, () => 0);
     const corridor = new Graphics();
     strokeRoadNetwork(corridor, roadGroups, worldScale, 0xffffff, roadCasingPx);
     const buildings = new Graphics();
     for (const building of sortBuildingsForPainter(chunk.buildings)) {
-      const depth = Math.min(24, Math.max(3, building.visualHeightMeters * worldScale * 0.6));
-      const offset = { x: -depth * 0.707, y: depth * 0.707 };
-      const facade = {
-        outer: building.roof.outer.map((point) => ({ x: point.x + offset.x / worldScale, y: point.y + offset.y / worldScale })),
-        holes: building.roof.holes.map((hole) => hole.map((point) => ({ x: point.x + offset.x / worldScale, y: point.y + offset.y / worldScale }))),
-      };
-      drawPolygon(buildings, facade, worldScale, depth, 0x806c61);
+      if (profile.cullMinAreaPx2 > 0 && screenAreaPx2(building.roof.outer) < profile.cullMinAreaPx2) { culledFeatures += 1; continue; }
+      const depth = Math.min(24, Math.max(3, building.visualHeightMeters * worldScale * 0.6)) * profile.facadeStrength;
+      if (depth > 0) facades += 1;
+      if (depth > 0) {
+        const offset = { x: -depth * 0.707, y: depth * 0.707 };
+        const facade = {
+          outer: building.roof.outer.map((point) => ({ x: point.x + offset.x / worldScale, y: point.y + offset.y / worldScale })),
+          holes: building.roof.holes.map((hole) => hole.map((point) => ({ x: point.x + offset.x / worldScale, y: point.y + offset.y / worldScale }))),
+        };
+        drawPolygon(buildings, facade, worldScale, depth, 0x806c61);
+      }
       drawPolygon(buildings, building.roof, worldScale, 0, building.styleKey.includes("historic") ? 0xa86f5d : 0xb18d77);
     }
     const labels = new Container();
     const roadOrder = chunk.roads.reduce((max, road) => Math.max(max, road.widthMeters), 0);
     const buildingOrder = chunk.buildings.reduce((max, building) => Math.max(max, buildingDepthKey(building)), 0);
-    return { chunk, ground, roadCasing, roadSurface, corridor, buildings, labels, roadOrder, buildingOrder };
+    return { chunk, ground, roadCasing, roadSurface, corridor, buildings, labels, roadOrder, buildingOrder, culledFeatures, facades, hasRoadCasing: profile.roadDetail !== "body" };
   };
 
   const destroyPresentation = (entry: ChunkPresentation): void => {
@@ -177,7 +225,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const rebuildLabels = (): void => {
     labelLayer.removeChildren();
     const chunks = [...presentations.values()].map((entry) => entry.chunk);
-    const labels = visibleLabels(chunks.flatMap((chunk) => chunk.labels));
+    const labels = visibleLabels(chunks.flatMap((chunk) => chunk.labels), currentProfile);
     for (const entry of presentations.values()) entry.labels.removeChildren();
     for (const label of labels) {
       const owner = [...presentations.values()].find((entry) => entry.chunk.labels.includes(label));
@@ -215,9 +263,14 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     presentationCounts() {
       return { chunkPresentations: presentations.size, graphicsObjects: presentations.size * 5 };
     },
-    setZoom(level) { if (disposed) return; zoomLevel = clampZoom(level); updateCamera(); },
-    zoomIn() { zoomLevel = clampZoom(zoomLevel + 1); updateCamera(); return zoomLevel; },
-    zoomOut() { zoomLevel = clampZoom(zoomLevel - 1); updateCamera(); return zoomLevel; },
+    presentationDiagnostics() {
+      let culledFeatures = 0; let facades = 0; let roadCasing = true; let labels = 0;
+      for (const entry of presentations.values()) { culledFeatures += entry.culledFeatures; facades += entry.facades; roadCasing = roadCasing && entry.hasRoadCasing; labels += entry.labels.children.length; }
+      return { culledFeatures, facades, roadCasing, labels };
+    },
+    setZoom(level) { if (disposed) return; changeZoom(clampZoom(level)); },
+    zoomIn() { changeZoom(clampZoom(zoomLevel + 1)); return zoomLevel; },
+    zoomOut() { changeZoom(clampZoom(zoomLevel - 1)); return zoomLevel; },
     cameraState() {
       const halfX = app.screen.width / viewScale() / 2;
       const halfY = app.screen.height / viewScale() / 2;

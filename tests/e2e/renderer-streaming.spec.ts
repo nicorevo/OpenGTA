@@ -71,3 +71,42 @@ test("discrete zoom rescales the camera without touching the vehicle pose", asyn
   expect(Math.hypot(result.cMin.x - result.c0.x, result.cMin.y - result.c0.y)).toBeLessThan(0.01);
   expect(result.restored).toBe(2);
 });
+
+test("LOD tiers reshape labels, facades, casing and culling per zoom", async ({ page }) => {
+  await page.goto("/tests/e2e/harness.html");
+  const result = await page.evaluate(async () => {
+    const path = "/src/render/pixi/renderer.ts";
+    const { createPixiRenderer } = await import(path) as typeof import("../../src/render/pixi/renderer.ts");
+    const renderer = await createPixiRenderer(document.querySelector("canvas")!);
+    const chunk = {
+      schemaVersion: 0 as const, id: "lod",
+      spatial: { regionId: "lod", bounds: { minX: 0, minY: 0, maxX: 300, maxY: 300 }, originOffset: { x: 0, y: 0 } },
+      ground: [
+        { featureId: "big-park", area: { outer: [{ x: 0, y: 0 }, { x: 50, y: 0 }, { x: 50, y: 50 }, { x: 0, y: 50 }], holes: [] }, styleKey: "land:park" },
+        { featureId: "tiny-patch", area: { outer: [{ x: 60, y: 60 }, { x: 62, y: 60 }, { x: 62, y: 62 }, { x: 60, y: 62 }], holes: [] }, styleKey: "land:grass" },
+      ],
+      roads: [{ featureId: "road:1", widthMeters: 6, styleKey: "road:residential", surface: { outer: [{ x: -10, y: 20 }, { x: 80, y: 20 }, { x: 80, y: 26 }, { x: -10, y: 26 }], holes: [] }, centerline: [{ x: 0, y: 23 }, { x: 80, y: 23 }] }],
+      buildings: [{ featureId: "building:1", roof: { outer: [{ x: 10, y: 10 }, { x: 20, y: 10 }, { x: 20, y: 20 }, { x: 10, y: 20 }], holes: [] }, visualHeightMeters: 12, styleKey: "building:residential", fakeDepth: { enabled: true, scale: 1 } }],
+      labels: [
+        { featureId: "road:1", text: "Via Minore", position: { x: 40, y: 23 }, angle: 0, kind: "road" as const, priority: 60 },
+        { featureId: "big-park", text: "Parco Maggiore", position: { x: 25, y: 25 }, angle: 0, kind: "place" as const, priority: 110 },
+      ],
+      collisions: [], featureIndex: { "building:1": { kind: "building" }, "road:1": { kind: "road" } },
+      diagnostics: { inputFeatureCount: 4, compiledFeatureCount: 4, skippedFeatureCount: 0, warnings: [], stageDurationsMs: {} },
+    };
+    renderer.render(chunk);
+    const medium = renderer.presentationDiagnostics();
+    renderer.setZoom(0); // far
+    const far = renderer.presentationDiagnostics();
+    renderer.setZoom(4); // near
+    const near = renderer.presentationDiagnostics();
+    renderer.dispose();
+    return { medium, far, near };
+  });
+  // MEDIUM (default): minor road label below the 75 threshold dropped.
+  expect(result.medium).toMatchObject({ labels: 1, facades: 1, roadCasing: true, culledFeatures: 0 });
+  // FAR: facade hidden, casing removed, tiny patch culled.
+  expect(result.far).toMatchObject({ labels: 1, facades: 0, roadCasing: false, culledFeatures: 1 });
+  // NEAR: full detail restored, both labels back.
+  expect(result.near).toMatchObject({ labels: 2, facades: 1, roadCasing: true, culledFeatures: 0 });
+});

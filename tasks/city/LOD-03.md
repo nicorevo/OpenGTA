@@ -1,6 +1,6 @@
 # LOD-03: Facade per tier
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-LOD-03.md`.
 **Dipendenze:** LOD-01.
 **Persona:** fullstack-developer.
 **Taglia:** S, 3 file di codice/test.
@@ -31,9 +31,9 @@ nessun cambio alla paletta in questa slice.
 
 ## Accettazione
 
-- [ ] AC1: forza facade per tier applicata e reversibile.
-- [ ] AC2: nessun effetto su fisica o world model.
-- [ ] AC3: E2E renderer-streaming verdi; screenshot far/near dichiarati.
+- [x] AC1: forza facade per tier applicata e reversibile.
+- [x] AC2: nessun effetto su fisica o world model.
+- [x] AC3: E2E renderer-streaming verdi; screenshot far/near dichiarati.
 
 ## Verifica
 
