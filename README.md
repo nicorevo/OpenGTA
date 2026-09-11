@@ -38,8 +38,14 @@ Tranche City Drive Stable (solidità, zoom a livelli discreti con LOD 2D,
 cache persistente, gate su Lecce):
 
 `docs/results/CITY-DRIVE-STABLE-RESULT.md` · `docs/specs/city-drive-stable.md` ·
-`docs/adr/ADR-010-discrete-zoom-lod.md` · `docs/architecture/zoom-and-lod.md` ·
-`tasks/plan.md` · `tasks/city/README.md`
+`docs/adr/ADR-010-discrete-zoom-lod.md` · `docs/architecture/zoom-and-lod.md`
+
+Tranche in corso — Provider-Neutral World Streaming (migrazione
+Overpass → Vector Tiles con Overpass come fallback, ADR-011):
+
+`docs/specs/provider-neutral-world-streaming.md` ·
+`docs/OpenGTA-DATA-SOURCE-MIGRATION.md` · `tasks/plan.md` ·
+`tasks/data/README.md`
 
 Avvio di sessione per agenti:
 

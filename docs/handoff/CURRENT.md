@@ -18,6 +18,7 @@ Non rieseguirli come backlog corrente.
 | 2 Fondazione Open World | Implementata; difetti del live riprodotti e aperti |
 | Ripristino online | Completata — ONLINE-01..16 verificati, C1..C6; risultato in `docs/results/ONLINE-RUNTIME-RESULT.md` |
 | City Drive Stable | Completata — SOLID/ZOOM/LOD/CACHE/CITY verificati, C-A..C-E; risultato in `docs/results/CITY-DRIVE-STABLE-RESULT.md` |
+| Provider-Neutral World Streaming | In corso — DATA-00..14 pianificati (ADR-011); Overpass resta reference/fallback |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -46,9 +47,14 @@ anche con suite verde.
 - Tranche **City Drive Stable** completata il 2026-09-11 (SOLID/ZOOM/LOD/
   CACHE/CITY, checkpoint C-A..C-E; risultato
   [CITY-DRIVE-STABLE-RESULT](../results/CITY-DRIVE-STABLE-RESULT.md),
-  spec [city-drive-stable](../specs/city-drive-stable.md), ADR-010). Nessun
-  task pendente nel piano; i filoni differiti restano in
-  [tasks/online/FOLLOW-UPS.md](../../tasks/online/FOLLOW-UPS.md).
+  spec [city-drive-stable](../specs/city-drive-stable.md), ADR-010).
+- Lavoro corrente: tranche **Provider-Neutral World Streaming** (DATA-00..14
+  + fasi successive) pianificata e in esecuzione il 2026-09-11: migrazione
+  dell'hot path da Overpass a Vector Tiles (OpenFreeMap z14, massimo della
+  public instance) via canonical/compiler condivisi; spec
+  [provider-neutral-world-streaming](../specs/provider-neutral-world-streaming.md),
+  ADR-011, piano [tasks/plan.md](../../tasks/plan.md), contratti
+  [tasks/data/README.md](../../tasks/data/README.md).
 - Baseline stabile per test utente: commit `8cc4dc5` (City Drive Stable);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
