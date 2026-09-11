@@ -1,6 +1,6 @@
 # DATA-10: Benchmark Overpass vs MVT
 
-**Stato:** pianificato. **Dipendenze:** DATA-09. **Persona:** test-engineer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-10.md`. **Dipendenze:** DATA-09. **Persona:** test-engineer. **Taglia:** M.
 
 ## Obiettivo
 Stessa origine/rotta/viewport/griglia: time to first playable, bytes di
@@ -20,9 +20,9 @@ Modificabili: benchmark e doc. Non cambiare il motore.
 2. GREEN con esecuzione; report nel log con ambiente dichiarato.
 
 ## Accettazione
-- [ ] AC1: metriche complete su entrambe le source.
-- [ ] AC2: ambiente e limiti dichiarati (Overpass fixture-only, z14).
-- [ ] AC3: nessuna modifica al motore; suite verde.
+- [x] AC1: metriche complete su entrambe le source.
+- [x] AC2: ambiente e limiti dichiarati (Overpass fixture-only, z14).
+- [x] AC3: nessuna modifica al motore; suite verde.
 
 ## Verifica
 `npx vitest run --config vitest.bench.config.ts tests/bench/mvt-benchmark.test.ts` + gate comune.

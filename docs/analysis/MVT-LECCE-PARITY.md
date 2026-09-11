@@ -1,15 +1,15 @@
 # MVT Parity Lecce — Overpass vs OpenFreeMap z14
 
-Generated: 2026-09-11T20:03:32.286Z. Decisione: vedi sezione dedicata.
+Generated: 2026-09-11T20:09:29.901Z. Decisione: vedi sezione dedicata.
 
 ## Ambiente
 
-- **date**: 2026-09-11T20:03:32.286Z
+- **date**: 2026-09-11T20:09:29.901Z
 - **node**: v26.4.0
 - **os**: Linux 7.2.4-200.fc44.x86_64
 - **cpu**: Intel(R) Core(TM) Ultra 7 258V
 - **ramMiB**: 33150
-- **commit**: 52ff642
+- **commit**: 4fa6447
 - **overpassFixture**: lecce-sant-oronzo-v0.raw.json (300 m box, network unreachable from this environment)
 - **mvtFixture**: lecce-z14-openfreemap.pbf (tile 14/9019/6181, public z14 ceiling)
 
@@ -33,8 +33,8 @@ Generated: 2026-09-11T20:03:32.286Z. Decisione: vedi sezione dedicata.
 | Ground compilati | 24 | 10 |
 | Collisioni | 241 | 138 |
 | Label | 248 | 0 |
-| Decode/normalize ms | 18.4 | 20.8 + 32.0 (decode+map) |
-| Compile ms | 32.1 | 9.0 |
+| Decode/normalize ms | 19.5 | 36.0 + 33.0 (decode+map) |
+| Compile ms | 37.6 | 8.8 |
 | Area km² | 0.2827 | 3.4706 |
 | Densità roads/km² | 1375.8 | 307.7 |
 | Densità buildings/km² | 580.0 | 488.1 |
@@ -80,8 +80,8 @@ Motivazione, sui numeri della matrice (stesso box V0 ±300 m, stessa origine):
 - Il layer visuale regge: **buildings 164 vs 138 (84%)**, land 24 vs 10,
   water assente in entrambi nel box. Densità buildings 580 vs 488/km².
 - Costi crollano: **~32× meno byte/km²** (839.963 B su 0,28 km² vs 321.055 B
-  su 3,47 km²) e **~4× meno ms/km²** (normalize 18,4 ms vs decode+map
-  52,8 ms per l'intera tile).
+  su 3,47 km²) e **~4× meno ms/km²** (normalize ≈18 ms vs decode+map ≈50 ms
+  per l'intera tile).
 - Il gameplay NON è pronto con z14 pubblico: collisioni 241 vs 138 (**57%**,
   densità 852 vs 488/km²), barriere 33 vs 0 e alberi 11 vs 0 (gap dichiarati),
   label 248 vs 0 (layer poi non mappato nel PoC). La guida funzionerebbe su

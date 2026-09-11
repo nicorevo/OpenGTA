@@ -3,16 +3,13 @@ import { execSync } from "node:child_process";
 import * as os from "node:os";
 import { dirname } from "node:path";
 import { expect, it } from "vitest";
-import { decodeVectorTile, type DecodedVectorTile } from "../../src/geo/mvt/decode.ts";
+import { decodeVectorTile } from "../../src/geo/mvt/decode.ts";
 import { tileBounds } from "../../src/geo/mvt/math.ts";
 import { createTangentProjector } from "../../src/geo/coordinates/projector.ts";
 import { normalizeOsm, type RawOsm } from "../../src/geo/normalize/osm.ts";
-import { transportationRoadFeatures } from "../../src/geo/normalize/mvt-roads.ts";
-import { buildingFeatures } from "../../src/geo/normalize/mvt-buildings.ts";
-import { landAndWaterFeatures } from "../../src/geo/normalize/mvt-land.ts";
-import { clipPolygonToBounds, clipPolylineToBounds } from "../../src/world/model/clip.ts";
-import { validatePolygon, type Bounds2D, type RoadFeature, type WorldRegion, type WorldWarning } from "../../src/world/model/types.ts";
 import { compileRegion } from "../../src/world/compiler/compiled.ts";
+import type { WorldRegion } from "../../src/world/model/types.ts";
+import { mvtToRegion, ORIGIN, TILE } from "./mvt-assemble.ts";
 
 /**
  * DATA-09 parity: Overpass fixture vs OpenFreeMap z14 fixture on the same
@@ -21,10 +18,6 @@ import { compileRegion } from "../../src/world/compiler/compiled.ts";
  * the GO decision lives in docs/analysis/MVT-LECCE-PARITY.md.
  */
 
-const ORIGIN = { latitude: 40.35316888888889, longitude: 18.17259 };
-const TILE = { z: 14, x: 9019, y: 6181 };
-const EXTENT = 4096;
-const V0_BOUNDS: Bounds2D = { minX: -300, minY: -300, maxX: 300, maxY: 300 };
 const OVERPASS_FIXTURE = new URL("../../src/fixtures/geo/lecce-sant-oronzo-v0.raw.json", import.meta.url);
 const MVT_FIXTURE = new URL("../../src/fixtures/geo/lecce-z14-openfreemap.pbf", import.meta.url);
 const REPORT_PATH = new URL("../../docs/analysis/MVT-LECCE-PARITY.md", import.meta.url);
@@ -37,62 +30,6 @@ function measure<T>(fn: () => T): { value: T; ms: number } {
   const start = performance.now();
   const value = fn();
   return { value, ms: performance.now() - start };
-}
-
-/** Clip a mapped MVT road set to the canonical V0 box exactly like normalizeOsm does for OSM. */
-function clipRoads(roads: readonly RoadFeature[], bounds: Bounds2D, warnings: WorldWarning[]): RoadFeature[] {
-  const clipped: RoadFeature[] = [];
-  for (const road of roads) {
-    for (const points of clipPolylineToBounds(road.centerline.points, bounds)) {
-      if (points.length < 2) continue;
-      clipped.push({ ...road, id: `${road.id}#p${clipped.length}`, centerline: { points } });
-    }
-  }
-  void warnings;
-  return clipped;
-}
-
-/** Build a WorldRegion from the decoded tile, clipped to the canonical V0 box. */
-function mvtToRegion(decoded: DecodedVectorTile): { region: WorldRegion; warnings: WorldWarning[]; raw: { roads: number; buildings: number; land: number; water: number } } {
-  const projector = createTangentProjector(ORIGIN);
-  const warnings: WorldWarning[] = [];
-  const layerFeatures = (name: string) => decoded.layers.find((layer) => layer.name === name)?.features ?? [];
-  const rawRoads = transportationRoadFeatures(layerFeatures("transportation"), projector, TILE, EXTENT, warnings);
-  const rawBuildings = buildingFeatures(layerFeatures("building"), projector, TILE, EXTENT, warnings);
-  const { landAreas: rawLand, waterAreas: rawWater } = landAndWaterFeatures(
-    [...layerFeatures("park"), ...layerFeatures("landuse"), ...layerFeatures("landcover"), ...layerFeatures("water")],
-    projector, TILE, EXTENT, warnings,
-  );
-  const buildings = rawBuildings
-    .map((building) => ({ ...building, footprint: clipPolygonToBounds(building.footprint, V0_BOUNDS) }))
-    .filter((building) => building.footprint !== undefined && validatePolygon(building.footprint).length === 0)
-    .map((building) => ({ ...building, footprint: building.footprint! }));
-  const landAreas = rawLand
-    .map((area) => ({ ...area, area: clipPolygonToBounds(area.area, V0_BOUNDS) }))
-    .filter((area) => area.area !== undefined && validatePolygon(area.area).length === 0)
-    .map((area) => ({ ...area, area: area.area! }));
-  const waterAreas = rawWater
-    .map((area) => ({ ...area, area: clipPolygonToBounds(area.area, V0_BOUNDS) }))
-    .filter((area) => area.area !== undefined && validatePolygon(area.area).length === 0)
-    .map((area) => ({ ...area, area: area.area! }));
-  const roads = clipRoads(rawRoads, V0_BOUNDS, warnings);
-  const tileGeo = tileBounds(TILE.z, TILE.x, TILE.y);
-  const corners = projector.project({ latitude: tileGeo.south, longitude: tileGeo.west });
-  const far = projector.project({ latitude: tileGeo.north, longitude: tileGeo.east });
-  const tileAreaKm2 = Math.abs(far.x - corners.x) * Math.abs(far.y - corners.y) / 1e6;
-  const region: WorldRegion = {
-    id: "mvt-z14",
-    geoOrigin: ORIGIN,
-    bounds: V0_BOUNDS,
-    buildings,
-    roads,
-    landAreas,
-    waterAreas,
-    barriers: [], // gap: OpenMapTiles z14 carries no barrier layer usable by OpenGTA
-    trees: [],    // gap: no tree/amenity layer mapped in the PoC
-    warnings,
-  };
-  return { region, warnings, raw: { roads: rawRoads.length, buildings: rawBuildings.length, land: rawLand.length, water: rawWater.length }, };
 }
 
 interface ParityMatrix {
@@ -254,7 +191,33 @@ ${classes(matrix.mvt) || "  - (nessuna)"}
 
 ## Decisione
 
-<!-- decisione -->
+**GO VISUAL ONLY** per la source pubblica OpenFreeMap z14.
+
+Motivazione, sui numeri della matrice (stesso box V0 ±300 m, stessa origine):
+
+- La pipeline MVT è completa e deterministica end-to-end (decode → mapping →
+  clip → compileRegion): nessun crash, 29 warning di sola classificazione non
+  mappata, conteggi identici su run ripetute. **Non è NO-GO.**
+- Il confronto crudo roads 389 vs 87 va letto con le classi: la baseline
+  Overpass include 248 path/pedestrian non carrabili, esclusi dal mapping MVT
+  per design. Carrabili: **141 vs 87 (62%)**; residential 122 vs 70 (57%) —
+  a z14 alcune strade minori del centro mancano.
+- Il layer visuale regge: **buildings 164 vs 138 (84%)**, land 24 vs 10,
+  water assente in entrambi nel box. Densità buildings 580 vs 488/km².
+- Costi crollano: **~32× meno byte/km²** (839.963 B su 0,28 km² vs 321.055 B
+  su 3,47 km²) e **~4× meno ms/km²** (normalize ≈18 ms vs decode+map ≈50 ms
+  per l'intera tile).
+- Il gameplay NON è pronto con z14 pubblico: collisioni 241 vs 138 (**57%**,
+  densità 852 vs 488/km²), barriere 33 vs 0 e alberi 11 vs 0 (gap dichiarati),
+  label 248 vs 0 (layer poi non mappato nel PoC). La guida funzionerebbe su
+  strade principali, ma con collisioni incomplete e rete minore bucata.
+- Percorso di upgrade dichiarato: un dataset self-hosted/PMTiles a z16
+  (DATA-15..18) riporterebbe minor roads, barriere e poi senza toccare
+  canonical/compiler; questa matrice resta la baseline di confronto.
+
+Conseguenza operativa: il feature flag DATA-11 parte come
+\`provider=openfreemap-mvt\` sperimentale, mai default; la decisione GO per il
+gameplay è demandata a una parity futura su dataset a zoom superiore.
 `;
 }
 

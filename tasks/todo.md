@@ -22,7 +22,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 - [x] [DATA-07](data/DATA-07.md): mapping building.
 - [x] [DATA-08](data/DATA-08.md): mapping land/water.
 - [x] [DATA-09](data/DATA-09.md): parity Lecce.
-- [ ] [DATA-10](data/DATA-10.md): benchmark.
+- [x] [DATA-10](data/DATA-10.md): benchmark.
 - [ ] D-B: mapping e parity.
 
 ## Runtime e seam
