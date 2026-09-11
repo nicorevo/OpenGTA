@@ -39,5 +39,5 @@ it("maps park, landuse and water polygons to land and water features", () => {
   const { landAreas, waterAreas } = landAndWaterFeatures([...layer("park"), ...layer("landuse"), ...layer("landcover"), ...layer("water")], projector, tile, 4096, warnings);
   expect(landAreas.some((area) => area.landClass === "park")).toBe(true);
   expect(waterAreas.length).toBeGreaterThan(0);
-  expect([...landAreas, ...waterAreas].every((area) => area.area.outer.length >= 3)).toBe(true);
+  expect([...landAreas, ...waterAreas].every((area) => area.area !== undefined && area.area.outer.length >= 3)).toBe(true);
 });

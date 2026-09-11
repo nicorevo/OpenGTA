@@ -52,6 +52,7 @@ export function createOpenFreeMapProvider(options: VectorTileProviderOptions = {
     datasetVersion,
     async getTile(key, signal) {
       if (!Number.isInteger(key.z) || key.z < 0 || key.z > 24 || !Number.isInteger(key.x) || !Number.isInteger(key.y)) throw new TileSourceError("invalid-tile", "invalid tile key");
+      if (signal.aborted) throw new TileSourceError("aborted", "tile fetch aborted");
       const url = `${baseUrl}/${key.z}/${key.x}/${key.y}.pbf`;
       const timed = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
       let response: Response;

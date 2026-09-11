@@ -12,7 +12,8 @@ it("covers the Lecce 300 m bounds at z14 with the expected tiles", () => {
 });
 
 it("covers a bounds crossing tile edges with every intersecting tile", () => {
-  const wide = { ...lecce, maxLongitude: 18.19 };
+  // The x=9019/9020 edge is at longitude 18.19336; 18.194 crosses it.
+  const wide = { ...lecce, maxLongitude: 18.194 };
   const tiles = tilesForBounds(wide, 14);
   expect(tiles).toContainEqual({ z: 14, x: 9018, y: 6181 });
   expect(tiles).toContainEqual({ z: 14, x: 9019, y: 6181 });

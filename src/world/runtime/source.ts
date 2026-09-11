@@ -115,10 +115,11 @@ export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourc
         diagnostics.lastStatus = undefined;
         return value;
       } catch (error) {
-        diagnostics.lastCategory = error instanceof GeoDataSourceError ? error.code : "load-error";
-        diagnostics.lastStatus = error instanceof GeoDataSourceError ? error.status : undefined;
+        const categorized = error instanceof GeoDataSourceError ? error : new GeoDataSourceError("load-error", error instanceof Error ? error.message : "geo data loader failed", undefined, error);
+        diagnostics.lastCategory = categorized.code;
+        diagnostics.lastStatus = categorized.status;
         diagnostics.lastDurationMs = performance.now() - started;
-        throw error;
+        throw categorized;
       }
     },
   };
