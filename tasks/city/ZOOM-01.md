@@ -1,6 +1,6 @@
 # ZOOM-01: Stato camera puro
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-ZOOM-01.md`.
 **Dipendenze:** Nessuna.
 **Persona:** fullstack-developer.
 **Taglia:** S, 2 file di codice/test.
@@ -33,9 +33,9 @@ questa slice; i fattori sono dichiaratamente sperimentali.
 
 ## Accettazione
 
-- [ ] AC1: clamp min/max e fattori testati; nessuna import da Pixi/Rapier.
-- [ ] AC2: bounds si restringono su zoom in e si allargano su zoom out.
-- [ ] AC3: modulo esportato per ZOOM-02 senza API DOM.
+- [x] AC1: clamp min/max e fattori testati; nessuna import da Pixi/Rapier.
+- [x] AC2: bounds si restringono su zoom in e si allargano su zoom out.
+- [x] AC3: modulo esportato per ZOOM-02 senza API DOM.
 
 ## Verifica
 

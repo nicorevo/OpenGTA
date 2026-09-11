@@ -48,7 +48,7 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [ ] | [SOLID-04 Renderer incrementale](city/SOLID-04.md) | Nessuna | L | setChunk/removeChunk con zero rebuild dei chunk invariati |
 | [ ] | [SOLID-05 Long-drive regression](city/SOLID-05.md) | SOLID-04 | M | 100+ transizioni senza crash, risorse bounded |
 | [ ] | [SOLID-06 SECURITY e gate docs](city/SOLID-06.md) | Nessuna | S | SECURITY.md allineato; gate consistenza documentato |
-| [ ] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
+| [x] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
 | [ ] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |
 | [ ] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
 | [ ] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |

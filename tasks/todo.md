@@ -19,7 +19,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
 ## Zoom
 
-- [ ] [ZOOM-01](city/ZOOM-01.md): stato camera.
+- [x] [ZOOM-01](city/ZOOM-01.md): stato camera.
 - [ ] [ZOOM-02](city/ZOOM-02.md): API zoom renderer.
 - [ ] [ZOOM-03](city/ZOOM-03.md): controlli +/−.
 - [ ] [ZOOM-04](city/ZOOM-04.md): streaming reagisce allo zoom.
