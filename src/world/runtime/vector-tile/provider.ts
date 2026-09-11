@@ -40,13 +40,16 @@ async function readBoundedBytes(response: Response, signal: AbortSignal, maxByte
   }
 }
 
+// Pinned dataset version: cache identity must never depend on "latest".
+export const OPENFREEMAP_DATASET_VERSION = "20260830_080001_pt";
+export const OPENFREEMAP_TILE_BASE_URL = `https://tiles.openfreemap.org/planet/${OPENFREEMAP_DATASET_VERSION}`;
+
 export function createOpenFreeMapProvider(options: VectorTileProviderOptions = {}): VectorTileProvider {
   const maxTileBytes = options.maxTileBytes ?? DEFAULT_MAX_TILE_BYTES;
   if (!Number.isSafeInteger(maxTileBytes) || maxTileBytes <= 0) throw new RangeError("Invalid tile byte budget");
   const timeoutMs = options.timeoutMs ?? DEFAULT_TILE_TIMEOUT_MS;
-  // Pinned dataset version: cache identity must never depend on "latest".
-  const datasetVersion = "20260830_080001_pt";
-  const baseUrl = `https://tiles.openfreemap.org/planet/${datasetVersion}`;
+  const datasetVersion = OPENFREEMAP_DATASET_VERSION;
+  const baseUrl = OPENFREEMAP_TILE_BASE_URL;
   return {
     id: "openfreemap:planet",
     datasetVersion,

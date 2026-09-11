@@ -1,6 +1,6 @@
 # DATA-11: OpenFreeMap runtime dietro feature flag
 
-**Stato:** pianificato. **Dipendenze:** DATA-09. **Persona:** fullstack-developer. **Taglia:** L.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-11.md`. **Dipendenze:** DATA-09. **Persona:** fullstack-developer. **Taglia:** L.
 
 ## Obiettivo
 `provider=openfreemap-mvt` (sperimentale, MAI default): il runtime usa il
@@ -26,9 +26,9 @@ test E2E. Non cambiare chunk grid/fisica/renderer/spawn/guardia.
 3. Test: namespace isolato da Overpass; errori tile → degraded non crash.
 
 ## Accettazione
-- [ ] AC1: first playable con tile fixture; 10+ chunk attraversati.
-- [ ] AC2: nessun branch provider-specifico in fisica/renderer/spawn.
-- [ ] AC3: retry/recovery e stop/restart funzionanti; suite verde.
+- [x] AC1: first playable con tile fixture; 10+ chunk attraversati.
+- [x] AC2: nessun branch provider-specifico in fisica/renderer/spawn.
+- [x] AC3: retry/recovery e stop/restart funzionanti; suite verde.
 
 ## Verifica
 `npm run test:run` + `npm run test:e2e -- tests/e2e/mvt-live.spec.ts` + gate comune.

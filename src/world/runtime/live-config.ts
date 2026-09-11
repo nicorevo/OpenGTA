@@ -1,8 +1,9 @@
 import { DEFAULT_OVERPASS_ENDPOINT } from "./source.ts";
+import { OPENFREEMAP_TILE_BASE_URL } from "./vector-tile/provider.ts";
 
 export interface LiveSourceConfig {
   readonly endpoint: string;
-  readonly provider: "http" | "osm-overpass";
+  readonly provider: "http" | "osm-overpass" | "openfreemap-mvt";
   readonly consent: true;
 }
 
@@ -22,7 +23,7 @@ export function readRuntimeConfig(params: Pick<URLSearchParams, "get">, policy =
   const mode = params.get("mode") ?? "offline";
   if (mode !== "offline" && mode !== "open-world" && mode !== "open-world-live") throw new Error("Modalita' non valida");
   const provider = params.get("provider");
-  if (provider !== null && provider !== "osm" && provider !== "http") throw new Error("Provider non valido");
+  if (provider !== null && provider !== "osm" && provider !== "http" && provider !== "openfreemap-mvt") throw new Error("Provider non valido");
   const coordinate = (name: string, fallback: number, bound: number) => {
     const raw = params.get(name);
     if (raw === null) return fallback;
@@ -38,7 +39,10 @@ export function readRuntimeConfig(params: Pick<URLSearchParams, "get">, policy =
 export function readLiveSourceConfig(params: Pick<URLSearchParams, "get">, policy = DEFAULT_ENDPOINT_POLICY): LiveSourceConfig | undefined {
   if (params.get("mode") !== "open-world-live") return undefined;
   if (params.get("consent") !== "1") throw new Error("live mode requires explicit consent");
-  if (params.get("provider") !== null && !["osm", "http"].includes(params.get("provider")!)) throw new Error("Provider non valido");
+  if (params.get("provider") !== null && !["osm", "http", "openfreemap-mvt"].includes(params.get("provider")!)) throw new Error("Provider non valido");
+  // The MVT provider is experimental and pinned: the endpoint is a constant,
+  // never user input, so the endpoint allowlist policy stays unchanged.
+  if (params.get("provider") === "openfreemap-mvt") return { endpoint: OPENFREEMAP_TILE_BASE_URL, provider: "openfreemap-mvt", consent: true };
   const provider = params.get("provider") === "osm" ? "osm-overpass" : "http";
   const rawEndpoint = params.get("endpoint") ?? (provider === "osm-overpass" ? DEFAULT_OVERPASS_ENDPOINT : undefined);
   if (!rawEndpoint || rawEndpoint.length > 2_048) throw new Error("live mode requires a bounded endpoint");

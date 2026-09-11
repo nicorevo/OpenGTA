@@ -5,6 +5,9 @@ import { compileRegion, type CompiledChunkV0 } from "../world/compiler/compiled.
 import { createChunkCache } from "../world/chunk/cache.ts";
 import { createIndexedDbChunkStore } from "../world/chunk/persistent-indexeddb.ts";
 import { createGeoDataSource, createHttpGeoDataSource, createOverpassGeoDataSource, OSM_QUERY_PROFILE } from "../world/runtime/source.ts";
+import { createOpenFreeMapProvider } from "../world/runtime/vector-tile/provider.ts";
+import { createMvtChunkCompiler } from "../world/runtime/vector-tile/compile.ts";
+import { createChunkGrid } from "../world/chunk/grid.ts";
 import { DEFAULT_ENDPOINT_POLICY, readRuntimeConfig, type RuntimeConfig } from "../world/runtime/live-config.ts";
 import { createLiveControls } from "./live-controls.ts";
 import { createPixiRenderer } from "../render/pixi/renderer.ts";
@@ -77,12 +80,14 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const { origin, live: liveConfig } = config;
       const openWorld = config.mode !== "offline";
       const sourceIdentity = liveConfig ? liveConfig.provider + ":" + liveConfig.endpoint : "fixture:lecce-v0";
-      if (!sources.has(sourceIdentity)) sources.set(sourceIdentity, liveConfig ? liveConfig.provider === "osm-overpass" ? createOverpassGeoDataSource(liveConfig.endpoint, undefined, { fallbackEndpoints: import.meta.env.DEV ? ["https://maps.mail.ru/osm/tools/overpass/api/interpreter"] : undefined }) : createHttpGeoDataSource(liveConfig.endpoint) : createGeoDataSource(async () => rawFixture));
+      const mvt = liveConfig?.provider === "openfreemap-mvt";
+      if (!sources.has(sourceIdentity)) sources.set(sourceIdentity, liveConfig ? mvt ? createGeoDataSource(async () => { throw new Error("MVT compile seam: the source is never invoked"); }) : liveConfig.provider === "osm-overpass" ? createOverpassGeoDataSource(liveConfig.endpoint, undefined, { fallbackEndpoints: import.meta.env.DEV ? ["https://maps.mail.ru/osm/tools/overpass/api/interpreter"] : undefined }) : createHttpGeoDataSource(liveConfig.endpoint) : createGeoDataSource(async () => rawFixture));
       const source = sources.get(sourceIdentity)!;
       let offlineVehicle: PhysicsVehicleState | undefined;
       let offlineCounts = { buildings: 0, roads: 0, compiled: 0 };
       if (openWorld) {
-        const liveSession = createRuntimeSession({ source, origin, renderer, physics, cache, sourceIdentity, queryProfile: OSM_QUERY_PROFILE, persistentStore });
+        const compile = mvt ? createMvtChunkCompiler({ provider: createOpenFreeMapProvider(), grid: createChunkGrid(300), origin }) : undefined;
+        const liveSession = createRuntimeSession({ source, origin, renderer, physics, cache, sourceIdentity, queryProfile: mvt ? "mvt-z14-v1" : OSM_QUERY_PROFILE, persistentStore, compile });
         current = liveSession;
         zoom.in = () => liveSession.zoomIn(); zoom.out = () => liveSession.zoomOut(); zoom.level = () => liveSession.snapshot().zoomLevel;
         disposeCurrent = async () => { try { await liveSession.dispose(); } catch { /* teardown is best-effort */ } };
