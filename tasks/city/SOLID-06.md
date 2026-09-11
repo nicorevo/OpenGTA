@@ -1,6 +1,6 @@
 # SOLID-06: SECURITY.md riallineato e gate di consistenza documentale
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-SOLID-06.md`.
 **Dipendenze:** Nessuna.
 **Persona:** security-auditor.
 **Taglia:** S, 2 file di documentazione.
@@ -34,9 +34,9 @@ Non promettere SLA o certificazioni.
 
 ## Accettazione
 
-- [ ] AC1: nessuna frase obsoleta; threat model copre le superfici reali.
-- [ ] AC2: gate di consistenza documentato ed eseguibile in < 15 min.
-- [ ] AC3: diff di soli documenti; nessun codice toccato.
+- [x] AC1: nessuna frase obsoleta; threat model copre le superfici reali.
+- [x] AC2: gate di consistenza documentato ed eseguibile in < 15 min.
+- [x] AC3: diff di soli documenti; nessun codice toccato.
 
 ## Verifica
 

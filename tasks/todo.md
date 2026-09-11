@@ -14,7 +14,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 - [ ] [SOLID-03](city/SOLID-03.md): benchmark patologici.
 - [ ] [SOLID-04](city/SOLID-04.md): renderer incrementale.
 - [ ] [SOLID-05](city/SOLID-05.md): long-drive regression.
-- [ ] [SOLID-06](city/SOLID-06.md): SECURITY e gate docs.
+- [x] [SOLID-06](city/SOLID-06.md): SECURITY e gate docs.
 - [ ] C-A: solidità.
 
 ## Zoom
