@@ -9,9 +9,10 @@ import { createChunkCache, type ChunkCache } from "../world/chunk/cache.ts";
 import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
 import { createOpenWorldRuntime } from "../world/runtime/open-world.ts";
 import type { GeoDataSource } from "../world/runtime/source.ts";
+import { lodForZoom, type ZoomLevel } from "./camera.ts";
 
 export type SessionState = "loading" | "ready" | "degraded" | "empty" | "error";
-interface SessionRenderer extends Pick<PixiRenderer, "cameraBounds" | "updateVehicle" | "dispose"> { setChunk(chunk: CompiledChunkV0): void; removeChunk(chunkId: string): void }
+interface SessionRenderer extends Pick<PixiRenderer, "cameraBounds" | "updateVehicle" | "dispose"> { setChunk(chunk: CompiledChunkV0): void; removeChunk(chunkId: string): void; setZoom(level: ZoomLevel): void; zoomIn(): ZoomLevel; zoomOut(): ZoomLevel; cameraState(): { zoomLevel: ZoomLevel } }
 export interface RuntimeSessionOptions {
   readonly source: GeoDataSource;
   readonly sourceIdentity?: string;
@@ -93,6 +94,8 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       catch { if (!disposed) fatal = true; }
       finally { finished = true; }
     },
+    zoomIn() { return options.renderer.zoomIn(); },
+    zoomOut() { return options.renderer.zoomOut(); },
     step(input: VehicleInput) {
       if (disposed || fatal || !vehicle) return;
       const keys = available();
@@ -105,7 +108,8 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const hasErrors = Object.keys(diagnostic.errors).length > 0;
       const state: SessionState = fatal ? "error" : vehicle ? hasErrors ? "degraded" : "ready" : !finished ? "loading" : hasErrors ? "error" : "empty";
       const compiled = values();
-      return { state, runtime: diagnostic, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), warnings: compiled.reduce((sum, chunk) => sum + chunk.diagnostics.warnings.length, 0), lastCompileMs: compiled.reduce((max, chunk) => Math.max(max, chunk.diagnostics.stageDurationsMs.compile ?? 0), 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
+      const zoomLevel = options.renderer.cameraState().zoomLevel;
+      return { state, runtime: diagnostic, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, zoomLevel, lodTier: lodForZoom(zoomLevel), colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), warnings: compiled.reduce((sum, chunk) => sum + chunk.diagnostics.warnings.length, 0), lastCompileMs: compiled.reduce((max, chunk) => Math.max(max, chunk.diagnostics.stageDurationsMs.compile ?? 0), 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
     },
     async dispose() {
       if (disposed) return;

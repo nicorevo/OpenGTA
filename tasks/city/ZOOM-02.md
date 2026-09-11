@@ -1,6 +1,6 @@
 # ZOOM-02: API zoom del renderer
 
-**Stato:** pianificato.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-ZOOM-02.md`.
 **Dipendenze:** ZOOM-01, SOLID-04.
 **Persona:** fullstack-developer.
 **Taglia:** M, 3 file di codice/test.
@@ -33,10 +33,10 @@ fuori del fattore, o updateVehicle.
 
 ## Accettazione
 
-- [ ] AC1: zoom in/out rispettano i limiti e il centro camera resta il
+- [x] AC1: zoom in/out rispettano i limiti e il centro camera resta il
   veicolo.
-- [ ] AC2: bounds cambiano coerentemente; nessun effetto su fisica o spawn.
-- [ ] AC3: V0 offline invariato (zoom default = 1.0); E2E esistenti verdi.
+- [x] AC2: bounds cambiano coerentemente; nessun effetto su fisica o spawn.
+- [x] AC3: V0 offline invariato (zoom default = 1.0); E2E esistenti verdi.
 
 ## Verifica
 

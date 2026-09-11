@@ -39,3 +39,35 @@ test("static updates preserve vehicle, camera and labels, including resize", asy
   });
   expect(result).toMatchObject({ preserved: true, noAllocation: true, oldDestroyed: true, labelsVisible: true, center: { x: 80, y: -15 }, nonblank: true, staticOwned: true });
 });
+
+test("discrete zoom rescales the camera without touching the vehicle pose", async ({ page }) => {
+  await page.goto("/tests/e2e/harness.html");
+  const result = await page.evaluate(async () => {
+    const path = "/src/render/pixi/renderer.ts";
+    const { createPixiRenderer } = await import(path) as typeof import("../../src/render/pixi/renderer.ts");
+    const renderer = await createPixiRenderer(document.querySelector("canvas")!);
+    renderer.updateVehicle({ x: 80, y: -15 }, 0.7);
+    const width = () => renderer.cameraBounds().maxX - renderer.cameraBounds().minX;
+    const center = () => { const b = renderer.cameraBounds(); return { x: (b.minX + b.maxX) / 2, y: (b.minY + b.maxY) / 2 }; };
+    const c0 = center();
+    const before = { level: renderer.cameraState().zoomLevel, width: width() };
+    const inLevels = [renderer.zoomIn(), renderer.zoomIn(), renderer.zoomIn()]; // clamps at 4
+    const zoomed = { level: renderer.cameraState().zoomLevel, width: width() };
+    const outLevels = [renderer.zoomOut(), renderer.zoomOut(), renderer.zoomOut(), renderer.zoomOut(), renderer.zoomOut(), renderer.zoomOut(), renderer.zoomOut(), renderer.zoomOut()]; // clamps at 0
+    const minLevel = renderer.cameraState().zoomLevel;
+    const widthMin = width();
+    const cMin = center();
+    renderer.setZoom(2);
+    const restored = renderer.cameraState().zoomLevel;
+    renderer.dispose();
+    return { c0, before, inLevels, zoomed, outLevels, minLevel, widthMin, cMin, restored };
+  });
+  expect(result.before).toMatchObject({ level: 2 });
+  expect(result.inLevels).toEqual([3, 4, 4]);
+  expect(result.zoomed.width).toBeLessThan(result.before.width);
+  expect(result.minLevel).toBe(0);
+  expect(result.outLevels).toEqual([3, 2, 1, 0, 0, 0, 0, 0]);
+  expect(result.widthMin).toBeGreaterThan(result.before.width);
+  expect(Math.hypot(result.cMin.x - result.c0.x, result.cMin.y - result.c0.y)).toBeLessThan(0.01);
+  expect(result.restored).toBe(2);
+});

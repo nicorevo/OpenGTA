@@ -7,7 +7,8 @@ import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
 
 function renderer() {
   const byId = new Map<string, CompiledChunkV0>();
-  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
+  let zoom = 2 as 0 | 1 | 2 | 3 | 4;
+  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, setZoom(level: 0 | 1 | 2 | 3 | 4) { zoom = level; }, zoomIn() { zoom = Math.min(4, zoom + 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, zoomOut() { zoom = Math.max(0, zoom - 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, cameraState() { return { zoomLevel: zoom }; }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
 }
 
 it("starts before the window finishes and disposes a pending source", async () => {

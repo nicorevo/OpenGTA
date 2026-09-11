@@ -49,7 +49,7 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 | [x] | [SOLID-05 Long-drive regression](city/SOLID-05.md) | SOLID-04 | M | 100+ transizioni senza crash, risorse bounded |
 | [x] | [SOLID-06 SECURITY e gate docs](city/SOLID-06.md) | Nessuna | S | SECURITY.md allineato; gate consistenza documentato |
 | [x] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
-| [ ] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |
+| [x] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |
 | [ ] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
 | [ ] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
 | [ ] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
@@ -69,10 +69,10 @@ condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
 
 ### C-A: solidità, dopo SOLID-01..06
 
-- [ ] Compile misurato e cancellabile; benchmark patologici con budget.
-- [ ] Renderer incrementale senza regressioni di ordine/mask/hole.
-- [ ] 100+ transizioni: memoria, cache, collider bounded.
-- [ ] SECURITY.md riallineato; suite completa, typecheck, build, E2E verdi.
+- [x] Compile misurato e cancellabile; benchmark patologici con budget.
+- [x] Renderer incrementale senza regressioni di ordine/mask/hole.
+- [x] 100+ transizioni: memoria, cache, collider bounded.
+- [x] SECURITY.md riallineato; suite completa, typecheck, build, E2E verdi.
 
 ### C-B: zoom base, dopo ZOOM-01..05
 

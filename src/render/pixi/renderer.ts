@@ -3,7 +3,9 @@ import type { CompiledChunkV0, CompiledLabel } from "../../world/compiler/compil
 import type { Bounds2D, Polygon2D } from "../../world/model/types.ts";
 import { createPresentationState, toggleLabels, type PresentationState } from "./presentation.ts";
 import { groupRoadsByWidth, sortBuildingsForPainter, type RoadStrokeGroup } from "./scene-order.ts";
+import { clampZoom, zoomFactor, type ZoomLevel } from "../../app/camera.ts";
 
+export interface CameraState { readonly zoomLevel: ZoomLevel; readonly zoomFactor: number; readonly bounds: Bounds2D }
 export interface PixiRenderer {
   readonly app: Application;
   /** Full-set rebuild: V0 offline entry point and explicit refresh. */
@@ -14,6 +16,11 @@ export interface PixiRenderer {
   removeChunk(chunkId: string): void;
   /** Read-only diagnostics for tests and the debug overlay. */
   presentationCounts(): { chunkPresentations: number; graphicsObjects: number };
+  /** Discrete zoom: presentation-only, vehicle world pose and physics untouched. */
+  setZoom(level: ZoomLevel): void;
+  zoomIn(): ZoomLevel;
+  zoomOut(): ZoomLevel;
+  cameraState(): CameraState;
   updateVehicle(position: { x: number; y: number }, heading: number): void;
   toggleLabels(): boolean;
   cameraBounds(): Bounds2D;
@@ -112,7 +119,8 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const presentations = new Map<string, ChunkPresentation>();
   let disposed = false;
   let position = { x: 0, y: 0 };
-  const viewScale = () => Math.max(1, Math.min(app.screen.width, app.screen.height)) / 360;
+  let zoomLevel: ZoomLevel = 2;
+  const viewScale = () => Math.max(1, Math.min(app.screen.width, app.screen.height)) / 360 * zoomFactor(zoomLevel);
   const updateCamera = () => {
     const scale = viewScale(); world.scale.set(scale);
     world.position.set(app.screen.width / 2 - position.x * scale, app.screen.height / 2 + position.y * scale);
@@ -206,6 +214,14 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     removeChunk(chunkId) { if (!disposed) setChunkRemoval(chunkId); },
     presentationCounts() {
       return { chunkPresentations: presentations.size, graphicsObjects: presentations.size * 5 };
+    },
+    setZoom(level) { if (disposed) return; zoomLevel = clampZoom(level); updateCamera(); },
+    zoomIn() { zoomLevel = clampZoom(zoomLevel + 1); updateCamera(); return zoomLevel; },
+    zoomOut() { zoomLevel = clampZoom(zoomLevel - 1); updateCamera(); return zoomLevel; },
+    cameraState() {
+      const halfX = app.screen.width / viewScale() / 2;
+      const halfY = app.screen.height / viewScale() / 2;
+      return { zoomLevel, zoomFactor: zoomFactor(zoomLevel), bounds: { minX: position.x - halfX, maxX: position.x + halfX, minY: position.y - halfY, maxY: position.y + halfY } };
     },
     updateVehicle(nextPosition, heading) { if (disposed) return; position = { ...nextPosition }; updateCamera(); vehicle.position.set(position.x, -position.y); vehicle.rotation = -heading; },
     cameraBounds() { const halfX = app.screen.width / viewScale() / 2; const halfY = app.screen.height / viewScale() / 2; return { minX: position.x - halfX, maxX: position.x + halfX, minY: position.y - halfY, maxY: position.y + halfY }; },
