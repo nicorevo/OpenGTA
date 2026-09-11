@@ -1,128 +1,99 @@
-# Piano: City Drive Stable (solidità, zoom e LOD)
+# Piano: Provider-Neutral World Streaming (tranche DATA)
 
-Data: 2026-09-11. Analisi di riferimento: review della tranche ONLINE
-(2026-09-10) e proposta esterna `docs/OpenGTA_SOLIDITY_ZOOM_ROADMAP.md`,
-riconciliata con il codice.
-Stato: completato (SOLID/ZOOM/LOD/CACHE/CITY tutti verificati, C-A..C-E).
-Baseline codice: `77312aa`. Responsabile della pianificazione: tech-lead-planner.
+Data: 2026-09-11. Analisi di riferimento:
+`docs/OpenGTA-DATA-SOURCE-MIGRATION.md` (migrazione Overpass → MVT/PMTiles).
+Stato: pianificato; implementazione non avviata.
+Baseline codice: `4e42d82`. Responsabile della pianificazione: tech-lead-planner.
 
 ## Obiettivo
 
-Rendere OpenGTA un motore realmente solido per attraversare città reali in
-modo continuo: metriche reali, compilazione cancellabile, renderer
-incrementale, guida lunga senza perdite, zoom a livelli discreti con LOD 2D,
-cache persistente fra sessioni e un gate "City Drive Stable" verificato su
-Lecce. Nessun gameplay avanzato prima di questa milestone
-(spec `docs/specs/city-drive-stable.md`, ADR-010,
-design `docs/architecture/zoom-and-lod.md`).
+Eliminare Overpass come dipendenza strutturale dello streaming: chunk
+giocabili da Vector Tiles (OpenFreeMap/OpenMapTiles z14, massimo della
+public instance) attraverso la stessa pipeline canonical/compiler/renderer/
+fisica, con Overpass conservato come reference/debug/fallback e la parity
+Lecce a decidere GO/GO-VISUAL/NO-GO. Spec:
+`docs/specs/provider-neutral-world-streaming.md`, ADR-011.
+
+Vincolo misurato in questo ambiente: overpass-api.de irraggiungibile
+(connection refused), osm.ch serve dataset vuoto, mail.ru raggiungibile,
+tiles.openfreemap.org raggiungibile con z14 pieno e z15+ vuoti.
 
 ## Come usare il piano
 
-1. Leggere [istruzioni e contratti comuni](city/README.md).
-2. Assegnare un solo task; leggere la sua scheda e verificare le dipendenze.
-3. Eseguire TDD, verifica nativa e log di consegna secondo la scheda.
-4. Aggiornare la riga qui e in [todo](todo.md) solo con evidenza.
-
-Il piano non autorizza deploy; il canary live e' separato dalla CI e mai
-bloccante per i test deterministici.
+1. Leggere [istruzioni e contratti comuni](data/README.md).
+2. Un task alla volta: scheda, dipendenze, TDD, gate comune, log.
+3. Aggiornare la riga qui e in [todo](todo.md) solo con evidenza.
 
 ## Confini
 
-Inclusi: metriche compiler reali, cancellazione cooperativa di
-normalize/compile, benchmark patologici, renderer incrementale per chunk,
-long-drive regression, zoom discreti +/− con LOD near/medium/far, cache
-persistente (contratto, esperimento IndexedDB, versioning, eviction), canary
-reale e gate finale su Lecce.
+Inclusi: diagnostica failure, fallback Overpass di sviluppo, tile math,
+decoder MVT bounded, coverage resolver, provider OpenFreeMap, modello
+decodificato, mapping transportation/building/land/water, parity Lecce,
+benchmark, runtime dietro feature flag, seam tests, normalizer MVT
+canonical, refactor CanonicalRegionSource.
 
-Differiti: Worker (solo dopo misure), wheel/pinch continui, traffico,
-pedoni, missioni, multiplayer, AI, hosting/CDN/SLA di produzione. Le
-condizioni di apertura restano in [FOLLOW-UPS](online/FOLLOW-UPS.md).
+Differiti (righe senza scheda, da dettagliare prima dell'esecuzione):
+DATA-15 PMTiles locale, DATA-16 custom tile schema (ADR), DATA-17 cache
+compilata persistente (GIA' consegnata in CACHE-01..04: solo verifica di
+riuso), DATA-18 curated region package.
 
 ## Task ordinati
 
 | Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
 | --- | --- | --- | --- | --- |
-| [x] | [SOLID-01 Metriche compiler reali](city/SOLID-01.md) | Nessuna | S | Nessun `total: 0`; overlay con tempi reali |
-| [x] | [SOLID-02 Cancellazione compile](city/SOLID-02.md) | SOLID-01 | M | Abort osservabile durante normalize/compile |
-| [x] | [SOLID-03 Benchmark patologici](city/SOLID-03.md) | SOLID-02 | M | Fixture 100..20k membri con budget dichiarato |
-| [x] | [SOLID-04 Renderer incrementale](city/SOLID-04.md) | Nessuna | L | setChunk/removeChunk con zero rebuild dei chunk invariati |
-| [x] | [SOLID-05 Long-drive regression](city/SOLID-05.md) | SOLID-04 | M | 100+ transizioni senza crash, risorse bounded |
-| [x] | [SOLID-06 SECURITY e gate docs](city/SOLID-06.md) | Nessuna | S | SECURITY.md allineato; gate consistenza documentato |
-| [x] | [ZOOM-01 Stato camera](city/ZOOM-01.md) | Nessuna | S | Modulo puro con clamp/fattori/bounds testati |
-| [x] | [ZOOM-02 API zoom renderer](city/ZOOM-02.md) | ZOOM-01, SOLID-04 | M | setZoom con centro e fisica invariati |
-| [x] | [ZOOM-03 Controlli +/−](city/ZOOM-03.md) | ZOOM-02 | S | Pulsanti accessibili senza intrappolare i tasti di guida |
-| [x] | [ZOOM-04 Streaming reagisce allo zoom](city/ZOOM-04.md) | ZOOM-03 | M | Domanda aggiornata senza tempesta di richieste |
-| [x] | [ZOOM-05 Test zoom](city/ZOOM-05.md) | ZOOM-04 | M | Unit + E2E con benchmark dei fattori |
-| [x] | [LOD-01 Politica zoom→LOD](city/LOD-01.md) | ZOOM-01 | S | lodForZoom pura e testata |
-| [x] | [LOD-02 Label per tier](city/LOD-02.md) | LOD-01, SOLID-04 | S | Soglie di importanza per tier |
-| [x] | [LOD-03 Facade per tier](city/LOD-03.md) | LOD-01 | S | Forza facade decrescente con lo zoom out |
-| [x] | [LOD-04 Road detail per tier](city/LOD-04.md) | LOD-01 | S | FAR body / MEDIUM casing / NEAR marking |
-| [x] | [LOD-05 Culling feature](city/LOD-05.md) | LOD-01 | M | Skip visuale sotto soglia px², world model intatto |
-| [x] | [CACHE-01 Contratto storage](city/CACHE-01.md) | Nessuna | S | Interfaccia astratta con quota/errori |
-| [x] | [CACHE-02 Esperimento IndexedDB](city/CACHE-02.md) | CACHE-01 | M | Misure write/read/quota con decisione documentata |
-| [x] | [CACHE-03 Versioning e integrità](city/CACHE-03.md) | CACHE-02 | S | Entry incompatibile scartata, mai usata |
-| [x] | [CACHE-04 Eviction](city/CACHE-04.md) | CACHE-03 | S | Budget dichiarato e rispettato |
-| [x] | [CITY-01 Canary reale](city/CITY-01.md) | SOLID-01..06, ZOOM-05 | M | Report separato, Lecce + lista estesa |
-| [x] | [CITY-02 Gate City Drive Stable](city/CITY-02.md) | Tutti i precedenti | M | Matrice requisiti→prove, misure e handoff allineati |
+| [ ] | [DATA-00 Diagnostica failure](data/DATA-00.md) | Nessuna | S | Categoria/host/tentativi/durata visibili senza payload nei log |
+| [ ] | [DATA-01 Fallback Overpass](data/DATA-01.md) | DATA-00 | S | Network/5xx persistente passa al secondario; 429 rispettato |
+| [ ] | [DATA-02 Tile math e decoder MVT](data/DATA-02.md) | Nessuna | M | lat/lon→z/x/y deterministico; tile fixture decodificata; malformed non crasha |
+| [ ] | [DATA-03 Coverage resolver](data/DATA-03.md) | DATA-02 | S | Lista tile deterministica, completa, senza duplicati, clamp Mercator |
+| [ ] | [DATA-04 Provider OpenFreeMap](data/DATA-04.md) | DATA-03 | S | Fetch bounded e cancellabile; 404/204 vuoto; errori distinti |
+| [ ] | [DATA-05 Modello decodificato](data/DATA-05.md) | DATA-02 | S | DecodedVectorFeature tipizzato, nessun oggetto decoder nel canonical |
+| [ ] | [DATA-06 Mapping transportation](data/DATA-06.md) | DATA-05 | M | Classi OMT→OpenGTA con warning per classi ignote |
+| [ ] | [DATA-07 Mapping building](data/DATA-07.md) | DATA-05 | S | render_height/fallback deterministico |
+| [ ] | [DATA-08 Mapping land/water](data/DATA-08.md) | DATA-05 | S | park/landuse/landcover/water/waterway → LandArea/Water |
+| [ ] | [DATA-09 Parity Lecce](data/DATA-09.md) | DATA-06..08 | M | Conteggi e decisione GO/GO-VISUAL/NO-GO documentata |
+| [ ] | [DATA-10 Benchmark Overpass vs MVT](data/DATA-10.md) | DATA-09 | M | Metriche con ambiente dichiarato |
+| [ ] | [DATA-11 Runtime feature flag](data/DATA-11.md) | DATA-09 | L | provider=openfreemap-mvt guida 10+ chunk con stesso runtime |
+| [ ] | [DATA-12 Seam tests](data/DATA-12.md) | DATA-11 | M | Tile sintetiche: no gap/duplicati/doppie facade, output deterministico |
+| [ ] | [DATA-13 Normalizer MVT canonico](data/DATA-13.md) | DATA-12 | M | DecodedVectorTile→WorldRegion; compiler unico |
+| [ ] | [DATA-14 CanonicalRegionSource](data/DATA-14.md) | DATA-13 | M | Runtime consuma WorldRegion; Overpass e MVT dietro lo stesso contratto |
+| [ ] | DATA-15 PMTiles PoC locale | DATA-14 | M | Scheda da dettagliare prima dell'esecuzione |
+| [ ] | DATA-16 Custom tile schema ADR | DATA-09 | S | Scheda da dettagliare prima dell'esecuzione |
+| [ ] | DATA-17 Persistent compiled cache (verifica riuso) | CACHE-04 | S | Gia' consegnata: verifica di riuso con la source MVT |
+| [ ] | DATA-18 Curated region package | DATA-15..17 | L | Scheda da dettagliare prima dell'esecuzione |
 
 ## Checkpoint
 
-### C-A: solidità, dopo SOLID-01..06
+### D-A: fondazioni, dopo DATA-00..05
 
-- [x] Compile misurato e cancellabile; benchmark patologici con budget.
-- [x] Renderer incrementale senza regressioni di ordine/mask/hole.
-- [x] 100+ transizioni: memoria, cache, collider bounded.
-- [x] SECURITY.md riallineato; suite completa, typecheck, build, E2E verdi.
+- [ ] Failure diagnosticabili senza indovinare; fallback dev rispettoso.
+- [ ] Tile math e decoder bounded con fixture reale; provider cancellabile.
+- [ ] Suite completa, typecheck, build, E2E verdi.
 
-### C-B: zoom base, dopo ZOOM-01..05
+### D-B: mapping e parity, dopo DATA-06..10
 
-- [x] 5 livelli con clamp e centro invariato; fisica e fixed-step intatti.
-- [x] Pulsanti +/− accessibili; guida continua dopo i click.
-- [x] Domanda di streaming aggiornata con debounce; nessuna tempesta.
-- [x] Fattori benchmarkati e documentati; E2E zoom verdi.
+- [ ] Mapping OMT→OpenGTA coperto con warning; parity Lecce misurata.
+- [ ] Decisione GO/GO-VISUAL/NO-GO documentata con numeri.
+- [ ] Benchmark con ambiente dichiarato.
 
-### C-C: LOD, dopo LOD-01..05
+### D-C: runtime e seam, dopo DATA-11..14
 
-- [x] Tier coerenti per zoom; costo per metro quadro decrescente con lo
-  zoom out misurato (diagnostica per tier nel harness).
-- [x] Nessun LOD nel canonical world; culling solo visuale.
-- [x] Suite completa, typecheck, build, E2E verdi.
-
-### C-D: cache persistente, dopo CACHE-01..04
-
-- [x] Reload riusa i chunk validi; entry corrotta/stale scartata.
-- [x] Quota gestita; sessione funziona anche senza storage.
-- [x] Misure cold/warm con ambiente dichiarato.
-
-### C-E: gate, CITY-01..02
-
-- [x] Canary Lecce + lista estesa con report separato, mai bloccante per CI.
-- [x] Matrice requisiti→prove completa; misure con ambiente dichiarato.
-- [x] `docs/handoff/CURRENT.md`, piano e checklist concordi col codice.
-
-I checkpoint sono gate tecnici e non richiedono nuova autorizzazione per
-proseguire una tranche gia' assegnata.
-
-## Dipendenze e ordine di esecuzione
-
-L'ordine numerico e' valido per un singolo esecutore. SOLID-04 (renderer)
-e' prerequisito del LOD applicato ma puo' procedere in parallelo con
-SOLID-01..03 se assegnato esplicitamente; ZOOM-01 e CACHE-01 sono indipendenti
-dal resto. Nessun task di solo test lascia la suite rossa a fine consegna.
+- [ ] MVT dietro feature flag guida 10+ chunk con lo stesso runtime.
+- [ ] Seam senza gap/duplicati; normalizer canonico; contratto unico.
+- [ ] Suite completa, typecheck, build, E2E verdi.
 
 ## Rischi e scelte esplicite
 
 | Rischio | Gestione prevista |
 | --- | --- |
-| Zoom out senza LOD aumenta il carico | LOD prima della pubblicizzazione dei fattori; benchmark per livello |
-| Renderer incrementale rompe z-order/mask | Container per tipo di layer; regressioni V0 di hole/ordine |
-| Compilazione lunga blocca il main thread | Yield cooperativo + budget per task; Worker solo con misure |
-| Relation patologiche | Indicizzazione per endpoint se i benchmark lo richiedono |
-| Cache persistente corrotta/incompatibile | Versioning nel namespace; discard mai uso silenzioso |
-| Canary contatta servizi pubblici | Suite separata, mai in CI, richieste limitate e riportate |
+| Public OFM ferma a z14 | PoC a z14; parity decide; custom tiles/PMTiles per il NEAR |
+| Provider pubblico senza SLA | Mai default finche' G1-G8 del documento non passano |
+| Tile vuote a zoom alti | 404/204 = vuoto deterministico, non errore |
+| Seam/duplicati ai buffer | Clip ai bounds OpenGTA + deduplica + ID deterministici |
+| Payload ostile | Limiti bytes/feature/punti; errori tipizzati |
 
 ## Storico preservato
 
-Piano e checklist della tranche ONLINE completata: [archivio
-piano](archive/2026-09-10-plan.md) e [archivio checklist](archive/2026-09-10-todo.md).
-I log in `tasks/executions/` restano evidenza storica.
+Piano e checklist City Drive Stable: [archivio piano](archive/2026-09-11-plan.md)
+e [archivio checklist](archive/2026-09-11-todo.md). La tranche ONLINE resta in
+[archivio](archive/2026-09-10-plan.md). I log in `tasks/executions/` sono
+evidenza storica.

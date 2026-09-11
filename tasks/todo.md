@@ -1,58 +1,45 @@
-# Checklist: City Drive Stable
+# Checklist: Provider-Neutral World Streaming
 
 Data: 2026-09-11.
-Stato: completata; tutti i task e i checkpoint verificati nei log.
+Stato: pianificato; nessun task avviato.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
-[contratti e procedura](city/README.md). Le checkbox sono una vista sintetica:
-l'accettazione resta nella scheda, il dettaglio delle prove nel log.
+[contratti e procedura](data/README.md).
 
-## Solidità
+## Fondazioni
 
-- [x] [SOLID-01](city/SOLID-01.md): metriche compiler reali.
-- [x] [SOLID-02](city/SOLID-02.md): cancellazione compile.
-- [x] [SOLID-03](city/SOLID-03.md): benchmark patologici.
-- [x] [SOLID-04](city/SOLID-04.md): renderer incrementale.
-- [x] [SOLID-05](city/SOLID-05.md): long-drive regression.
-- [x] [SOLID-06](city/SOLID-06.md): SECURITY e gate docs.
-- [x] C-A: solidità.
+- [ ] [DATA-00](data/DATA-00.md): diagnostica failure.
+- [ ] [DATA-01](data/DATA-01.md): fallback Overpass.
+- [ ] [DATA-02](data/DATA-02.md): tile math e decoder MVT.
+- [ ] [DATA-03](data/DATA-03.md): coverage resolver.
+- [ ] [DATA-04](data/DATA-04.md): provider OpenFreeMap.
+- [ ] [DATA-05](data/DATA-05.md): modello decodificato.
+- [ ] D-A: fondazioni.
 
-## Zoom
+## Mapping e parity
 
-- [x] [ZOOM-01](city/ZOOM-01.md): stato camera.
-- [x] [ZOOM-02](city/ZOOM-02.md): API zoom renderer.
-- [x] [ZOOM-03](city/ZOOM-03.md): controlli +/−.
-- [x] [ZOOM-04](city/ZOOM-04.md): streaming reagisce allo zoom.
-- [x] [ZOOM-05](city/ZOOM-05.md): test zoom.
-- [x] C-B: zoom base.
+- [ ] [DATA-06](data/DATA-06.md): mapping transportation.
+- [ ] [DATA-07](data/DATA-07.md): mapping building.
+- [ ] [DATA-08](data/DATA-08.md): mapping land/water.
+- [ ] [DATA-09](data/DATA-09.md): parity Lecce.
+- [ ] [DATA-10](data/DATA-10.md): benchmark.
+- [ ] D-B: mapping e parity.
 
-## LOD
+## Runtime e seam
 
-- [x] [LOD-01](city/LOD-01.md): politica zoom→LOD.
-- [x] [LOD-02](city/LOD-02.md): label per tier.
-- [x] [LOD-03](city/LOD-03.md): facade per tier.
-- [x] [LOD-04](city/LOD-04.md): road detail per tier.
-- [x] [LOD-05](city/LOD-05.md): culling feature.
-- [x] C-C: LOD.
+- [ ] [DATA-11](data/DATA-11.md): runtime feature flag.
+- [ ] [DATA-12](data/DATA-12.md): seam tests.
+- [ ] [DATA-13](data/DATA-13.md): normalizer MVT.
+- [ ] [DATA-14](data/DATA-14.md): CanonicalRegionSource.
+- [ ] D-C: runtime e seam.
 
-## Cache persistente
+## Fasi successive (senza scheda: da dettagliare prima dell'esecuzione)
 
-- [x] [CACHE-01](city/CACHE-01.md): contratto storage.
-- [x] [CACHE-02](city/CACHE-02.md): esperimento IndexedDB.
-- [x] [CACHE-03](city/CACHE-03.md): versioning e integrità.
-- [x] [CACHE-04](city/CACHE-04.md): eviction.
-- [x] C-D: cache persistente.
-
-## Gate
-
-- [x] [CITY-01](city/CITY-01.md): canary reale.
-- [x] [CITY-02](city/CITY-02.md): gate City Drive Stable.
-- [x] C-E: gate finale.
+- [ ] DATA-15: PMTiles PoC locale.
+- [ ] DATA-16: custom tile schema ADR.
+- [ ] DATA-17: verifica riuso cache compilata (gia' consegnata).
+- [ ] DATA-18: curated region package.
 
 ## Storico
 
-La tranche ONLINE completata (ONLINE-01..16, C1..C6) è conservata in
-[archivio piano](archive/2026-09-10-plan.md) e
-[archivio checklist](archive/2026-09-10-todo.md).
-Il [backlog differito](online/FOLLOW-UPS.md) resta fuori da questa consegna
-salvo riapertura esplicita (cache persistente = NEXT-03).
+City Drive Stable completata: [archivio](archive/2026-09-11-todo.md).
