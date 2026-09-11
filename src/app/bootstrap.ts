@@ -122,6 +122,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
           "physics steps: " + m.physicsSteps, "physics avg: " + m.averagePhysicsMs.toFixed(3) + " ms", "physics p95: " + m.p95PhysicsMs.toFixed(3) + " ms",
           "sim debt: " + m.simulationDebtDrops + " drops, " + m.droppedSimulationSeconds.toFixed(2) + " s",
           "active: " + (s?.runtime.active.length ?? 1), "pending: " + (s?.runtime.pending.length ?? 0), "warm: " + (s?.runtime.cacheSize ?? 0),
+        "source: " + (s?.source ? s.source.lastHost + " | " + (s.source.lastCategory ?? "ok") + " | attempts " + s.source.attempts + " | " + (s.source.lastDurationMs ? s.source.lastDurationMs.toFixed(0) + " ms" : "-") : "n/a"),
           "canvas: " + renderer.app.screen.width + "x" + renderer.app.screen.height + " px", "renderer: PixiJS WebGL",
         ].join("\n");
       };

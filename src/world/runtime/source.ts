@@ -16,9 +16,17 @@ export interface RuntimeRegionRequest {
 export interface CompilePhaseTimings { decodeMs?: number }
 export type GeoDataLoader = (request: RuntimeRegionRequest, signal: AbortSignal, context: AttemptContext, phases?: CompilePhaseTimings) => Promise<unknown>;
 
+export interface SourceDiagnostics {
+  readonly attempts: number;
+  readonly lastCategory: string | undefined;
+  readonly lastDurationMs: number | undefined;
+  readonly lastStatus: number | undefined;
+  readonly lastHost: string | undefined;
+}
 export interface GeoDataSource {
   acquire(request: RuntimeRegionRequest, options?: AcquireOptions): Promise<RawOsm>;
   promote?(signal: AbortSignal, priority: 0 | 1 | 2): void;
+  diagnostics?(): SourceDiagnostics;
 }
 
 export interface GeoDataSourceOptions extends SchedulerOptions {}
@@ -85,20 +93,37 @@ async function readResponse(response: GeoDataResponse, signal: AbortSignal, maxB
   return validateResponse(payload, response.status);
 }
 
-export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourceOptions = {}): GeoDataSource {
+interface MutableSourceDiagnostics { attempts: number; lastCategory?: string; lastDurationMs?: number; lastStatus?: number; lastHost?: string }
+
+export function createGeoDataSource(loader: GeoDataLoader, options: GeoDataSourceOptions = {}, diagnosticsTarget?: MutableSourceDiagnostics): GeoDataSource {
   const scheduler = createRequestScheduler(options);
+  const diagnostics = diagnosticsTarget ?? { attempts: 0, lastCategory: undefined, lastDurationMs: undefined, lastStatus: undefined, lastHost: undefined };
   return {
     promote: scheduler.promote,
+    diagnostics: () => ({ attempts: diagnostics.attempts, lastCategory: diagnostics.lastCategory, lastDurationMs: diagnostics.lastDurationMs, lastStatus: diagnostics.lastStatus, lastHost: diagnostics.lastHost }),
     async acquire(request, input) {
       try { validateRequest(request); }
       catch (cause) { throw new GeoDataSourceError("invalid-request", cause instanceof Error ? cause.message : "Invalid region request", undefined, cause); }
-      return scheduler.run(async (context) => validateResponse(await loader({ ...request, origin: { ...request.origin } }, context.signal, context, input?.phases)), input);
+      const started = performance.now();
+      diagnostics.attempts += 1;
+      try {
+        const value = await scheduler.run(async (context) => validateResponse(await loader({ ...request, origin: { ...request.origin } }, context.signal, context, input?.phases)), input);
+        diagnostics.lastCategory = undefined;
+        diagnostics.lastStatus = undefined;
+        return value;
+      } catch (error) {
+        diagnostics.lastCategory = error instanceof GeoDataSourceError ? error.code : "load-error";
+        diagnostics.lastStatus = error instanceof GeoDataSourceError ? error.status : undefined;
+        diagnostics.lastDurationMs = performance.now() - started;
+        throw error;
+      }
     },
   };
 }
 
 export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetcher = async (url, signal) => fetch(url, { signal }), options: HttpSourceOptions = {}): GeoDataSource {
   const baseUrl = new URL(endpoint);
+  const diagnostics: MutableSourceDiagnostics = { attempts: 0, lastHost: baseUrl.host };
   const maxBytes = options.maxResponseBytes ?? DEFAULT_RESPONSE_BYTES;
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) throw new RangeError("Invalid response byte budget");
   return createGeoDataSource(async (request, signal, _context, phases) => {
@@ -119,7 +144,7 @@ export function createHttpGeoDataSource(endpoint: string, fetcher: GeoDataFetche
     const raw = await readResponse(response, signal, maxBytes);
     if (phases) phases.decodeMs = performance.now() - decodeStarted;
     return raw;
-  }, { timeoutMs: 30_000, minIntervalMs: 1_000, ...options });
+  }, { timeoutMs: 30_000, minIntervalMs: 1_000, ...options }, diagnostics);
 }
 
 export const OSM_QUERY_PROFILE = "osm-v1-park-parking";
@@ -146,6 +171,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
   const now = options.now ?? Date.now;
+  const diagnostics: MutableSourceDiagnostics = { attempts: 0, lastHost: new URL(endpoint).host };
   return createGeoDataSource(async (request, signal, context, phases) => {
     const latitudeDelta = request.radiusMeters / 111_320;
     const longitudeDelta = request.radiusMeters / (111_320 * Math.max(0.01, Math.cos(request.origin.latitude * Math.PI / 180)));
@@ -183,7 +209,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
       if (retryAt >= context.deadline) throw new GeoDataSourceError(response ? "http" : "network", "Provider cooldown exceeds request budget", response?.status, networkError, retryAt);
     }
     throw new GeoDataSourceError("network", "geo data source retry loop exhausted");
-  }, { timeoutMs: 30_000, minIntervalMs: 2_000, ...options });
+  }, { timeoutMs: 30_000, minIntervalMs: 2_000, ...options }, diagnostics);
 }
 
 export async function compileRuntimeRegion(source: GeoDataSource, request: RuntimeRegionRequest, options?: AcquireOptions): Promise<CompileResult> {

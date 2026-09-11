@@ -1,6 +1,6 @@
 # DATA-00: Classificare i fallimenti della source live
 
-**Stato:** pianificato. **Dipendenze:** Nessuna. **Persona:** fullstack-developer. **Taglia:** S.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-00.md`. **Dipendenze:** Nessuna. **Persona:** fullstack-developer. **Taglia:** S.
 
 ## Obiettivo
 Diagnostica developer senza cambiare la semantica runtime: categoria errore
@@ -24,10 +24,10 @@ bootstrap, test. Non cambiare compiler/normalizer/renderer/fisica/chunk grid.
 3. GREEN + gate.
 
 ## Accettazione
-- [ ] AC1: network/timeout/abort/http/rate-limit/invalid-response/
+- [x] AC1: network/timeout/abort/http/rate-limit/invalid-response/
   response-too-large restano distinguibili in diagnostica.
-- [ ] AC2: host, tentativi, durata e categoria visibili in overlay/debug.
-- [ ] AC3: nessun payload/token nei log; suite verde.
+- [x] AC2: host, tentativi, durata e categoria visibili in overlay/debug.
+- [x] AC3: nessun payload/token nei log; suite verde.
 
 ## Verifica
 `npm run test:run -- src/world/runtime src/app/runtime-session.test.ts` + gate comune.

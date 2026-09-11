@@ -111,7 +111,8 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const state: SessionState = fatal ? "error" : vehicle ? hasErrors ? "degraded" : "ready" : !finished ? "loading" : hasErrors ? "error" : "empty";
       const compiled = values();
       const zoomLevel = options.renderer.cameraState().zoomLevel;
-      return { state, runtime: diagnostic, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, zoomLevel, lodTier: lodForZoom(zoomLevel), colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), warnings: compiled.reduce((sum, chunk) => sum + chunk.diagnostics.warnings.length, 0), lastCompileMs: compiled.reduce((max, chunk) => Math.max(max, chunk.diagnostics.stageDurationsMs.compile ?? 0), 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
+      const source = options.source.diagnostics?.();
+      return { state, runtime: diagnostic, source, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, zoomLevel, lodTier: lodForZoom(zoomLevel), colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), warnings: compiled.reduce((sum, chunk) => sum + chunk.diagnostics.warnings.length, 0), lastCompileMs: compiled.reduce((max, chunk) => Math.max(max, chunk.diagnostics.stageDurationsMs.compile ?? 0), 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
     },
     async dispose() {
       if (disposed) return;

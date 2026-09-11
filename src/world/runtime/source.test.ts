@@ -185,3 +185,27 @@ it("records real acquisition, decode, normalize and compile phases", async () =>
   expect(phases.compile).toBeGreaterThan(0);
   expect(phases.total).toBeGreaterThanOrEqual((phases.acquire ?? 0) + (phases.normalize ?? 0) + (phases.compile ?? 0));
 });
+
+it("records source diagnostics with host, category, status and duration", async () => {
+  let fail = true;
+  const source = createHttpGeoDataSource("https://example.test/data", async () => {
+    if (fail) return { ok: false, status: 503, json: async () => ({}) };
+    return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+  }, { minIntervalMs: 0 });
+  await expect(source.acquire(request)).rejects.toMatchObject({ code: "http", status: 503 });
+  const failed = source.diagnostics?.();
+  expect(failed).toMatchObject({ attempts: 1, lastCategory: "http", lastStatus: 503, lastHost: "example.test" });
+  expect(failed?.lastDurationMs).toBeGreaterThanOrEqual(0);
+  fail = false;
+  await source.acquire(request);
+  const recovered = source.diagnostics?.();
+  expect(recovered).toMatchObject({ attempts: 2, lastCategory: undefined, lastStatus: undefined });
+});
+
+it("exposes per-chunk failure codes without payloads", async () => {
+  const source = createGeoDataSource(async () => { throw new Error("offline"); }, { minIntervalMs: 0 });
+  await expect(source.acquire(request)).rejects.toMatchObject({ code: "load-error" });
+  const diagnostics = source.diagnostics?.();
+  expect(diagnostics?.lastCategory).toBe("load-error");
+  expect(JSON.stringify(diagnostics)).not.toContain("offline");
+});

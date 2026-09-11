@@ -8,7 +8,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 
 ## Fondazioni
 
-- [ ] [DATA-00](data/DATA-00.md): diagnostica failure.
+- [x] [DATA-00](data/DATA-00.md): diagnostica failure.
 - [ ] [DATA-01](data/DATA-01.md): fallback Overpass.
 - [ ] [DATA-02](data/DATA-02.md): tile math e decoder MVT.
 - [ ] [DATA-03](data/DATA-03.md): coverage resolver.
