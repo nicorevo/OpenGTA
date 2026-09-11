@@ -209,3 +209,39 @@ it("exposes per-chunk failure codes without payloads", async () => {
   expect(diagnostics?.lastCategory).toBe("load-error");
   expect(JSON.stringify(diagnostics)).not.toContain("offline");
 });
+
+it("falls back to a mirror after persistent network failure on the primary", async () => {
+  let primaryCalls = 0; let secondaryCalls = 0;
+  const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async (url) => {
+    if (url.includes("overpass.test")) { primaryCalls++; throw new TypeError("connection refused"); }
+    secondaryCalls++;
+    return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+  }, { minIntervalMs: 0, maxRetries: 0, fallbackEndpoints: ["https://mirror.test/api/interpreter"] });
+  await expect(source.acquire(request)).resolves.toEqual({ elements: [] });
+  expect(primaryCalls).toBe(1);
+  expect(secondaryCalls).toBe(1);
+  expect(source.diagnostics?.().lastHost).toBe("mirror.test");
+});
+
+it("never skips to the fallback on 429 even when the primary is exhausted", async () => {
+  let secondaryCalls = 0;
+  const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async (url) => {
+    if (url.includes("overpass.test")) return { ok: false, status: 429, headers: { get: (name: string) => name === "retry-after" ? "2" : null }, json: async () => ({}) };
+    secondaryCalls++;
+    return { ok: true, status: 200, json: async () => ({ elements: [] }) };
+  }, { minIntervalMs: 0, maxRetries: 0, fallbackEndpoints: ["https://mirror.test/api/interpreter"] });
+  await expect(source.acquire(request)).rejects.toMatchObject({ code: "http", status: 429 });
+  expect(secondaryCalls).toBe(0);
+});
+
+it("aborts the whole fallback chain when the signal is cancelled", async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  const source = createOverpassGeoDataSource("https://overpass.test/api/interpreter", async () => {
+    calls++;
+    controller.abort();
+    throw new TypeError("connection refused");
+  }, { minIntervalMs: 0, maxRetries: 0, fallbackEndpoints: ["https://mirror.test/api/interpreter"] });
+  await expect(source.acquire(request, { signal: controller.signal })).rejects.toMatchObject({ code: "aborted" });
+  expect(calls).toBe(1);
+});

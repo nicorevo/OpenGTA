@@ -1,6 +1,6 @@
 # DATA-01: Fallback Overpass di sviluppo
 
-**Stato:** pianificato. **Dipendenze:** DATA-00. **Persona:** fullstack-developer. **Taglia:** S.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-01.md`. **Dipendenze:** DATA-00. **Persona:** fullstack-developer. **Taglia:** S.
 
 ## Obiettivo
 Misura di continuita' per lo sviluppo (NON la soluzione finale): se il
@@ -26,9 +26,9 @@ cambiare scheduler/retry core, policy di produzione (allowlist), UI.
 3. GREEN + gate.
 
 ## Accettazione
-- [ ] AC1: network/5xx persistente passa al secondario; 429 rispettato.
-- [ ] AC2: nessuna query parallela a piu' provider; abort interrompe tutto.
-- [ ] AC3: cache namespace distinto per endpoint; suite verde.
+- [x] AC1: network/5xx persistente passa al secondario; 429 rispettato.
+- [x] AC2: nessuna query parallela a piu' provider; abort interrompe tutto.
+- [x] AC3: cache namespace distinto per endpoint; suite verde.
 
 ## Verifica
 `npm run test:run -- src/world/runtime/source.test.ts` + gate comune.

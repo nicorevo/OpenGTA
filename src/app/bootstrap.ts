@@ -77,7 +77,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const { origin, live: liveConfig } = config;
       const openWorld = config.mode !== "offline";
       const sourceIdentity = liveConfig ? liveConfig.provider + ":" + liveConfig.endpoint : "fixture:lecce-v0";
-      if (!sources.has(sourceIdentity)) sources.set(sourceIdentity, liveConfig ? liveConfig.provider === "osm-overpass" ? createOverpassGeoDataSource(liveConfig.endpoint) : createHttpGeoDataSource(liveConfig.endpoint) : createGeoDataSource(async () => rawFixture));
+      if (!sources.has(sourceIdentity)) sources.set(sourceIdentity, liveConfig ? liveConfig.provider === "osm-overpass" ? createOverpassGeoDataSource(liveConfig.endpoint, undefined, { fallbackEndpoints: import.meta.env.DEV ? ["https://maps.mail.ru/osm/tools/overpass/api/interpreter"] : undefined }) : createHttpGeoDataSource(liveConfig.endpoint) : createGeoDataSource(async () => rawFixture));
       const source = sources.get(sourceIdentity)!;
       let offlineVehicle: PhysicsVehicleState | undefined;
       let offlineCounts = { buildings: 0, roads: 0, compiled: 0 };

@@ -45,6 +45,9 @@ export interface HttpSourceOptions extends GeoDataSourceOptions { readonly maxRe
 export interface OverpassOptions extends HttpSourceOptions {
   readonly maxRetries?: number;
   readonly retryDelayMs?: number;
+  /** Development continuity: mirrors tried only after persistent network/5xx
+   * on the primary. Never used to bypass 429/Retry-After, never parallel. */
+  readonly fallbackEndpoints?: readonly string[];
 }
 
 
@@ -171,6 +174,7 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
   if (!Number.isInteger(maxRetries) || maxRetries < 0) throw new RangeError("Overpass retries must be a non-negative integer");
   if (!Number.isFinite(retryDelayMs) || retryDelayMs < 0) throw new RangeError("Overpass retry delay must be non-negative");
   const now = options.now ?? Date.now;
+  const endpoints = [endpoint, ...(options.fallbackEndpoints ?? [])];
   const diagnostics: MutableSourceDiagnostics = { attempts: 0, lastHost: new URL(endpoint).host };
   return createGeoDataSource(async (request, signal, context, phases) => {
     const latitudeDelta = request.radiusMeters / 111_320;
@@ -181,32 +185,42 @@ export function createOverpassGeoDataSource(endpoint = DEFAULT_OVERPASS_ENDPOINT
     const east = request.origin.longitude + longitudeDelta;
     const bbox = `${south},${west},${north},${east}`;
     const query = `[out:json][timeout:25];(nwr["building"](${bbox});nwr["highway"](${bbox});nwr["landuse"](${bbox});nwr["natural"](${bbox});nwr["waterway"](${bbox});nwr["barrier"](${bbox});nwr["leisure"="park"](${bbox});nwr["amenity"="parking"](${bbox}););out body;>;out skel qt;`;
-    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
-      signal.throwIfAborted();
-      if (attempt > 0) await context.attempt();
-      let response: GeoDataResponse | undefined;
-      let networkError: unknown;
-      try {
-        response = await fetcher(endpoint, signal, `data=${encodeURIComponent(query)}`);
-      } catch (error: unknown) {
-        networkError = error;
+    for (let endpointIndex = 0; endpointIndex < endpoints.length; endpointIndex += 1) {
+      const currentEndpoint = endpoints[endpointIndex];
+      diagnostics.lastHost = new URL(currentEndpoint).host;
+      for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+        signal.throwIfAborted();
+        if (attempt > 0) await context.attempt();
+        let response: GeoDataResponse | undefined;
+        let networkError: unknown;
+        try {
+          response = await fetcher(currentEndpoint, signal, `data=${encodeURIComponent(query)}`);
+        } catch (error: unknown) {
+          networkError = error;
+        }
+        signal.throwIfAborted();
+        if (response?.ok) {
+          const decodeStarted = performance.now();
+          const raw = await readResponse(response, signal, maxBytes, true);
+          if (phases) phases.decodeMs = performance.now() - decodeStarted;
+          return raw;
+        }
+        const status = response?.status;
+        const retryable = networkError !== undefined || status === 429 || status === 503 || (status ?? 0) >= 500;
+        const delay = retryAfterMilliseconds(response?.headers?.get("retry-after"), now()) ?? retryDelayMs * (attempt + 1);
+        const retryAt = now() + delay;
+        if (retryable) context.deferUntil(retryAt);
+        const exhausted = !retryable || attempt === maxRetries;
+        if (exhausted) {
+          const mayFallback = (networkError !== undefined || status === 503 || (status ?? 0) >= 500) && endpointIndex < endpoints.length - 1;
+          if (!mayFallback) {
+            if (networkError !== undefined) throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, networkError);
+            throw new GeoDataSourceError("http", `geo data source returned HTTP ${status}`, status, undefined, retryable ? retryAt : undefined);
+          }
+          break; // move to the next endpoint, never on 429 or non-5xx
+        }
+        if (retryAt >= context.deadline) throw new GeoDataSourceError(response ? "http" : "network", "Provider cooldown exceeds request budget", status, networkError, retryAt);
       }
-      signal.throwIfAborted();
-      if (response?.ok) {
-        const decodeStarted = performance.now();
-        const raw = await readResponse(response, signal, maxBytes, true);
-        if (phases) phases.decodeMs = performance.now() - decodeStarted;
-        return raw;
-      }
-      const retryable = networkError !== undefined || response?.status === 429 || response?.status === 503 || (response?.status ?? 0) >= 500;
-      const delay = retryAfterMilliseconds(response?.headers?.get("retry-after"), now()) ?? retryDelayMs * (attempt + 1);
-      const retryAt = now() + delay;
-      if (retryable) context.deferUntil(retryAt);
-      if (!retryable || attempt === maxRetries) {
-        if (networkError !== undefined) throw new GeoDataSourceError("network", "geo data source fetch failed", undefined, networkError);
-        throw new GeoDataSourceError("http", `geo data source returned HTTP ${response?.status}`, response?.status, undefined, retryable ? retryAt : undefined);
-      }
-      if (retryAt >= context.deadline) throw new GeoDataSourceError(response ? "http" : "network", "Provider cooldown exceeds request budget", response?.status, networkError, retryAt);
     }
     throw new GeoDataSourceError("network", "geo data source retry loop exhausted");
   }, { timeoutMs: 30_000, minIntervalMs: 2_000, ...options }, diagnostics);
