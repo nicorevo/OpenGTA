@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test:run": "vitest run",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:canary": "OPENGTA_CANARY=1 playwright test tests/e2e/canary-lecce.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

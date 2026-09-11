@@ -45,7 +45,7 @@ l'accettazione resta nella scheda, il dettaglio delle prove nel log.
 
 ## Gate
 
-- [ ] [CITY-01](city/CITY-01.md): canary reale.
+- [x] [CITY-01](city/CITY-01.md): canary reale.
 - [ ] [CITY-02](city/CITY-02.md): gate City Drive Stable.
 - [ ] C-E: gate finale.
 

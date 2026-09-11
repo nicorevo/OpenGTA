@@ -1,6 +1,6 @@
 # CITY-01: Canary live reale (Lecce + lista estesa)
 
-**Stato:** pianificato.
+**Stato:** completato (esito registrato: provider non raggiungibile dall'ambiente). Log: `tasks/executions/2026-09-11-CITY-01.md`.
 **Dipendenze:** SOLID-01..06, ZOOM-05.
 **Persona:** test-engineer.
 **Taglia:** M, 3 file di test/config.
@@ -37,9 +37,9 @@ il criterio di passaggio dei test deterministici.
 
 ## Accettazione
 
-- [ ] AC1: canary eseguita su Lecce con esito registrato e separato.
-- [ ] AC2: il fallimento provider non tocca CI/suite normale.
-- [ ] AC3: lista estesa pronta e documentata; nessuna richiesta selvaggia.
+- [x] AC1: canary eseguita su Lecce con esito registrato e separato.
+- [x] AC2: il fallimento provider non tocca CI/suite normale.
+- [x] AC3: lista estesa pronta e documentata; nessuna richiesta selvaggia.
 
 ## Verifica
 
