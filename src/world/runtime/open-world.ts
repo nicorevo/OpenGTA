@@ -1,10 +1,11 @@
 import { createTangentProjector } from "../../geo/coordinates/projector.ts";
-import type { CompiledChunkV0 } from "../compiler/compiled.ts";
+import { compileRegion, type CompiledChunkV0 } from "../compiler/compiled.ts";
 import { partitionCompiledChunk, translateCompiledChunk } from "../compiler/partition.ts";
 import type { ChunkCache } from "../chunk/cache.ts";
 import type { ChunkKey, ChunkGrid } from "../chunk/grid.ts";
 import { createChunkLifecycle, type ChunkState, type ChunkLoadContext } from "../chunk/lifecycle.ts";
 import { selectActiveChunks, type ActiveWindowInput, type ChunkDemand } from "../chunk/window.ts";
+import type { CanonicalRegionSource } from "./canonical-source.ts";
 import { compileRuntimeRegion, type GeoDataSource, type RuntimeRegionRequest } from "./source.ts";
 import { persistentKeyFrom, type PersistentChunkStore } from "../chunk/persistent.ts";
 import { deserializeCompiledChunk, serializeCompiledChunk } from "../chunk/persistent-codec.ts";
@@ -14,9 +15,12 @@ export interface OpenWorldRuntimeOptions {
   readonly cache: ChunkCache<CompiledChunkV0>;
   readonly compilerVersion: string;
   readonly grid: ChunkGrid;
-  readonly source: GeoDataSource;
+  /** Legacy raw-data path (compileRuntimeRegion); superseded by regionSource. */
+  readonly source?: GeoDataSource;
   readonly sourceIdentity?: string;
   readonly queryProfile?: string;
+  /** Canonical path: the source produces a WorldRegion, the runtime compiles it. */
+  readonly regionSource?: CanonicalRegionSource;
   readonly compile?: (key: ChunkKey, request: RuntimeRegionRequest, context: ChunkLoadContext) => Promise<CompiledChunkV0>;
   readonly onChunkReady?: (chunk: CompiledChunkV0, key: ChunkKey) => void | Promise<void>;
   readonly onChunkRemoved?: (key: ChunkKey) => void | Promise<void>;
@@ -60,10 +64,29 @@ function sourceId(source: GeoDataSource): number {
   return sourceIds.get(source)!;
 }
 
+/** Compiles a canonical region and aligns it to the grid cell, exactly like the source path post-processing. */
+async function compileCanonicalChunk(regionSource: CanonicalRegionSource, key: ChunkKey, request: RuntimeRegionRequest, context: ChunkLoadContext, grid: ChunkGrid, bounds: { minX: number; minY: number; maxX: number; maxY: number }): Promise<CompiledChunkV0> {
+  const acquireStarted = performance.now();
+  const phases = {};
+  const region = await regionSource.acquire(request, { signal: context.signal, phases });
+  const acquireMs = performance.now() - acquireStarted;
+  const compiled = compileRegion(region, { signal: context.signal }).chunks[0];
+  if (!compiled) throw new Error(`canonical region source produced no chunk for ${key.x}:${key.y}`);
+  const center = { x: (bounds.minX + bounds.maxX) / 2, y: (bounds.minY + bounds.maxY) / 2 };
+  const worldChunk = partitionCompiledChunk(translateCompiledChunk(compiled, center), grid, [key])[0];
+  if (!worldChunk) throw new Error(`canonical region source produced no geometry for ${key.x}:${key.y}`);
+  const compileMs = compiled.diagnostics.stageDurationsMs?.compile ?? 0;
+  return { ...worldChunk, diagnostics: { ...worldChunk.diagnostics, stageDurationsMs: { acquire: acquireMs, normalize: 0, compile: compileMs, total: acquireMs + compileMs } } };
+}
+
 export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWorldRuntime {
   if (!options.compilerVersion) throw new Error("Open World compiler version is required");
+  if (!options.regionSource && !options.source) throw new Error("Open world runtime requires a region source or a legacy source");
   const projector = createTangentProjector(options.baseOrigin);
-  const namespace = JSON.stringify(["tangent-wgs84-v1", 0, options.baseOrigin.latitude, options.baseOrigin.longitude, options.grid.cellSizeMeters, options.sourceIdentity ?? ["instance", sourceId(options.source)], options.queryProfile ?? "v0"]);
+  const namespaceIdentity = options.regionSource
+    ? [options.regionSource.identity, options.regionSource.profile]
+    : [options.sourceIdentity ?? ["instance", sourceId(options.source!)], options.queryProfile ?? "v0"];
+  const namespace = JSON.stringify(["tangent-wgs84-v1", 0, options.baseOrigin.latitude, options.baseOrigin.longitude, options.grid.cellSizeMeters, namespaceIdentity]);
   const signals = new Map<string, AbortSignal>();
   const lifecycle = createChunkLifecycle<CompiledChunkV0>(async (key, context) => {
     const id = options.grid.idForKey(key);
@@ -86,10 +109,14 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
     };
     const compiled = options.compile
       ? await options.compile(key, request, context)
-      : (await compileRuntimeRegion(options.source, request, context)).chunks[0];
+      : options.regionSource
+        ? await compileCanonicalChunk(options.regionSource, key, request, context, options.grid, bounds)
+        : (await compileRuntimeRegion(options.source!, request, context)).chunks[0];
     context.signal.throwIfAborted();
     if (!compiled) throw new Error(`runtime compiler produced no chunk for ${id}`);
-    const worldChunk = options.compile
+    // The compile seam and the canonical region source already return the
+    // grid-aligned chunk; only the legacy raw path needs translate+partition.
+    const worldChunk = options.compile || options.regionSource
       ? compiled
       : partitionCompiledChunk(translateCompiledChunk(compiled, {
         x: (bounds.minX + bounds.maxX) / 2,
@@ -144,7 +171,7 @@ export function createOpenWorldRuntime(options: OpenWorldRuntimeOptions): OpenWo
   const ensure = (demand: ChunkDemand): Promise<void> => {
     const { id, key } = demand;
     const priority = priorityOf(demand);
-    const signal = signals.get(id); if (signal) options.source.promote?.(signal, priority);
+    const signal = signals.get(id); if (signal) options.regionSource ? options.regionSource.promote?.(signal, priority) : options.source?.promote?.(signal, priority);
     if (pending.has(id)) return pending.get(id)!;
     if (active.has(id) || errors.has(id)) return Promise.resolve();
     let work!: Promise<void>;

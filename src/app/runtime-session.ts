@@ -9,13 +9,15 @@ import { createChunkCache, type ChunkCache } from "../world/chunk/cache.ts";
 import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
 import { createOpenWorldRuntime, type OpenWorldRuntimeOptions } from "../world/runtime/open-world.ts";
 import type { PersistentChunkStore } from "../world/chunk/persistent.ts";
+import type { CanonicalRegionSource } from "../world/runtime/canonical-source.ts";
 import type { GeoDataSource } from "../world/runtime/source.ts";
 import { lodForZoom, type ZoomLevel } from "./camera.ts";
 
 export type SessionState = "loading" | "ready" | "degraded" | "empty" | "error";
 interface SessionRenderer extends Pick<PixiRenderer, "cameraBounds" | "updateVehicle" | "dispose"> { setChunk(chunk: CompiledChunkV0): void; removeChunk(chunkId: string): void; setZoom(level: ZoomLevel): void; zoomIn(): ZoomLevel; zoomOut(): ZoomLevel; cameraState(): { zoomLevel: ZoomLevel } }
 export interface RuntimeSessionOptions {
-  readonly source: GeoDataSource;
+  readonly source?: GeoDataSource;
+  readonly regionSource?: CanonicalRegionSource;
   readonly sourceIdentity?: string;
   readonly queryProfile?: string;
   readonly origin: { readonly latitude: number; readonly longitude: number };
@@ -42,7 +44,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
   const values = () => [...chunks.values()].map((entry) => entry.chunk);
   const runtime = createOpenWorldRuntime({
     baseOrigin: options.origin, grid, cache: options.cache ?? createChunkCache(9), compilerVersion: "v0-runtime",
-    source: options.source, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile, persistentStore: options.persistentStore, compile: options.compile,
+    source: options.source, regionSource: options.regionSource, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile, persistentStore: options.persistentStore, compile: options.compile,
     onChunkReady(chunk, key) {
       if (disposed) return;
       const id = grid.idForKey(key); const previous = chunks.get(id);
@@ -112,7 +114,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       const state: SessionState = fatal ? "error" : vehicle ? hasErrors ? "degraded" : "ready" : !finished ? "loading" : hasErrors ? "error" : "empty";
       const compiled = values();
       const zoomLevel = options.renderer.cameraState().zoomLevel;
-      const source = options.source.diagnostics?.();
+      const source = options.regionSource?.diagnostics?.() ?? options.source?.diagnostics?.();
       return { state, runtime: diagnostic, source, firstPlayableMs, lastChunkAppliedMs, blocked: vehicle?.blockedByAvailability ?? false, zoomLevel, lodTier: lodForZoom(zoomLevel), colliders: options.physics.colliderCount(), regionId: compiled[0]?.spatial.regionId ?? "open-world", roads: compiled.reduce((sum, chunk) => sum + chunk.roads.length, 0), buildings: compiled.reduce((sum, chunk) => sum + chunk.buildings.length, 0), warnings: compiled.reduce((sum, chunk) => sum + chunk.diagnostics.warnings.length, 0), lastCompileMs: compiled.reduce((max, chunk) => Math.max(max, chunk.diagnostics.stageDurationsMs.compile ?? 0), 0), features: compiled.flatMap((chunk) => Object.keys(chunk.featureIndex)), pinned: vehicle ? keysForVehicle(grid, vehicle) : [] };
     },
     async dispose() {

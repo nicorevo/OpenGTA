@@ -30,7 +30,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 - [x] [DATA-11](data/DATA-11.md): runtime feature flag.
 - [x] [DATA-12](data/DATA-12.md): seam tests.
 - [x] [DATA-13](data/DATA-13.md): normalizer MVT.
-- [ ] [DATA-14](data/DATA-14.md): CanonicalRegionSource.
+- [x] [DATA-14](data/DATA-14.md): CanonicalRegionSource.
 - [ ] D-C: runtime e seam.
 
 ## Fasi successive (senza scheda: da dettagliare prima dell'esecuzione)

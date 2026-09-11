@@ -1,6 +1,6 @@
 # DATA-14: CanonicalRegionSource
 
-**Stato:** pianificato. **Dipendenze:** DATA-13. **Persona:** fullstack-developer. **Taglia:** M.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-14.md`. **Dipendenze:** DATA-13. **Persona:** fullstack-developer. **Taglia:** M.
 
 ## Obiettivo
 `CanonicalRegionSource { identity, profile, acquire(request, options) →
@@ -23,9 +23,9 @@ compileRegion/fisica/renderer/gameplay.
 2. Implementare; GREEN; rimuovere il finto RawOsm dal percorso MVT.
 
 ## Accettazione
-- [ ] AC1: entrambe le source dietro lo stesso contratto; un solo compiler.
-- [ ] AC2: namespace isolato per identity/profile; nessun riuso errato.
-- [ ] AC3: suite completa, E2E (Overpass e MVT) e smoke verdi.
+- [x] AC1: entrambe le source dietro lo stesso contratto; un solo compiler.
+- [x] AC2: namespace isolato per identity/profile; nessun riuso errato.
+- [x] AC3: suite completa, E2E (Overpass e MVT) e smoke verdi.
 
 ## Verifica
 `npm run test:run` + `npm run test:e2e` + smoke dist.
