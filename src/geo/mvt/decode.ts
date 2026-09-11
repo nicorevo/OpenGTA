@@ -133,7 +133,7 @@ interface RawLayer {
 const textDecoder = new TextDecoder("utf-8", { fatal: true });
 
 function invalid(message: string, cause?: unknown): TileSourceError {
-  return new TileSourceError("invalid-tile", message, cause);
+  return new TileSourceError("invalid-tile", message, { cause });
 }
 
 function tooLarge(message: string): TileSourceError {

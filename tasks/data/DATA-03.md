@@ -1,6 +1,6 @@
 # DATA-03: Tile coverage resolver
 
-**Stato:** pianificato. **Dipendenze:** DATA-02. **Persona:** fullstack-developer. **Taglia:** S.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-03.md`. **Dipendenze:** DATA-02. **Persona:** fullstack-developer. **Taglia:** S.
 
 ## Obiettivo
 `tilesForRuntimeRegion(request, zoom)`: lista deterministica e completa di
@@ -19,9 +19,9 @@ Modificabili: `src/geo/mvt/coverage.ts` + test. Non cambiare chunk grid.
 2. Implementare; GREEN.
 
 ## Accettazione
-- [ ] AC1: lista deterministica, completa, senza duplicati.
-- [ ] AC2: test su confine tile e clamp Web Mercator.
-- [ ] AC3: nessun NaN/Infinity; suite verde.
+- [x] AC1: lista deterministica, completa, senza duplicati.
+- [x] AC2: test su confine tile e clamp Web Mercator.
+- [x] AC3: nessun NaN/Infinity; suite verde.
 
 ## Verifica
 `npm run test:run -- src/geo/mvt` + gate comune.

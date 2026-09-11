@@ -11,8 +11,8 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 - [x] [DATA-00](data/DATA-00.md): diagnostica failure.
 - [x] [DATA-01](data/DATA-01.md): fallback Overpass.
 - [x] [DATA-02](data/DATA-02.md): tile math e decoder MVT.
-- [ ] [DATA-03](data/DATA-03.md): coverage resolver.
-- [ ] [DATA-04](data/DATA-04.md): provider OpenFreeMap.
+- [x] [DATA-03](data/DATA-03.md): coverage resolver.
+- [x] [DATA-04](data/DATA-04.md): provider OpenFreeMap.
 - [x] [DATA-05](data/DATA-05.md): modello decodificato.
 - [ ] D-A: fondazioni.
 

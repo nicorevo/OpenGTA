@@ -1,6 +1,6 @@
 # DATA-04: Provider OpenFreeMap
 
-**Stato:** pianificato. **Dipendenze:** DATA-03. **Persona:** fullstack-developer. **Taglia:** S.
+**Stato:** completato. Log: `tasks/executions/2026-09-11-DATA-04.md`. **Dipendenze:** DATA-03. **Persona:** fullstack-developer. **Taglia:** S.
 
 ## Obiettivo
 `VectorTileProvider.getTile(key, signal)`: fetch bounded (budget byte,
@@ -24,9 +24,9 @@ toccare canonical/compiler/renderer/fisica.
 2. Implementare; GREEN.
 
 ## Accettazione
-- [ ] AC1: URL deterministico con versione dataset; AbortSignal propagato.
-- [ ] AC2: byte limit; 404/204 vuoto deterministico; errori distinti.
-- [ ] AC3: nessuna API key; identity esplicita; suite verde.
+- [x] AC1: URL deterministico con versione dataset; AbortSignal propagato.
+- [x] AC2: byte limit; 404/204 vuoto deterministico; errori distinti.
+- [x] AC3: nessuna API key; identity esplicita; suite verde.
 
 ## Verifica
 `npm run test:run -- src/world/runtime/vector-tile` + gate comune.
