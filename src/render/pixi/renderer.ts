@@ -72,10 +72,7 @@ function strokeRoadNetwork(graphics: Graphics, groups: readonly RoadStrokeGroup<
 }
 function readableLabelAngle(angle: number): number { let result = -angle; if (result > Math.PI / 2) result -= Math.PI; if (result < -Math.PI / 2) result += Math.PI; return result; }
 function visibleLabels(labels: readonly CompiledLabel[], profile: LodPresentationProfile): CompiledLabel[] {
-  const withinTier = labels.filter((label) => label.priority >= profile.labelMinPriority);
-  const places = withinTier.filter((label) => label.kind === "place").slice(0, 16);
-  const roads = withinTier.filter((label) => label.kind === "road").slice(0, 16);
-  return [...places, ...roads];
+  return labels.filter((label) => label.priority >= profile.labelMinPriority);
 }
 
 type CompiledBuilding = CompiledChunkV0["buildings"][number];
@@ -223,15 +220,19 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   };
 
   const rebuildLabels = (): void => {
-    labelLayer.removeChildren();
     const chunks = [...presentations.values()].map((entry) => entry.chunk);
-    const labels = visibleLabels(chunks.flatMap((chunk) => chunk.labels), currentProfile);
-    for (const entry of presentations.values()) entry.labels.removeChildren();
-    for (const label of labels) {
+    const allLabels = chunks.flatMap((chunk) => chunk.labels);
+    for (const entry of presentations.values()) {
+      entry.labels.removeChildren();
+    }
+    for (const label of visibleLabels(allLabels, currentProfile)) {
       const owner = [...presentations.values()].find((entry) => entry.chunk.labels.includes(label));
       if (!owner) continue;
-      const text = new Text({ text: label.text, style: { fontFamily: "Arial", fontSize: label.kind === "place" ? 11 : 9, fontWeight: "bold", fill: label.kind === "place" ? 0x2d2928 : 0xf3e7c6 } });
-      text.anchor.set(0.5); text.position.set(label.position.x * worldScale, -label.position.y * worldScale); text.rotation = readableLabelAngle(label.angle); owner.labels.addChild(text);
+      const text = new Text({ text: label.text, style: { fontFamily: "Arial", fontSize: 10, fontWeight: "normal", fill: 0x000000, stroke: { color: 0xffffff, width: 2 } } });
+      text.anchor.set(0.5);
+      text.position.set(label.position.x * worldScale, -label.position.y * worldScale);
+      text.rotation = readableLabelAngle(label.angle);
+      owner.labels.addChild(text);
     }
     labelLayer.visible = presentation.labelsVisible;
   };

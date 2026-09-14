@@ -38,7 +38,7 @@ export const LOD_TIERS: readonly LodTier[] = ["far", "medium", "near"];
  */
 export const LOD_PROFILES: Readonly<Record<LodTier, LodPresentationProfile>> = Object.freeze({
   far: Object.freeze({ facadeStrength: 0, roadDetail: "body", labelMinPriority: 100, cullMinAreaPx2: 64 }),
-  medium: Object.freeze({ facadeStrength: 0.6, roadDetail: "casing", labelMinPriority: 75, cullMinAreaPx2: 16 }),
+   medium: Object.freeze({ facadeStrength: 0.6, roadDetail: "casing", labelMinPriority: 60, cullMinAreaPx2: 16 }),
   near: Object.freeze({ facadeStrength: 1, roadDetail: "marking", labelMinPriority: 0, cullMinAreaPx2: 0 }),
 });
 

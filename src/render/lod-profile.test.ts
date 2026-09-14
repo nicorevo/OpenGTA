@@ -73,7 +73,7 @@ describe("LOD presentation profile", () => {
     const profiles = LOD_TIERS.map((tier) => lodProfileForTier(tier));
 
     expect(profiles.map((profile) => profile.facadeStrength)).toEqual([0, 0.6, 1]);
-    expect(profiles.map((profile) => profile.labelMinPriority)).toEqual([100, 75, 0]);
+    expect(profiles.map((profile) => profile.labelMinPriority)).toEqual([100, 60, 0]);
     expect(profiles.map((profile) => profile.cullMinAreaPx2)).toEqual([64, 16, 0]);
     expect(profiles.every((profile, index) => index === 0 || profile.facadeStrength > profiles[index - 1].facadeStrength)).toBe(true);
     expect(profiles.every((profile, index) => index === 0 || profile.cullMinAreaPx2 < profiles[index - 1].cullMinAreaPx2)).toBe(true);
