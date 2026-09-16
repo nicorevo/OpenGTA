@@ -10,6 +10,7 @@ export interface FirstPersonRenderer {
   render(chunks: CompiledChunkV0 | readonly CompiledChunkV0[]): void;
   updateVehicle(position: Vec2, heading: number): void;
   cameraState(): { position: Vec2; heading: number };
+  diagnostics(): { chunks: number; roadItems: number; buildingItems: number };
   dispose(): void;
 }
 
@@ -98,6 +99,7 @@ export function createFirstPersonRenderer(canvas: HTMLCanvasElement): FirstPerso
 
   let vehiclePos: Vec2 = { x: 0, y: 0 };
   let vehicleHeading = 0;
+  let lastDiagnostics = { chunks: 0, roadItems: 0, buildingItems: 0 };
 
   const renderScene = (chunks: readonly CompiledChunkV0[]): void => {
     const w = app.screen.width;
@@ -171,6 +173,7 @@ export function createFirstPersonRenderer(canvas: HTMLCanvasElement): FirstPerso
     const buildingCount = allBuildings.length;
     const projectedCount = items.filter((i) => i.fill === ROAD_FILL).length;
     const buildingProjectedCount = items.filter((i) => i.fill !== ROAD_FILL).length;
+    lastDiagnostics = { chunks: chunks.length, roadItems: projectedCount, buildingItems: buildingProjectedCount };
     const debugMsg = `FPV | cam:${camPos.x.toFixed(0)},${camPos.y.toFixed(0)} | heading:${(vehicleHeading * 180 / Math.PI).toFixed(0)}deg | chunks:${chunks.length} roads:${roadCount} bldgs:${buildingCount} proj:${projectedCount}/${buildingProjectedCount}`;
     debugTextStyle.text = debugMsg;
   };
@@ -187,6 +190,9 @@ export function createFirstPersonRenderer(canvas: HTMLCanvasElement): FirstPerso
     },
     cameraState() {
       return { position: { ...vehiclePos }, heading: vehicleHeading };
+    },
+    diagnostics() {
+      return { ...lastDiagnostics };
     },
     dispose() {
       app.destroy(false, { children: true });

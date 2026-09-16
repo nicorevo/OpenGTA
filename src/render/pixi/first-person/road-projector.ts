@@ -1,6 +1,35 @@
 import type { Vec2 } from "../../../world/model/types.ts";
 import { projectPerspective, type CameraConfig, type ProjectedPoint } from "./camera3d.ts";
 
+/**
+ * Sample spacing for the pseudo-3D road strip, in meters. MVT centerlines
+ * are generalized (vertices tens of meters apart); sub-dividing keeps the
+ * road continuous from the bottom of the screen to the horizon.
+ */
+const DENSIFY_STEP_METERS = 4;
+
+interface CameraPoint {
+  readonly x: number;
+  readonly z: number;
+}
+
+function densify(points: readonly CameraPoint[], stepMeters: number): CameraPoint[] {
+  const out: CameraPoint[] = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    const distance = Math.hypot(b.x - a.x, b.z - a.z);
+    const steps = Math.max(1, Math.ceil(distance / stepMeters));
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps;
+      out.push({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
+    }
+  }
+  return out;
+}
+
+const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+
 /** A single projected road segment ready for rendering. */
 export interface RoadSegment {
   /** Distance in meters along the camera's forward axis. */
@@ -44,7 +73,7 @@ export function projectRoadSegments(
 
   // Centerline is already in local meters (tangent-projected from origin)
   // Transform centerline to camera-relative coordinates
-  const relative: { x: number; z: number }[] = [];
+  const relative: CameraPoint[] = [];
   for (const pt of centerline) {
     const dx = pt.x - cameraPos.x;
     const dy = pt.y - cameraPos.y;
@@ -55,11 +84,13 @@ export function projectRoadSegments(
     relative.push({ x: rx, z: rz });
   }
 
+  const sampled = densify(relative, DENSIFY_STEP_METERS);
+
   // Build segments between consecutive points
   const rawSegments: { z: number; leftX: number; rightX: number; segIdx: number }[] = [];
-  for (let i = 0; i < relative.length - 1; i++) {
-    const a = relative[i];
-    const b = relative[i + 1];
+  for (let i = 0; i < sampled.length - 1; i++) {
+    const a = sampled[i];
+    const b = sampled[i + 1];
 
     // Skip if both points are behind camera
     if (a.z <= 0 && b.z <= 0) continue;
@@ -94,24 +125,23 @@ export function projectRoadSegments(
     const leftSx = leftProj.sx;
     const rightSx = rightProj.sx;
 
-    // Convert normalized coordinates to pixels
-    // sx [-1,1] → screenX [0, width]
-    // sy from perspective: 0 at camera horizon line, negative below horizon for ground points
-    // Camera at 1.5m height → ground points have sy = -1.5 / (Z * tan(30°))
-    // Map |sy| → [0,1]: |sy|→∞ (close) → 1 (bottom), |sy|→0 (far) → 0 (horizon)
-
-    const horizonY = 0;
-    const groundLevelY = 1;
-
+    // sy from perspective: 0 at camera horizon line, positive below horizon
+    // for ground points. Map |sy| → [0,1]: |sy|→∞ (close) → 1 (bottom),
+    // |sy|→0 (far) → 0 (horizon).
     const avgSy = Math.abs((leftProj.sy + rightProj.sy) / 2);
     const normalizedSy = avgSy / (1 + avgSy);
-    const screenY = horizonY + Math.max(0, Math.min(1, normalizedSy));
+    const screenY = Math.max(0, Math.min(1, normalizedSy));
+
+    // Symmetric clamping keeps leftScreenX <= rightScreenX even when the
+    // road leaves the screen on one side.
+    const leftScreenX = clamp01((leftSx + 1) / 2);
+    const rightScreenX = clamp01((rightSx + 1) / 2);
 
     segments.push({
       worldZ: screenZ,
-      leftScreenX: Math.max(0, (leftSx + 1) / 2),
-      rightScreenX: Math.min(1, (rightSx + 1) / 2),
-      screenWidth: Math.max(0.01, Math.min(1, (rightSx + 1) / 2) - Math.max(-1, Math.min(1, leftSx))),
+      leftScreenX,
+      rightScreenX,
+      screenWidth: Math.max(0.01, rightScreenX - leftScreenX),
       screenY,
       worldLeftX: raw.leftX,
       worldRightX: raw.rightX,

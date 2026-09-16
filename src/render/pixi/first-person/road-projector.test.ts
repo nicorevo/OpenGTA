@@ -17,7 +17,9 @@ describe("road-projector", () => {
       { x: 40, y: 0 },
     ];
     const segments = projectRoadSegments(centerline, 6, cameraPos, 0, DEFAULT_CAMERA_CONFIG);
-    expect(segments).toHaveLength(4);
+    // The MVT centerline is sparse (vertices tens of meters apart), so the
+    // projector must densify it: a 40 m straight run yields many segments.
+    expect(segments.length).toBeGreaterThan(4);
     // Segments sorted back-to-front (farther first)
     for (let i = 0; i < segments.length - 1; i++) {
       expect(segments[i].worldZ).toBeGreaterThanOrEqual(segments[i + 1].worldZ);
@@ -90,10 +92,42 @@ describe("road-projector", () => {
       { x: 0, y: 30 },
     ];
     const segments = projectRoadSegments(northRoad, 6, cameraPos, Math.PI / 2, DEFAULT_CAMERA_CONFIG);
-    expect(segments).toHaveLength(3);
+    expect(segments.length).toBeGreaterThanOrEqual(3);
     for (const seg of segments) {
       expect(seg.leftScreenX).toBeLessThan(0.5);
       expect(seg.rightScreenX).toBeGreaterThan(0.5);
+    }
+  });
+
+  it("densifies sparse centerlines so the road reaches the camera", () => {
+    // The MVT fixture has vertices tens of meters apart: a 2-point centerline
+    // with the first vertex 80 m ahead must not leave the near field empty.
+    const centerline: Vec2[] = [
+      { x: -2, y: 0 },
+      { x: 80, y: 0 },
+    ];
+    const segments = projectRoadSegments(centerline, 6, cameraPos, 0, DEFAULT_CAMERA_CONFIG);
+    expect(segments.length).toBeGreaterThanOrEqual(10);
+    // The nearest segment starts within a few meters of the camera
+    const nearest = segments[segments.length - 1];
+    expect(nearest.worldZ).toBeLessThan(10);
+  });
+
+  it("keeps screen coordinates clamped and ordered for off-screen roads", () => {
+    // Road 50 m right of the camera axis: far parts are off-screen right.
+    // Asymmetric clamping used to invert the quad (leftScreenX > rightScreenX).
+    const centerline: Vec2[] = [
+      { x: 0, y: 50 },
+      { x: 80, y: 50 },
+    ];
+    const segments = projectRoadSegments(centerline, 6, cameraPos, 0, DEFAULT_CAMERA_CONFIG);
+    expect(segments.length).toBeGreaterThan(0);
+    for (const seg of segments) {
+      expect(seg.leftScreenX).toBeGreaterThanOrEqual(0);
+      expect(seg.leftScreenX).toBeLessThanOrEqual(1);
+      expect(seg.rightScreenX).toBeGreaterThanOrEqual(0);
+      expect(seg.rightScreenX).toBeLessThanOrEqual(1);
+      expect(seg.leftScreenX).toBeLessThanOrEqual(seg.rightScreenX);
     }
   });
 
