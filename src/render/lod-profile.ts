@@ -31,8 +31,8 @@ export const LOD_TIERS: readonly LodTier[] = ["far", "medium", "near"];
  *   representative levels 0, 2 and 4, matching F-LOD-2 (FAR facade ~0, NEAR full);
  * - roadDetail: FAR body, MEDIUM casing, NEAR marking;
  * - labelMinPriority: thresholds on the compiler priority scale (10..110), so FAR
- *   keeps only major places (105/110) and motorways (100), MEDIUM keeps tertiary
- *   roads (75) and above, NEAR keeps all labels;
+  *   keeps only major places (105/110) and motorways (100), MEDIUM keeps tertiary
+  *   roads (60) and above, NEAR keeps all labels;
  * - cullMinAreaPx2: screen footprint below the threshold is skipped visually only,
  *   and grows with the zoom out. Experimental, benchmarked by ZOOM-05 / CITY-02.
  */

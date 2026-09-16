@@ -103,8 +103,8 @@ test("LOD tiers reshape labels, facades, casing and culling per zoom", async ({ 
     renderer.dispose();
     return { medium, far, near };
   });
-  // MEDIUM (default): minor road label below the 75 threshold dropped.
-  expect(result.medium).toMatchObject({ labels: 1, facades: 1, roadCasing: true, culledFeatures: 0 });
+  // MEDIUM (default): the 60-priority road label is kept (threshold 60).
+  expect(result.medium).toMatchObject({ labels: 2, facades: 1, roadCasing: true, culledFeatures: 0 });
   // FAR: facade hidden, casing removed, tiny patch culled.
   expect(result.far).toMatchObject({ labels: 1, facades: 0, roadCasing: false, culledFeatures: 1 });
   // NEAR: full detail restored, both labels back.
