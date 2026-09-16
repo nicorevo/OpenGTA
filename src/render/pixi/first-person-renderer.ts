@@ -1,8 +1,8 @@
 import { Application, Graphics, Container, Text } from "pixi.js";
 import type { CompiledChunkV0 } from "../../world/compiler/compiled.ts";
 import type { Vec2 } from "../../world/model/types.ts";
-import { projectRoadSegments, type RoadSegment } from "./first-person/road-projector.ts";
-import { projectBuildings, type BuildingInput, type ProjectedBuilding } from "./first-person/building-projector.ts";
+import { projectRoadPolygon, type ProjectedRoadPolygon } from "./first-person/road-projector.ts";
+import { projectBuildings, type BuildingInput, type ProjectedBuildingBox } from "./first-person/building-projector.ts";
 import { DEFAULT_CAMERA_CONFIG } from "./first-person/camera3d.ts";
 
 export interface FirstPersonRenderer {
@@ -14,55 +14,20 @@ export interface FirstPersonRenderer {
   dispose(): void;
 }
 
-const HORIZON_RATIO = 0.35;
+/** True perspective: the horizon (NDC sy = 0) sits at mid-screen. */
+const HORIZON_RATIO = 0.5;
 const GROUND_FILL = 0x8b9d70;
 export const ROAD_FILL = 0x53515a;
 const ROAD_EDGE = 0x302e38;
 const SKY_TOP_COLOR = 0x1a3a5c;
 const SKY_HORIZON_COLOR = 0x87ceeb;
-const STROKED_SEGMENT_COUNT = 3;
+const NDC_CLAMP = 16;
+/** Road polygons nearer than this (meters) get their curb edge stroked. */
+const NEAR_STROKE_DEPTH = 60;
 
-interface DepthItem {
-  depth: number;
-  pixelYBottom: number;
-  pixelXLeft: number;
-  pixelXRight: number;
-  pixelYTop: number;
-  fill: number | null;
-  stroke: number | null;
-}
-
-export function toRoadDepthItems(segments: readonly RoadSegment[]): DepthItem[] {
-  return segments.map((seg, i) => ({
-    depth: seg.worldZ,
-    pixelYBottom: seg.screenY,
-    pixelXLeft: seg.leftScreenX,
-    pixelXRight: seg.rightScreenX,
-    pixelYTop: i === 0 ? 0 : segments[i - 1].screenY,
-    fill: ROAD_FILL,
-    stroke: i >= segments.length - STROKED_SEGMENT_COUNT ? ROAD_EDGE : null,
-  }));
-}
-
-export function toBuildingDepthItems(projected: readonly ProjectedBuilding[]): DepthItem[] {
-  return projected.map((b) => ({
-    depth: b.worldZ,
-    pixelYBottom: b.screenPoints[1],
-    pixelXLeft: (b.screenPoints[0] + 1) / 2,
-    pixelXRight: (b.screenPoints[2] + 1) / 2,
-    pixelYTop: b.screenPoints[5],
-    fill: b.color,
-    stroke: null,
-  }));
-}
-
-export function extendNearestRoadToBottom(items: DepthItem[]): void {
-  let nearest: DepthItem | null = null;
-  for (const item of items) {
-    if (item.fill !== ROAD_FILL) continue;
-    if (nearest === null || item.depth < nearest.depth) nearest = item;
-  }
-  if (nearest) nearest.pixelYBottom = 1;
+/** Map normalized device coordinates to canvas pixels. */
+export function ndcToScreen(sx: number, sy: number, width: number, height: number): { x: number; y: number } {
+  return { x: ((sx + 1) / 2) * width, y: ((sy + 1) / 2) * height };
 }
 
 function drawSky(graphics: Graphics, w: number, h: number): void {
@@ -71,6 +36,28 @@ function drawSky(graphics: Graphics, w: number, h: number): void {
   const halfHorizon = horizonY * 0.5;
   graphics.poly([{ x: 0, y: 0 }, { x: w, y: 0 }, { x: w, y: halfHorizon }, { x: 0, y: halfHorizon }]).fill(SKY_TOP_COLOR);
   graphics.poly([{ x: 0, y: halfHorizon }, { x: w, y: halfHorizon }, { x: w, y: horizonY }, { x: 0, y: horizonY }]).fill(SKY_HORIZON_COLOR);
+}
+
+type ScreenPoint = { x: number; y: number };
+
+type DrawItem =
+  | { kind: "road"; depth: number; points: ScreenPoint[] }
+  | { kind: "building"; depth: number; parts: { points: ScreenPoint[]; fill: number }[] };
+
+export function toRoadDrawItem(poly: ProjectedRoadPolygon, w: number, h: number): DrawItem {
+  return { kind: "road", depth: poly.depth, points: poly.points.map((p) => ndcToScreen(p.sx, p.sy, w, h)) };
+}
+
+export function toBuildingDrawItem(projected: ProjectedBuildingBox, w: number, h: number): DrawItem {
+  const toScreen = (quad: readonly { sx: number; sy: number }[]): ScreenPoint[] => quad.map((p) => ndcToScreen(p.sx, p.sy, w, h));
+  return {
+    kind: "building",
+    depth: projected.depth,
+    parts: [
+      ...projected.walls.map((wall) => ({ points: toScreen(wall), fill: projected.color })),
+      { points: toScreen(projected.roof), fill: projected.roofColor },
+    ],
+  };
 }
 
 export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Promise<FirstPersonRenderer> {
@@ -107,7 +94,6 @@ export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Prom
     if (w === 0 || h === 0) return;
 
     const horizonY = h * HORIZON_RATIO;
-    const groundHeight = h - horizonY;
 
     drawSky(skyGraphics, w, h);
 
@@ -131,15 +117,17 @@ export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Prom
 
     const camPos = { x: vehiclePos.x, y: vehiclePos.y };
 
-    const items: DepthItem[] = [];
+    const items: DrawItem[] = [];
     for (const road of allRoads) {
-      const segments = projectRoadSegments(road.centerline, road.widthMeters, camPos, vehicleHeading, DEFAULT_CAMERA_CONFIG);
-      items.push(...toRoadDepthItems(segments));
+      const poly = projectRoadPolygon(road.centerline, road.widthMeters, camPos, vehicleHeading, DEFAULT_CAMERA_CONFIG);
+      if (poly) items.push(toRoadDrawItem(poly, w, h));
     }
-    items.push(...toBuildingDepthItems(projectBuildings(allBuildings, camPos, vehicleHeading)));
+    for (const projected of projectBuildings(allBuildings, camPos, vehicleHeading)) {
+      items.push(toBuildingDrawItem(projected, w, h));
+    }
 
+    // Painter's order: farthest (largest nearest-depth) first.
     items.sort((a, b) => b.depth - a.depth);
-    extendNearestRoadToBottom(items);
 
     renderGraphics.clear();
     renderGraphics.poly([
@@ -149,32 +137,25 @@ export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Prom
       { x: 0, y: h },
     ]).fill(GROUND_FILL);
     for (const item of items) {
-      const yBottom = horizonY + item.pixelYBottom * groundHeight;
-      const yTop = horizonY + item.pixelYTop * groundHeight;
-      const xLeft = item.pixelXLeft * w;
-      const xRight = item.pixelXRight * w;
-
-      if (item.fill !== null) {
-        renderGraphics.poly([
-          { x: xLeft, y: yBottom },
-          { x: xRight, y: yBottom },
-          { x: xRight, y: yTop },
-          { x: xLeft, y: yTop },
-        ]).fill(item.fill);
-      }
-      if (item.stroke !== null) {
-        renderGraphics.poly([{ x: xLeft, y: yBottom }, { x: xLeft, y: yTop }]).stroke({ color: item.stroke, width: Math.max(1, w * 0.002) });
-        renderGraphics.poly([{ x: xRight, y: yBottom }, { x: xRight, y: yTop }]).stroke({ color: item.stroke, width: Math.max(1, w * 0.002) });
+      if (item.kind === "road") {
+        renderGraphics.poly(item.points).fill(ROAD_FILL);
+        if (item.depth <= NEAR_STROKE_DEPTH) {
+          renderGraphics.poly(item.points).stroke({ color: ROAD_EDGE, width: Math.max(1, w * 0.0008) });
+        }
+      } else {
+        for (const part of item.parts) {
+          renderGraphics.poly(part.points).fill(part.fill);
+        }
       }
     }
 
     debugGraphics.clear();
     const roadCount = allRoads.length;
     const buildingCount = allBuildings.length;
-    const projectedCount = items.filter((i) => i.fill === ROAD_FILL).length;
-    const buildingProjectedCount = items.filter((i) => i.fill !== ROAD_FILL).length;
-    lastDiagnostics = { chunks: chunks.length, roadItems: projectedCount, buildingItems: buildingProjectedCount };
-    const debugMsg = `FPV | cam:${camPos.x.toFixed(0)},${camPos.y.toFixed(0)} | heading:${(vehicleHeading * 180 / Math.PI).toFixed(0)}deg | chunks:${chunks.length} roads:${roadCount} bldgs:${buildingCount} proj:${projectedCount}/${buildingProjectedCount}`;
+    const roadItemCount = items.filter((i) => i.kind === "road").length;
+    const buildingItemCount = items.filter((i) => i.kind !== "road").length;
+    lastDiagnostics = { chunks: chunks.length, roadItems: roadItemCount, buildingItems: buildingItemCount };
+    const debugMsg = `FPV | cam:${camPos.x.toFixed(0)},${camPos.y.toFixed(0)} | heading:${(vehicleHeading * 180 / Math.PI).toFixed(0)}deg | chunks:${chunks.length} roads:${roadCount} bldgs:${buildingCount} proj:${roadItemCount}/${buildingItemCount}`;
     debugTextStyle.text = debugMsg;
   };
 

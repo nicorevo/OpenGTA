@@ -1,152 +1,129 @@
 import type { Vec2 } from "../../../world/model/types.ts";
-import { projectPerspective, type CameraConfig, type ProjectedPoint } from "./camera3d.ts";
+import { projectGroundNdc, type CameraConfig } from "./camera3d.ts";
 
 /**
- * Sample spacing for the pseudo-3D road strip, in meters. MVT centerlines
- * are generalized (vertices tens of meters apart); sub-dividing keeps the
- * road continuous from the bottom of the screen to the horizon.
+ * Sample spacing for the road centerline, in meters. MVT centerlines are
+ * generalized (vertices tens of meters apart); sub-dividing keeps curves and
+ * the near field of the projected polygon continuous.
  */
 const DENSIFY_STEP_METERS = 4;
+/** NDC clamp for projected polygon vertices (far off-screen, GPU clips). */
+const NDC_CLAMP = 16;
 
 interface CameraPoint {
   readonly x: number;
   readonly z: number;
 }
 
-function densify(points: readonly CameraPoint[], stepMeters: number): CameraPoint[] {
-  const out: CameraPoint[] = [points[0]];
-  for (let i = 1; i < points.length; i++) {
-    const a = points[i - 1];
-    const b = points[i];
-    const distance = Math.hypot(b.x - a.x, b.z - a.z);
-    const steps = Math.max(1, Math.ceil(distance / stepMeters));
-    for (let s = 1; s <= steps; s++) {
+interface CenterlineSample {
+  readonly world: Vec2;
+  readonly dir: Vec2;
+}
+
+function densifyWorld(centerline: readonly Vec2[], stepMeters: number): CenterlineSample[] {
+  const out: CenterlineSample[] = [];
+  for (let i = 1; i < centerline.length; i++) {
+    const a = centerline[i - 1];
+    const b = centerline[i];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const length = Math.hypot(dx, dy);
+    if (!Number.isFinite(length) || length < 1e-6) continue;
+    const dir = { x: dx / length, y: dy / length };
+    const steps = Math.max(1, Math.ceil(length / stepMeters));
+    const from = i === 1 ? 0 : 1;
+    for (let s = from; s <= steps; s++) {
       const t = s / steps;
-      out.push({ x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
+      out.push({ world: { x: a.x + dx * t, y: a.y + dy * t }, dir });
     }
   }
   return out;
 }
 
-const clamp01 = (value: number): number => Math.max(0, Math.min(1, value));
+/**
+ * Sutherland-Hodgman clip of a 2D (x, z) polygon against the half-plane
+ * selected by `inside`; `t` gives the parameter of the plane crossing on an
+ * edge (a + (b - a) * t).
+ */
+function clipHalfPlane(points: readonly CameraPoint[], inside: (p: CameraPoint) => boolean, t: (a: CameraPoint, b: CameraPoint) => number): CameraPoint[] {
+  const out: CameraPoint[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    const aIn = inside(a);
+    const bIn = inside(b);
+    if (bIn) {
+      if (!aIn) out.push({ x: a.x + (b.x - a.x) * t(a, b), z: a.z + (b.z - a.z) * t(a, b) });
+      out.push(b);
+    } else if (aIn) {
+      out.push({ x: a.x + (b.x - a.x) * t(a, b), z: a.z + (b.z - a.z) * t(a, b) });
+    }
+  }
+  return out;
+}
 
-/** A single projected road segment ready for rendering. */
-export interface RoadSegment {
-  /** Distance in meters along the camera's forward axis. */
-  readonly worldZ: number;
-  /** Screen X of the left edge in pixels. */
-  readonly leftScreenX: number;
-  /** Screen X of the right edge in pixels. */
-  readonly rightScreenX: number;
-  /** Screen width in pixels (right - left). */
-  readonly screenWidth: number;
-  /** Screen Y in pixels (horizon → top of screen). */
-  readonly screenY: number;
-  /** World X of the left edge. */
-  readonly worldLeftX: number;
-  /** World X of the right edge. */
-  readonly worldRightX: number;
+/** A road projected as a fillable ground-plane polygon. */
+export interface ProjectedRoadPolygon {
+  /** Fill vertices in NDC (sx: -1..1, sy: 0=horizon, + below), clamped. */
+  readonly points: readonly { readonly sx: number; readonly sy: number }[];
+  /** Nearest camera-space depth of the polygon in meters (smaller = closer). */
+  readonly depth: number;
 }
 
 /**
- * Project a road centerline into perspective segments.
+ * Project a road centerline into a ground-plane polygon for perspective fill.
  *
- * Centerline coordinates are in local meters (tangent-projected from the origin).
- * The centerline points are transformed into camera-relative coordinates:
- * - worldZ: distance along the camera's forward axis
- * - worldX: distance lateral to the camera (positive = right)
- *
- * Segments are returned back-to-front (farthest first) for painter-fill
- * rendering. Points behind the camera or beyond the far clip are excluded.
+ * The centerline is sub-sampled, offset by half the road width along the
+ * world-space perpendicular of each sample (so the road keeps its real width
+ * regardless of the angle to the camera), then the resulting edge polygon is
+ * clipped against the near and far planes and projected. Returns null when
+ * nothing survives clipping (road fully behind the camera or beyond the far
+ * clip).
  */
-export function projectRoadSegments(
+export function projectRoadPolygon(
   centerline: readonly Vec2[],
   widthMeters: number,
   cameraPos: Vec2,
   cameraHeading: number,
   cameraConfig: CameraConfig,
-): RoadSegment[] {
-  if (centerline.length < 2) return [];
+): ProjectedRoadPolygon | null {
+  if (centerline.length < 2 || widthMeters <= 0) return null;
 
   const cosH = Math.cos(cameraHeading);
   const sinH = Math.sin(cameraHeading);
-
-  // Centerline is already in local meters (tangent-projected from origin)
-  // Transform centerline to camera-relative coordinates
-  const relative: CameraPoint[] = [];
-  for (const pt of centerline) {
-    const dx = pt.x - cameraPos.x;
-    const dy = pt.y - cameraPos.y;
+  const toCamera = (p: Vec2): CameraPoint => {
+    const dx = p.x - cameraPos.x;
+    const dy = p.y - cameraPos.y;
     // Vehicle convention: forward = (cos heading, sin heading).
     // Rotate world offset into camera frame: +Z = forward, +X = right.
-    const rz = dx * cosH + dy * sinH;
-    const rx = -dx * sinH + dy * cosH;
-    relative.push({ x: rx, z: rz });
+    return { x: -dx * sinH + dy * cosH, z: dx * cosH + dy * sinH };
+  };
+
+  const sampled = densifyWorld(centerline, DENSIFY_STEP_METERS);
+  if (sampled.length < 2) return null;
+
+  const halfWidth = widthMeters / 2;
+  const left: CameraPoint[] = [];
+  const right: CameraPoint[] = [];
+  for (const s of sampled) {
+    const px = -s.dir.y;
+    const py = s.dir.x;
+    left.push(toCamera({ x: s.world.x + px * halfWidth, y: s.world.y + py * halfWidth }));
+    right.push(toCamera({ x: s.world.x - px * halfWidth, y: s.world.y - py * halfWidth }));
   }
 
-  const sampled = densify(relative, DENSIFY_STEP_METERS);
+  let poly: CameraPoint[] = [...left, ...right.slice().reverse()];
+  poly = clipHalfPlane(poly, (p) => p.z >= cameraConfig.nearClip, (a, b) => (cameraConfig.nearClip - a.z) / (b.z - a.z));
+  if (poly.length < 3) return null;
+  poly = clipHalfPlane(poly, (p) => p.z <= cameraConfig.farClip, (a, b) => (cameraConfig.farClip - a.z) / (b.z - a.z));
+  if (poly.length < 3) return null;
 
-  // Build segments between consecutive points
-  const rawSegments: { z: number; leftX: number; rightX: number; segIdx: number }[] = [];
-  for (let i = 0; i < sampled.length - 1; i++) {
-    const a = sampled[i];
-    const b = sampled[i + 1];
-
-    // Skip if both points are behind camera
-    if (a.z <= 0 && b.z <= 0) continue;
-
-    // Skip if both points are beyond far clip
-    if (a.z >= cameraConfig.farClip && b.z >= cameraConfig.farClip) continue;
-
-    const midZ = (a.z + b.z) / 2;
-    const midX = (a.x + b.x) / 2;
-
-    rawSegments.push({
-      z: midZ,
-      leftX: midX - widthMeters / 2,
-      rightX: midX + widthMeters / 2,
-      segIdx: i,
-    });
-  }
-
-  // Sort back-to-front
-  rawSegments.sort((a, b) => b.z - a.z);
-
-  // Project to screen coordinates
-  const segments: RoadSegment[] = [];
-  for (const raw of rawSegments) {
-    // Left edge
-    const leftProj = projectPerspective(raw.leftX, 0, raw.z, cameraConfig);
-    const rightProj = projectPerspective(raw.rightX, 0, raw.z, cameraConfig);
-
-    if (leftProj.rejected && rightProj.rejected) continue;
-
-    const screenZ = raw.z;
-    const leftSx = leftProj.sx;
-    const rightSx = rightProj.sx;
-
-    // sy from perspective: 0 at camera horizon line, positive below horizon
-    // for ground points. Map |sy| → [0,1]: |sy|→∞ (close) → 1 (bottom),
-    // |sy|→0 (far) → 0 (horizon).
-    const avgSy = Math.abs((leftProj.sy + rightProj.sy) / 2);
-    const normalizedSy = avgSy / (1 + avgSy);
-    const screenY = Math.max(0, Math.min(1, normalizedSy));
-
-    // Symmetric clamping keeps leftScreenX <= rightScreenX even when the
-    // road leaves the screen on one side.
-    const leftScreenX = clamp01((leftSx + 1) / 2);
-    const rightScreenX = clamp01((rightSx + 1) / 2);
-
-    segments.push({
-      worldZ: screenZ,
-      leftScreenX,
-      rightScreenX,
-      screenWidth: Math.max(0.01, rightScreenX - leftScreenX),
-      screenY,
-      worldLeftX: raw.leftX,
-      worldRightX: raw.rightX,
-    });
-  }
-
-  return segments;
+  const clamp = (v: number): number => Math.max(-NDC_CLAMP, Math.min(NDC_CLAMP, v));
+  const points = poly.map((p) => {
+    const ndc = projectGroundNdc(p.x, p.z, cameraConfig);
+    return { sx: clamp(ndc.sx), sy: clamp(ndc.sy) };
+  });
+  let depth = Infinity;
+  for (const p of poly) depth = Math.min(depth, p.z);
+  return { points, depth };
 }

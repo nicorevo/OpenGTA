@@ -87,8 +87,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       catch (error) { physics.dispose(); throw error; }
       if (token !== epoch) { physics.dispose(); firstPerson.dispose(); return; }
       let viewMode: "top-down" | "perspective" = "top-down";
+      let fpVisible = false;
       const toggleFP = () => {
         viewMode = viewMode === "top-down" ? "perspective" : "top-down";
+        fpVisible = viewMode === "perspective";
         tpCanvas.style.display = viewMode === "top-down" ? "block" : "none";
         fpCanvas.style.display = viewMode === "perspective" ? "block" : "none";
         hint.textContent = (viewMode === "perspective" ? "Modo: prima persona" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`;
@@ -123,7 +125,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const session = current;
       const vehicleSnapshot = () => session ? session.vehicle() : offlineVehicle ? { position: { ...offlineVehicle.position }, velocity: { ...offlineVehicle.velocity }, heading: offlineVehicle.heading } : undefined;
       const metrics = new RuntimeMetrics();
-      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), presentation: () => renderer.presentationCounts(), firstPerson: () => firstPerson.diagnostics() }) });
+      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), firstPerson: () => firstPerson.diagnostics() }) });
       Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: Object.freeze({ snapshot: () => metrics.snapshot() }) });
       const updateStatus = () => {
         const snapshot = session?.snapshot(); if (!snapshot) return;
@@ -180,9 +182,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         const veh = session?.vehicle();
         if (veh) { renderer.updateVehicle(veh.position, veh.heading); firstPerson.updateVehicle(veh.position, veh.heading); }
         else if (offlineVehicle) { renderer.updateVehicle(offlineVehicle.position, offlineVehicle.heading); firstPerson.updateVehicle(offlineVehicle.position, offlineVehicle.heading); }
-        // Forward all active chunks to FP renderer
+        // Forward active chunks to the FP renderer only while it is on
+        // screen: rendering a hidden canvas costs a full pass per frame.
         metrics.recordFrame(frameMs);
-        if (veh || offlineVehicle) { const chunks = session ? session.getActiveChunks() : currentChunks; if (chunks.length > 0) firstPerson.render(chunks); }
+        if (fpVisible && (veh || offlineVehicle)) { const chunks = session ? session.getActiveChunks() : currentChunks; if (chunks.length > 0) firstPerson.render(chunks); }
         if (now - lastUpdate >= 200) { lastUpdate = now; void session?.stream(now); updateStatus(); updateZoomState(); if (!overlay.hidden || params.get("benchmark") === "1") updateOverlay(); }
         if (params.get("benchmark") === "1" && now - benchmarkStart >= 30000) { document.body.dataset.benchmarkComplete = "true"; document.body.dataset.benchmarkResult = JSON.stringify(metrics.snapshot()); }
         raf = requestAnimationFrame(frame);
