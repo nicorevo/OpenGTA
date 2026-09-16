@@ -50,3 +50,7 @@ live esplicito e gate finale con misure.
 La spec di Fase 2 resta riferimento della fondazione precedente; hosting,
 cache persistente, pacchetti, AI e multiplayer non sono impliciti nella
 tranche e restano nei filoni differiti di `tasks/online/FOLLOW-UPS.md`.
+
+## Active Feature Specs
+
+- First-person renderer (OutRun-style perspective): `docs/specs/first-person-renderer-v0.md`

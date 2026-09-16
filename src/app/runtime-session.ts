@@ -108,6 +108,8 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       options.renderer.updateVehicle(vehicle.position, vehicle.heading);
     },
     vehicle() { return vehicle ? { position: { ...vehicle.position }, velocity: { ...vehicle.velocity }, heading: vehicle.heading } : undefined; },
+    /** Expose active compiled chunks for external renderers (e.g. first-person). */
+    getActiveChunks() { return (values() as unknown as CompiledChunkV0[]); },
     snapshot() {
       const diagnostic = runtime.snapshot();
       const hasErrors = Object.keys(diagnostic.errors).length > 0;

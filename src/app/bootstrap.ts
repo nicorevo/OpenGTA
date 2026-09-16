@@ -10,6 +10,7 @@ import { createVectorTileCanonicalRegionSource } from "../world/runtime/canonica
 import { DEFAULT_ENDPOINT_POLICY, readRuntimeConfig, type RuntimeConfig } from "../world/runtime/live-config.ts";
 import { createLiveControls } from "./live-controls.ts";
 import { createPixiRenderer } from "../render/pixi/renderer.ts";
+import { createFirstPersonRenderer } from "../render/pixi/first-person-renderer.ts";
 import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapier/adapter.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
 import { advanceFixedStep } from "./fixed-step.ts";
@@ -22,9 +23,9 @@ const errorMessages: Record<string, string> = { http: "Servizio non disponibile"
 export async function bootstrap(root: HTMLElement): Promise<void> {
   root.replaceChildren();
   root.style.cssText = "position:fixed;inset:0;background:#202225;color:#fff;font:14px system-ui;overflow:hidden";
-  let canvas = document.createElement("canvas");
-  canvas.setAttribute("aria-label", "OpenGTA Web V0 world");
-  canvas.style.cssText = "display:block;width:100%;height:100%";
+  let tpCanvas = document.createElement("canvas");
+  tpCanvas.setAttribute("aria-label", "OpenGTA Web V0 world");
+  tpCanvas.style.cssText = "display:block;width:100%;height:100%";
   const overlay = document.createElement("pre");
   overlay.id = "debug-overlay"; overlay.hidden = true;
   overlay.style.cssText = "position:fixed;top:8px;right:8px;margin:0;padding:8px;background:#111e;color:#fff;z-index:3;max-width:calc(100vw - 32px);max-height:65vh;overflow:auto;font-size:12px";
@@ -47,7 +48,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   const updateZoomState = () => { zoomOutButton.disabled = zoom.level() <= 0; zoomInButton.disabled = zoom.level() >= 4; };
   zoomInButton.onclick = () => { zoom.in(); zoomInButton.blur(); updateZoomState(); };
   zoomOutButton.onclick = () => { zoom.out(); zoomOutButton.blur(); updateZoomState(); };
-  root.append(canvas, overlay, hint, status, zoomBar);
+  root.append(tpCanvas, overlay, hint, status, zoomBar);
   const params = new URLSearchParams(window.location.search);
   const policy = { ...DEFAULT_ENDPOINT_POLICY, developmentOrigin: import.meta.env.DEV ? window.location.origin : undefined };
   let config: RuntimeConfig;
@@ -68,14 +69,27 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
     try {
       stopLoop(); await disposeCurrent?.(); disposeCurrent = undefined; current = undefined;
       if (token !== epoch) return;
-      const nextCanvas = canvas.cloneNode(false) as HTMLCanvasElement;
-      canvas.replaceWith(nextCanvas); canvas = nextCanvas;
+      const nextCanvas = tpCanvas.cloneNode(false) as HTMLCanvasElement;
+      tpCanvas.replaceWith(nextCanvas); tpCanvas = nextCanvas;
       status.dataset.state = "loading"; message.textContent = messages.loading; retry.hidden = true; stop.hidden = false;
       const physics = await createPhysicsAdapter([]);
       let renderer;
       try { renderer = await createPixiRenderer(nextCanvas); }
       catch (error) { physics.dispose(); throw error; }
       if (token !== epoch) { physics.dispose(); renderer.dispose(); return; }
+      // First-person overlay canvas (hidden by default)
+      const fpCanvas = document.createElement("canvas");
+      fpCanvas.style.cssText = "position:fixed;inset:0;display:none;width:100%;height:100%;";
+      fpCanvas.setAttribute("aria-label", "OpenGTA FPV");
+      root.append(fpCanvas);
+      const firstPerson = createFirstPersonRenderer(fpCanvas);
+      let viewMode: "top-down" | "perspective" = "top-down";
+      const toggleFP = () => {
+        viewMode = viewMode === "top-down" ? "perspective" : "top-down";
+        tpCanvas.style.display = viewMode === "top-down" ? "block" : "none";
+        fpCanvas.style.display = viewMode === "perspective" ? "block" : "none";
+        hint.textContent = (viewMode === "perspective" ? "Modo: prima persona" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`;
+      };
       const { origin, live: liveConfig } = config;
       const openWorld = config.mode !== "offline";
       const sourceIdentity = liveConfig ? liveConfig.provider + ":" + liveConfig.endpoint : "fixture:lecce-v0";
@@ -84,21 +98,23 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const source = mvt ? undefined : sources.get(sourceIdentity)!;
       let offlineVehicle: PhysicsVehicleState | undefined;
       let offlineCounts = { buildings: 0, roads: 0, compiled: 0 };
+      let currentChunks: readonly CompiledChunkV0[] = [];
       if (openWorld) {
-        const regionSource = mvt ? createVectorTileCanonicalRegionSource({ provider: createOpenFreeMapProvider(), identity: sourceIdentity }) : undefined;
+        const regionSource = mvt ? createVectorTileCanonicalRegionSource({ provider: createOpenFreeMapProvider({ maxTileBytes: 16 * 1024 * 1024 }), identity: sourceIdentity }) : undefined;
         const liveSession = createRuntimeSession({ source, regionSource, origin, renderer, physics, cache, sourceIdentity, queryProfile: mvt ? "mvt-z14-v1" : OSM_QUERY_PROFILE, persistentStore });
         current = liveSession;
         zoom.in = () => liveSession.zoomIn(); zoom.out = () => liveSession.zoomOut(); zoom.level = () => liveSession.snapshot().zoomLevel;
-        disposeCurrent = async () => { try { await liveSession.dispose(); } catch { /* teardown is best-effort */ } };
+        disposeCurrent = async () => { try { await liveSession.dispose(); firstPerson.dispose(); fpCanvas.style.display = "none"; } catch { /* teardown is best-effort */ } };
         void current.start();
       } else {
         const region = normalizeOsm(rawFixture, createTangentProjector(origin), origin, "lecce-sant-oronzo-v0");
         const result = compileRegion(region);
-        physics.setChunk("offline", result.chunks.flatMap((chunk) => chunk.collisions)); renderer.render(result.chunks);
+        currentChunks = result.chunks;
+        physics.setChunk("offline", currentChunks.flatMap((chunk) => chunk.collisions)); renderer.render(currentChunks); firstPerson.render(currentChunks);
         offlineCounts = { buildings: region.buildings.length, roads: region.roads.length, compiled: result.diagnostics.compiledFeatureCount };
         offlineVehicle = physics.createVehicle({ x: 0, y: 0, heading: 0 });
         zoom.in = () => renderer.zoomIn(); zoom.out = () => renderer.zoomOut(); zoom.level = () => renderer.cameraState().zoomLevel;
-        disposeCurrent = async () => { try { physics.dispose(); renderer.dispose(); } catch { /* teardown is best-effort */ } };
+        disposeCurrent = async () => { try { physics.dispose(); renderer.dispose(); firstPerson.dispose(); fpCanvas.style.display = "none"; } catch { /* teardown is best-effort */ } };
         status.dataset.state = "ready"; message.textContent = "Offline"; stop.hidden = true;
       }
       const session = current;
@@ -140,6 +156,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         if (event.key === "+" || event.key === "=") { event.preventDefault(); zoom.in(); updateZoomState(); }
         if (event.key === "-" || event.key === "_") { event.preventDefault(); zoom.out(); updateZoomState(); }
         if (!event.repeat && event.key.toLowerCase() === "l") hint.textContent = (renderer.toggleLabels() ? "Nomi attivi" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`;
+        if (!event.repeat && event.key.toLowerCase() === "v") toggleFP();
         if (event.key.startsWith("Arrow")) event.preventDefault();
       }, { signal: listeners.signal });
       window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()), { signal: listeners.signal });
@@ -157,8 +174,12 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
           if (session?.vehicle()) { session.step(input); metrics.recordPhysicsStep(performance.now() - startTime); }
           else if (offlineVehicle) { offlineVehicle = physics.stepVehicle(offlineVehicle, input); metrics.recordPhysicsStep(performance.now() - startTime); }
         }
-        if (offlineVehicle) renderer.updateVehicle(offlineVehicle.position, offlineVehicle.heading);
+        const veh = session?.vehicle();
+        if (veh) { renderer.updateVehicle(veh.position, veh.heading); firstPerson.updateVehicle(veh.position, veh.heading); }
+        else if (offlineVehicle) { renderer.updateVehicle(offlineVehicle.position, offlineVehicle.heading); firstPerson.updateVehicle(offlineVehicle.position, offlineVehicle.heading); }
+        // Forward all active chunks to FP renderer
         metrics.recordFrame(frameMs);
+        if (veh || offlineVehicle) { const chunks = session ? session.getActiveChunks() : currentChunks; if (chunks.length > 0) firstPerson.render(chunks); }
         if (now - lastUpdate >= 200) { lastUpdate = now; void session?.stream(now); updateStatus(); updateZoomState(); if (!overlay.hidden || params.get("benchmark") === "1") updateOverlay(); }
         if (params.get("benchmark") === "1" && now - benchmarkStart >= 30000) { document.body.dataset.benchmarkComplete = "true"; document.body.dataset.benchmarkResult = JSON.stringify(metrics.snapshot()); }
         raf = requestAnimationFrame(frame);

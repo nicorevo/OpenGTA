@@ -97,3 +97,99 @@ Piano e checklist City Drive Stable: [archivio piano](archive/2026-09-11-plan.md
 e [archivio checklist](archive/2026-09-11-todo.md). La tranche ONLINE resta in
 [archivio](archive/2026-09-10-plan.md). I log in `tasks/executions/` sono
 evidenza storica.
+
+---
+
+## Piano: First-Person Perspective Renderer (OutRun-Style)
+
+**Spec:** `docs/specs/first-person-renderer-v0.md`  
+**Data:** 2026-09-14  
+**Baseline codice:** post-fix label colors, `git log --oneline -10` prima del nuovo codice.
+
+### Obiettivo
+
+Aggiungere un renderer in prima persona (vista dal parabrezza) che permetta
+di guidare in prospettiva OutRun, toggleabile con il renderer top-down esistente
+tramite il tasto `V`.
+
+### Architettura
+
+```
+Decisione: estendere PixiJS con un renderer alternativo nello stesso stage
+- Stesso canvas, stessa interfaccia PixiRenderer
+- Il renderer top-down resta intatto, non viene modificato
+- Il primo-person usa solo i chunk attivi (stesso world data)
+- Toggle istantaneo: V cambia quale renderer disegna
+```
+
+### Dependency Graph
+
+```
+road-projector.ts      (proiezione 3D→2D centerline)
+    │
+    ▼
+segment-drawer.ts      (disegna poligoni strada back-to-front)
+    │
+    ▼
+building-projector.ts  (proiezione edifici laterali)
+    │
+    ▼
+sky-drawer.ts          (gradient orizzonte)
+    │
+    ▼
+first-person-renderer  (orchestra i componenti)
+    │
+    ├─────────► presentation.ts  (toggle mode)
+    └─────────► bootstrap.ts     (key handler V)
+```
+
+### Task List
+
+### Phase 1: Core Projection (Tasks FP-01..03)
+
+- [ ] [FP-01](tasks/first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
+- [ ] [FP-02](tasks/first-person/FP-02.md): road segment projector (centerline → screen segments)
+- [ ] [FP-03](tasks/first-person/FP-03.md): road segment drawer (back-to-front poligoni)
+
+### Checkpoint 1: Strada visuale
+- [ ] `npm run typecheck` verde
+- [ ] `npm run test:run` verde (322 test)
+- [ ] Road retta visibile in prospettiva, larghezza corretta
+
+### Phase 2: Buildings + Sky (Tasks FP-04..05)
+
+- [ ] [FP-04](tasks/first-person/FP-04.md): building side projection (edifici laterali)
+- [ ] [FP-05](tasks/first-person/FP-05.md): sky gradient (orizzonte)
+
+### Checkpoint 2: Scena completa
+- [ ] Road + edifici + cielo visibili
+- [ ] Costruzione con `V` → top-down, `V` → first-person
+- [ ] Nessun test rotto
+
+### Phase 3: Integration (Tasks FP-06..07)
+
+- [x] [FP-06](tasks/first-person/FP-06.md): first-person renderer orchestration (implementato, WIP non committo)
+- [x] [FP-07](tasks/first-person/FP-07.md): V key toggle (interfaccia PixiRenderer) (implementato, WIP non committo)
+
+### Phase 3.5: Fix vista FPV (regressione)
+
+**Nota 2026-09-16:** l'implementazione FP-01..07 esiste nel working tree ma la
+vista è rotta: la camera è ruotata di 90° rispetto all'heading (componenti
+X/Z invertite) e una ground strip a `ROAD_FILL` copre la strada con lo stesso
+colore. Diagnosi completa e fette di fix in
+[FP-08](tasks/first-person/FP-08.md).
+
+- [ ] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera + layering ground/road + facciate edifici
+
+### Checkpoint 3: End-to-end
+- [ ] Guida completa in first-person
+- [ ] Toggle V durante guida senza crash
+- [ ] 60 FPS stabile per 30 secondi
+
+### Rischi e mitigazioni
+
+| Rischio | Impatto | Mitigazione |
+|---------|---------|-------------|
+| Proiezione prospettica produce artefatti | Basso | Clamp Z depth, early-out su segmenti dietro camera |
+| Edifici proiettati troppo grandi | Basso | Culling laterale ±30m, max height scale |
+| Performance sotto i 60fps | Alto | Disabilitare edifici se draw calls > 120 |
