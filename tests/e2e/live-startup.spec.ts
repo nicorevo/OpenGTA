@@ -20,7 +20,7 @@ test("OSM live compiles real geometry using only the selected provider", async (
     return route.fulfill({ json: fixture });
   });
   await page.goto("/?mode=open-world-live&provider=osm&consent=1");
-  await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window), { timeout: 15000 }).toBe(true);
   await page.keyboard.press("F3");
   await expect(page.locator("#debug-overlay")).toContainText(/buildings: [1-9]/);
@@ -73,7 +73,7 @@ test("offline and missing consent never contact a remote provider", async ({ pag
     return route.abort();
   });
   await page.goto("/");
-  await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toBeVisible();
   await page.goto("/?mode=open-world-live&provider=osm");
   await expect(page.locator("#config-error")).toContainText(/consent/i);
   expect(remote).toEqual([]);

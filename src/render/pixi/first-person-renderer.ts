@@ -73,9 +73,9 @@ function drawSky(graphics: Graphics, w: number, h: number): void {
   graphics.poly([{ x: 0, y: halfHorizon }, { x: w, y: halfHorizon }, { x: w, y: horizonY }, { x: 0, y: horizonY }]).fill(SKY_HORIZON_COLOR);
 }
 
-export function createFirstPersonRenderer(canvas: HTMLCanvasElement): FirstPersonRenderer {
+export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Promise<FirstPersonRenderer> {
   const app = new Application();
-  app.init({ canvas, background: 0x00000000, antialias: true, preference: "webgl", resizeTo: canvas.parentElement ?? window });
+  await app.init({ canvas, background: 0x00000000, antialias: true, preference: "webgl", resizeTo: canvas.parentElement ?? window });
 
   const worldContainer = new Container();
   app.stage.addChild(worldContainer);

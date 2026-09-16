@@ -28,7 +28,7 @@ test("built assets run offline and only the production HTTPS policy permits live
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   await expect(page.locator('select[name="provider"]')).toHaveValue("osm");
   await page.setViewportSize({ width: 390, height: 844 });
-  await expect(page.locator("canvas")).toBeVisible();
+  await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toBeVisible();
   await page.screenshot({ path: "/tmp/opengta-preview-mobile.png" });
   expect(errors).toEqual([]);
 });

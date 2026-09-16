@@ -82,7 +82,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       fpCanvas.style.cssText = "position:fixed;inset:0;display:none;width:100%;height:100%;";
       fpCanvas.setAttribute("aria-label", "OpenGTA FPV");
       root.append(fpCanvas);
-      const firstPerson = createFirstPersonRenderer(fpCanvas);
+      let firstPerson;
+      try { firstPerson = await createFirstPersonRenderer(fpCanvas); }
+      catch (error) { physics.dispose(); throw error; }
+      if (token !== epoch) { physics.dispose(); firstPerson.dispose(); return; }
       let viewMode: "top-down" | "perspective" = "top-down";
       const toggleFP = () => {
         viewMode = viewMode === "top-down" ? "perspective" : "top-down";
@@ -190,7 +193,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       if (token === epoch) { busy = false; retry.disabled = false; }
     }
   };
-  const reportFailure = () => { busy = false; retry.disabled = false; retry.hidden = false; status.dataset.state = "error"; message.textContent = "Inizializzazione non riuscita"; };
+  const reportFailure = (error?: unknown) => { console.error("BOOTSTRAP_FAILURE", error); busy = false; retry.disabled = false; retry.hidden = false; status.dataset.state = "error"; message.textContent = "Inizializzazione non riuscita"; };
   retry.onclick = () => {
     if (current?.vehicle() && current.snapshot().state !== "error") {
       retry.disabled = true;

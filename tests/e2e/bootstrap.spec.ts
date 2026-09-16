@@ -11,8 +11,8 @@ test("boots V0 and drives with keyboard input", async ({ page }) => {
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/");
-  await expect(page.locator("canvas")).toHaveAttribute("aria-label", "OpenGTA Web V0 world");
-
+  await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toHaveAttribute("aria-label", "OpenGTA Web V0 world");
+  await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window)).toBe(true);
   await page.keyboard.press("F3");
   await expect(page.locator("#debug-overlay")).toBeVisible();
   await expect(page.locator("#debug-overlay")).toContainText("physics steps:");
