@@ -19,6 +19,7 @@ export function createLiveControls(root: HTMLElement, params: URLSearchParams, p
   const longitude = document.createElement("input"); longitude.name = "lon"; longitude.type = "number"; longitude.step = "any"; longitude.min = "-180"; longitude.max = "180"; longitude.value = params.get("lon") ?? String(DEFAULT_ORIGIN.longitude);
   field("Latitudine", latitude); field("Longitudine", longitude);
   const provider = document.createElement("select"); provider.name = "provider";
+  const mvt = document.createElement("option"); mvt.value = "openfreemap-mvt"; mvt.textContent = "OpenFreeMap MVT"; provider.append(mvt);
   const osm = document.createElement("option"); osm.value = "osm"; osm.textContent = "OpenStreetMap"; provider.append(osm);
   if (policy.developmentOrigin || policy.httpsEndpoints.some((endpoint) => !DEFAULT_ENDPOINT_POLICY.httpsEndpoints.includes(endpoint))) {
     const http = document.createElement("option"); http.value = "http"; http.textContent = "Endpoint autorizzato"; provider.append(http);
@@ -26,7 +27,7 @@ export function createLiveControls(root: HTMLElement, params: URLSearchParams, p
   // The http option exists only when the trusted policy authorises it: in a
   // production build with the default policy the select must fall back to the
   // only available option instead of submitting an empty provider value.
-  const desiredProvider = params.get("provider") === "http" || (params.has("endpoint") && params.get("provider") !== "osm") ? "http" : "osm";
+  const desiredProvider = params.get("provider") === "http" || (params.has("endpoint") && params.get("provider") !== "osm") ? "http" : params.get("provider") === "openfreemap-mvt" ? "openfreemap-mvt" : "osm";
   provider.value = [...provider.options].some((option) => option.value === desiredProvider) ? desiredProvider : provider.options[0].value;
   field("Provider", provider, true);
   const endpoint = document.createElement("input"); endpoint.type = "url"; endpoint.value = params.get("endpoint") ?? DEFAULT_ENDPOINT_POLICY.httpsEndpoints[0];
