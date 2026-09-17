@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test:run": "vitest run",
     "test": "vitest",
+    "test:bench": "vitest run --config vitest.bench.config.ts",
     "test:e2e": "playwright test",
     "test:canary": "OPENGTA_CANARY=1 playwright test tests/e2e/canary-lecce.spec.ts"
   },

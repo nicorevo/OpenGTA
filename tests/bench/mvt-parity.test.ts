@@ -242,16 +242,20 @@ gameplay è demandata a una parity futura su dataset a zoom superiore.
 `;
 }
 
-it("builds the complete Overpass vs MVT parity matrix and writes the report", () => {
+it("builds the complete Overpass vs MVT parity matrix", () => {
   const matrix = runParity();
   for (const [key, value] of Object.entries(matrix.overpass)) expect(Number.isFinite(value), `overpass ${key}`).toBe(true);
   for (const [key, value] of Object.entries(matrix.mvt)) expect(Number.isFinite(value), `mvt ${key}`).toBe(true);
   expect(matrix.overpass.elements).toBeGreaterThan(0);
   expect(matrix.mvt.rawRoads).toBeGreaterThan(0);
-  const markdown = reportMarkdown(matrix);
-  mkdirSync(dirname(REPORT_PATH.pathname), { recursive: true });
-  writeFileSync(REPORT_PATH, markdown);
-  console.log(`\n${markdown}`);
+  // The report is an explicit action, not a side effect of the gate:
+  // OPENGTA_WRITE_BENCH_REPORT=1 npm run test:bench
+  if (process.env.OPENGTA_WRITE_BENCH_REPORT === "1") {
+    const markdown = reportMarkdown(matrix);
+    mkdirSync(dirname(REPORT_PATH.pathname), { recursive: true });
+    writeFileSync(REPORT_PATH, markdown);
+    console.log(`\n${markdown}`);
+  }
 });
 
 it("is deterministic across two mapping runs of the same tile", () => {
