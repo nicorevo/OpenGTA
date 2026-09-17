@@ -92,6 +92,26 @@ describe("Rapier vehicle integration", () => {
     expect(state.position.x).toBeLessThan(2);
   });
 
+  it("does not drift or add lateral velocity when throttle-only driving clips an angled wall", async () => {
+    // Regression: the solver used to feed its contact-modified pose (velocity +
+    // rotation) back into the arcade controller. An off-center impact at speed
+    // then injected lateral velocity and rotated the car, so it curved or
+    // zig-zagged with no steering input. The controller must stay authoritative.
+    const physics = await createPhysicsAdapter([
+      { kind: "segment", featureId: "angled-wall", a: { x: 14, y: -2 }, b: { x: 8, y: 8 } },
+    ]);
+    let state = physics.createVehicle({ x: 0, y: 0, heading: 0 });
+    let maxHeading = 0; let maxLateral = 0;
+    for (let i = 0; i < 240; i += 1) {
+      state = physics.stepVehicle(state, { throttle: 1, steer: 0, brake: 0 });
+      maxHeading = Math.max(maxHeading, Math.abs(state.heading));
+      maxLateral = Math.max(maxLateral, Math.abs(state.velocity.y)); // heading is 0, so lateral == v.y
+    }
+    expect(maxHeading).toBeLessThan(0.01);
+    expect(maxLateral).toBeLessThan(0.01);
+    physics.dispose();
+  });
+
   it("lets the vehicle drive into the open notch of a concave building", async () => {
     const physics = await createPhysicsAdapter([{
       kind: "polygon",

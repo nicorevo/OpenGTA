@@ -80,17 +80,28 @@ export async function createPhysicsAdapter(shapes: readonly CollisionShape2D[]):
     dispose() { if (disposed) return; disposed = true; chunks.clear(); world.free(); },
     createVehicle(initial) {
       const body = world.createRigidBody(RAPIER.RigidBodyDesc.dynamic().setTranslation(initial.x, initial.y).setRotation(initial.heading).setCcdEnabled(true));
-      world.createCollider(RAPIER.ColliderDesc.cuboid(VEHICLE_HALF_LENGTH, VEHICLE_HALF_WIDTH).setFriction(0.8).setRestitution(0), body);
+      // No contact friction: the arcade controller owns all driving dynamics,
+      // so a wall may only push the car back along its normal. Tangential
+      // friction would inject lateral velocity that the solver feedback leaks
+      // back into the controller (see stepVehicle).
+      world.createCollider(RAPIER.ColliderDesc.cuboid(VEHICLE_HALF_LENGTH, VEHICLE_HALF_WIDTH).setFriction(0).setRestitution(0), body);
       return { body, position: { x: initial.x, y: initial.y }, velocity: { x: 0, y: 0 }, heading: initial.heading };
     },
     stepVehicle(state, input, available) {
       let desired = stepArcadeVehicle(state, input);
       let blocked = available ? !available(desired) : false;
       if (blocked) desired = { ...state, velocity: { x: 0, y: 0 } };
-      state.body.setLinvel(desired.velocity, true); state.body.setRotation(desired.heading, true);
+      // The arcade controller is authoritative for velocity and heading. We
+      // drive the Rapier body to that pose, let the solver only push the
+      // POSITION out of colliders, and discard whatever velocity/rotation the
+      // solver produced. Feeding the solver's contact-modified pose back into
+      // the controller let off-center impacts (strong at high speed) inject
+      // lateral velocity and rotation, making the car curve or zig-zag with no
+      // steering input.
+      state.body.setLinvel(desired.velocity, true); state.body.setAngvel(0, true); state.body.setRotation(desired.heading, true);
       world.timestep = 1 / 60; world.step();
-      const position = state.body.translation(); const velocity = state.body.linvel();
-      const next = { body: state.body, position: { x: position.x, y: position.y }, velocity: { x: velocity.x, y: velocity.y }, heading: state.body.rotation() };
+      const position = state.body.translation();
+      const next = { body: state.body, position: { x: position.x, y: position.y }, velocity: desired.velocity, heading: desired.heading };
       if (available && !available(next)) {
         blocked = true;
         state.body.setTranslation(state.position, true); state.body.setRotation(state.heading, true);
