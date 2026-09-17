@@ -254,7 +254,7 @@ indipendente; RV-11 dopo gli altri task (verifica assenza di riferimenti).
 
 ### R-B: robustness e performance, dopo RV-10, RV-09, RV-08, RV-06, RV-07
 
-- [ ] Suite completa, typecheck, build, E2E verdi.
+- [x] Suite completa, typecheck, build, E2E verdi.
 
 ### R-C: pulizia, dopo RV-11, RV-12
 
