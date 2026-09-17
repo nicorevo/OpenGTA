@@ -264,7 +264,7 @@ test("reloads reuse compiled chunks from IndexedDB without new provider calls", 
     if (url.startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
-  const url = `/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`;
+  const url = `/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`;
   await page.goto(url);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { runtime: { pending: string[] } } } }).__opengtaV0Debug.session().runtime.pending.length)), { timeout: 20000 }).toBe(0);

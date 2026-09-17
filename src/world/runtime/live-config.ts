@@ -20,7 +20,7 @@ export interface RuntimeConfig {
 }
 
 export function readRuntimeConfig(params: Pick<URLSearchParams, "get">, policy = DEFAULT_ENDPOINT_POLICY): RuntimeConfig {
-  const mode = params.get("mode") ?? "offline";
+  const mode = params.get("mode") ?? "open-world-live";
   if (mode !== "offline" && mode !== "open-world" && mode !== "open-world-live") throw new Error("Modalita' non valida");
   const provider = params.get("provider");
   if (provider !== null && provider !== "osm" && provider !== "http" && provider !== "openfreemap-mvt") throw new Error("Provider non valido");
@@ -37,14 +37,20 @@ export function readRuntimeConfig(params: Pick<URLSearchParams, "get">, policy =
 }
 
 export function readLiveSourceConfig(params: Pick<URLSearchParams, "get">, policy = DEFAULT_ENDPOINT_POLICY): LiveSourceConfig | undefined {
-  if (params.get("mode") !== "open-world-live") return undefined;
-  if (params.get("consent") !== "1") throw new Error("live mode requires explicit consent");
-  if (params.get("provider") !== null && !["osm", "http", "openfreemap-mvt"].includes(params.get("provider")!)) throw new Error("Provider non valido");
+  // A missing mode defaults to live (matching readRuntimeConfig); only an
+  // explicit non-live mode yields no live config.
+  const mode = params.get("mode");
+  if (mode !== null && mode !== "open-world-live") return undefined;
+  const provider = params.get("provider");
+  if (provider !== null && !["osm", "http", "openfreemap-mvt"].includes(provider)) throw new Error("Provider non valido");
+  // Consent is implicit and always granted: the default live source is the
+  // pinned, trusted OpenFreeMap MVT endpoint (a compile-time constant, never
+  // user input), so the explicit/revocable consent gate is removed.
   // The MVT provider is experimental and pinned: the endpoint is a constant,
   // never user input, so the endpoint allowlist policy stays unchanged.
-  if (params.get("provider") === "openfreemap-mvt") return { endpoint: OPENFREEMAP_TILE_BASE_URL, provider: "openfreemap-mvt", consent: true };
-  const provider = params.get("provider") === "osm" ? "osm-overpass" : "http";
-  const rawEndpoint = params.get("endpoint") ?? (provider === "osm-overpass" ? DEFAULT_OVERPASS_ENDPOINT : undefined);
+  if (provider === null || provider === "openfreemap-mvt") return { endpoint: OPENFREEMAP_TILE_BASE_URL, provider: "openfreemap-mvt", consent: true };
+  const resolved = provider === "osm" ? "osm-overpass" : "http";
+  const rawEndpoint = params.get("endpoint") ?? (resolved === "osm-overpass" ? DEFAULT_OVERPASS_ENDPOINT : undefined);
   if (!rawEndpoint || rawEndpoint.length > 2_048) throw new Error("live mode requires a bounded endpoint");
   let endpoint: URL;
   try {
@@ -60,5 +66,5 @@ export function readLiveSourceConfig(params: Pick<URLSearchParams, "get">, polic
     allowedLocal = ["127.0.0.1", "localhost", "[::1]"].includes(local.hostname) && endpoint.origin === local.origin && endpoint.pathname === "/__test-geo";
   }
   if (!allowedHttps && !allowedLocal) throw new Error("Endpoint non autorizzato");
-  return { endpoint: endpoint.toString(), provider, consent: true };
+  return { endpoint: endpoint.toString(), provider: resolved, consent: true };
 }

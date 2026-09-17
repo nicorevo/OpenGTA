@@ -149,7 +149,7 @@ all'evidenza.
 - **CITY-02** (gate "City Drive Stable"): riesegue il gate insieme alle
   verifiche funzionali; l'esito è parte della definition of done.
 - **CITY-01** (canary live): il canary rispetta i confini dichiarati in
-  `SECURITY.md` (endpoint in allowlist, consenso esplicito, nessuna rotazione di
+  `SECURITY.md` (endpoint in allowlist, sorgente pinnata, nessuna rotazione di
   mirror) e non introduce nuove superfici senza aggiornare il documento.
 
 ## Limiti

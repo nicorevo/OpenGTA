@@ -11,7 +11,7 @@ test("zoom buttons clamp at the limits and driving keeps working", async ({ page
     errors.push("Unexpected remote request"); return route.abort();
   });
   const zoomLevel = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { zoomLevel: number } } }).__opengtaV0Debug.session().zoomLevel);
-  await page.goto(`/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
+  await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   expect(await zoomLevel()).toBe(2);
   const plus = page.getByRole("button", { name: "Aumenta zoom" });

@@ -10,7 +10,7 @@ test("boots V0 and drives with keyboard input", async ({ page }) => {
   const pageErrors: string[] = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
-  await page.goto("/");
+  await page.goto("/?mode=offline");
   await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toHaveAttribute("aria-label", "OpenGTA Web V0 world");
   await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window)).toBe(true);
   await page.keyboard.press("F3");
@@ -67,7 +67,7 @@ test("reports a valid empty live area without starting a vehicle", async ({ page
     unexpected.push(url); return route.abort();
   });
 
-  await page.goto(`/?mode=open-world-live&lat=40.35&lon=18.17&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
+  await page.goto(`/?mode=open-world-live&provider=http&lat=40.35&lon=18.17&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "empty", { timeout: 15000 });
   expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   await expect(page.getByRole("button", { name: "Riprova", exact: true })).toBeVisible();

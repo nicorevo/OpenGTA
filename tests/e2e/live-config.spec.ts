@@ -1,43 +1,44 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { liveWorld } from "../fixtures/live-world.ts";
 
-test("requires explicit consent, validates coordinates and cancels on revocation", async ({ page, baseURL }) => {
+test("presents the fixed MVT live form with implicit consent and offline coordinate lock", async ({ page, baseURL }) => {
   test.setTimeout(90000);
-  let requests = 0;
+  const tileBytes = readFileSync(new URL("../../src/fixtures/geo/lecce-z14-openfreemap.pbf", import.meta.url));
+  const errors: string[] = [];
   const unexpected: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/*", (route) => {
-    if (route.request().url() === "https://overpass-api.de/api/interpreter") { requests++; return route.fulfill({ json: liveWorld }); }
     if (route.request().url().startsWith(baseURL!)) return route.continue();
     unexpected.push(route.request().url()); return route.abort();
   });
+  await page.route("**://tiles.openfreemap.org/**", (route) => {
+    if (route.request().url().includes("/planet/20260830_080001_pt/14/")) return route.fulfill({ status: 200, contentType: "application/x-protobuf", body: tileBytes });
+    return route.abort();
+  });
+
+  // Online is now the default: a bare load auto-starts the pinned MVT session.
   await page.goto("/");
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready", { timeout: 30000 });
+
   await page.getByText("OpenGTA / Area di gioco", { exact: true }).click();
-  await expect(page.getByLabel("Autorizzo l'invio delle coordinate al provider")).not.toBeChecked();
-  await page.getByLabel("Modalita'").selectOption("open-world-live");
-  await page.getByRole("button", { name: "Avvia", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText(/consent/i);
-  expect(requests).toBe(0);
-  await page.getByLabel("Autorizzo l'invio delle coordinate al provider").check();
+  // Consent is implicit and always on; provider and endpoint are fixed and hidden.
+  const consent = page.getByLabel("Autorizzo l'invio delle coordinate al provider");
+  await expect(consent).toBeChecked();
+  await expect(consent).toBeDisabled();
+  await expect(page.locator('select[name="provider"]')).toHaveCount(0);
+  await expect(page.locator('input[type="url"]')).toHaveCount(0);
+  // Online is the default mode; the map origin is editable.
+  await expect(page.getByLabel("Modalita'")).toHaveValue("open-world-live");
+  await expect(page.getByLabel("Latitudine")).toBeEnabled();
+  // Coordinate validation still applies before any request is made.
   await page.getByLabel("Latitudine").fill("91");
   await page.getByRole("button", { name: "Avvia", exact: true }).click();
   await expect(page.getByRole("alert")).toContainText("Coordinate");
-  expect(requests).toBe(0);
-  await page.getByLabel("Latitudine").fill("40.35316888888889");
-  // A previous submission can still be starting (WASM/Pixi init): wait until
-  // the button is actionably enabled instead of racing the disabled state.
-  const submit = page.getByRole("button", { name: "Avvia", exact: true });
-  await expect(submit).toBeEnabled({ timeout: 30000 });
-  await submit.click();
-  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
-  await expect.poll(() => requests).toBeGreaterThan(0);
-  await page.getByText("OpenGTA / Area di gioco", { exact: true }).click();
-  await page.getByLabel("Autorizzo l'invio delle coordinate al provider").uncheck();
-  await expect(page.locator("#session-status")).toContainText("Sessione interrotta");
-  await page.setViewportSize({ width: 390, height: 844 });
-  const bounds = await page.locator("#live-controls").boundingBox();
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-  await expect(page.locator("p")).toContainText("OpenStreetMap");
-  await page.screenshot({ path: "/tmp/opengta-controls-mobile.png" });
+  // Offline mode locks the (irrelevant) coordinate inputs.
+  await page.getByLabel("Modalita'").selectOption("offline");
+  await expect(page.getByLabel("Latitudine")).toBeDisabled();
+  await expect(page.getByLabel("Longitudine")).toBeDisabled();
+  expect(errors).toEqual([]);
   expect(unexpected).toEqual([]);
 });
 
@@ -50,24 +51,28 @@ test("rejects a URL endpoint outside the trusted allowlist without contacting it
 });
 
 test("starts live mode with keyboard input only", async ({ page, baseURL }) => {
-  let requests = 0;
+  test.setTimeout(90000);
+  const tileBytes = readFileSync(new URL("../../src/fixtures/geo/lecce-z14-openfreemap.pbf", import.meta.url));
+  const errors: string[] = [];
   const unexpected: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.route("**/*", (route) => {
-    if (route.request().url() === "https://overpass-api.de/api/interpreter") { requests++; return route.fulfill({ json: liveWorld }); }
     if (route.request().url().startsWith(baseURL!)) return route.continue();
     unexpected.push(route.request().url()); return route.abort();
   });
+  await page.route("**://tiles.openfreemap.org/**", (route) => {
+    if (route.request().url().includes("/planet/20260830_080001_pt/14/")) return route.fulfill({ status: 200, contentType: "application/x-protobuf", body: tileBytes });
+    return route.abort();
+  });
+
   await page.goto("/");
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready", { timeout: 30000 });
+  // Operate the form by keyboard only: open the panel and submit it.
   await page.getByText("OpenGTA / Area di gioco", { exact: true }).focus();
   await page.keyboard.press("Enter");
-  await page.getByLabel("Modalita'").focus();
-  await page.keyboard.press("ArrowDown");
-  await page.getByLabel("Autorizzo l'invio delle coordinate al provider").focus();
-  await page.keyboard.press("Space");
   await page.getByRole("button", { name: "Avvia", exact: true }).focus();
   await page.keyboard.press("Enter");
-  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
-  await expect.poll(() => requests).toBeGreaterThan(0);
-  await expect(page.locator("p")).toContainText("OpenStreetMap");
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready", { timeout: 30000 });
+  expect(errors).toEqual([]);
   expect(unexpected).toEqual([]);
 });

@@ -12,7 +12,7 @@ test("chunk presentations grow and shrink only by the changed chunks", async ({ 
     errors.push("Unexpected remote request"); return route.abort();
   });
   const presentation = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { presentation(): { chunkPresentations: number; graphicsObjects: number } } }).__opengtaV0Debug.presentation());
-  await page.goto(`/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
+  await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   const early = await presentation();
   expect(early.chunkPresentations).toBeGreaterThanOrEqual(1);

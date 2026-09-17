@@ -216,18 +216,17 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       void current.retryMissing().finally(() => { retry.disabled = false; retry.blur(); });
     } else { retry.blur(); void start().catch(reportFailure); }
   };
-  const stopCurrent = (revoked = false) => {
+  const stopCurrent = () => {
     ++epoch; stopLoop(); const disposal = disposeCurrent?.();
     disposeCurrent = async () => { try { await disposal; } catch { /* teardown is best-effort */ } };
     current = undefined; busy = false; retry.disabled = false; retry.hidden = false; stop.hidden = true;
-    if (revoked) config = readRuntimeConfig(new URLSearchParams());
     status.dataset.state = "error"; message.textContent = "Sessione interrotta";
   };
   stop.onclick = () => stopCurrent();
   const controls = createLiveControls(root, params, policy, async (next) => {
     if (busy) throw new Error("Avvio in corso");
     config = next; await start();
-  }, (revoked) => stopCurrent(revoked));
+  });
   await start().catch(reportFailure);
   if (initialError) { controls.showError(initialError); status.dataset.state = "error"; message.textContent = "Configurazione live non valida"; }
 }

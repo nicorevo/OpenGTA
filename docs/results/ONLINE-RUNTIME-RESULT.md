@@ -5,6 +5,11 @@ Baseline: `4ad9836`. Commit finale della tranche: `a5b076b`; commit di
 correzione post-review: `77312aa` (baseline stabile per i test utente).
 Piano: `tasks/plan.md`. Checklist: `tasks/todo.md`.
 
+> **Nota (2026-09-17):** il default e il modello di consenso sono cambiati con
+> [ADR-012](../adr/ADR-012-live-online-by-default.md) (online di default,
+> sorgente MVT pinnata, consenso implicito). Questo documento resta lo snapshot
+> della tranche ONLINE del 2026-09-10, eseguita col modello precedente.
+
 ## Esito
 
 ONLINE-01..16 completati; checkpoint C1..C6 superati. Il prototipo avvia

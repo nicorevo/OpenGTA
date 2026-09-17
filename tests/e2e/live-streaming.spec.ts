@@ -11,7 +11,7 @@ test("drives over three chunk borders without recreating the vehicle", async ({ 
     if (route.request().url().startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
-  await page.goto(`/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
+  await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   const position = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { vehicle(): { position: { x: number } } } }).__opengtaV0Debug.vehicle().position.x);
   await page.keyboard.down("w");

@@ -1,7 +1,14 @@
 # ADR-009 — Provider-neutral live runtime and explicit consent
 
-**Status:** Accepted for prototype
+**Status:** Superseded by [ADR-012](ADR-012-live-online-by-default.md)
 **Date:** 2026-08-26
+
+> **Superseded (2026-09-17).** The offline default and the explicit/revocable
+> per-session consent gate were replaced by ADR-012: online is now the default,
+> the live source is the pinned OpenFreeMap MVT provider (endpoint is a
+> compile-time constant, never user input) and consent is implicit/always-on.
+> The provider-neutral `GeoDataSource` core and the endpoint allowlist remain in
+> force. The decision text below is preserved for history.
 
 ## Context
 

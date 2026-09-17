@@ -10,7 +10,8 @@ sensibili nel repository.
 
 Il repository contiene un'applicazione eseguibile: V0 offline sul fixture Lecce
 committato, Open World Runtime con streaming a chunk e warm cache in memoria,
-modalità live OSM con consenso esplicito e policy endpoint. Baseline stabile:
+modalità live online di default su sorgente MVT pinnata con consenso implicito
+e policy endpoint. Baseline stabile:
 commit `77312aa` sul ramo `opcl` (2026-09-10), evidenze in
 [`docs/results/ONLINE-RUNTIME-RESULT.md`](docs/results/ONLINE-RUNTIME-RESULT.md).
 
@@ -28,8 +29,8 @@ deriva è verificato dal
 
 | Superficie | Dove | Presidio attuale |
 | :--- | :--- | :--- |
-| Configurazione da URL (`mode`, `provider`, `lat`, `lon`, `endpoint`, `consent`) | `src/world/runtime/live-config.ts`, `src/app/live-controls.ts` | allowlist di mode/provider; latitudine/longitudine validate con regex numerica e bound (±90 / ±180); endpoint ≤ 2048 caratteri, senza `username`/`password`/query/fragment; su input non valido si ricade sulla modalità offline con errore mostrato |
-| Consenso alla modalità live | `live-config.ts`, `src/app/bootstrap.ts` | `consent=1` obbligatorio; togliere il consenso ferma la sessione live e azzera la configurazione autorizzata, quindi `Riprova` non può riavviare il live senza consenso |
+| Configurazione da URL (`mode`, `provider`, `lat`, `lon`, `endpoint`) | `src/world/runtime/live-config.ts`, `src/app/live-controls.ts` | la modalità predefinita è online su sorgente MVT pinnata (provider/endpoint fissi, non configurabili dall'UI); allowlist di mode/provider; latitudine/longitudine validate con regex numerica e bound (±90 / ±180); per i provider opt-in `osm`/`http` l'endpoint è ≤ 2048 caratteri, senza `username`/`password`/query/fragment e soggetto ad allowlist; su input non valido l'avvio fallisce con errore mostrato |
+| Consenso alla modalità live | `live-config.ts`, `src/app/live-controls.ts` | il consenso è implicito e sempre attivo (casella di presa d'atto fissa, non revocabile); l'opt-out dalla rete è la scelta esplicita della modalità offline, che non effettua alcuna acquisizione remota |
 | Policy degli endpoint | `live-config.ts` (`EndpointPolicy`) | corrispondenza esatta con l'allowlist HTTPS; in sviluppo è ammessa solo l'origine locale con path `/__test-geo`; il build di produzione non abilita l'eccezione locale (verificato dallo smoke su `dist`) |
 | Richieste al provider | `src/world/runtime/source.ts`, `src/world/runtime/request-scheduler.ts`, `src/world/runtime/vector-tile/provider.ts` | endpoint configurato da allowlist; in sviluppo (solo build dev) è ammesso un secondario dichiarato per il provider Overpass, assente dal build di produzione (nessuna rotazione di mirror); timeout 30 s; intervallo minimo 1 s (HTTP) / 2 s (Overpass); coda ≤ 32 con priorità; retry limitati con backoff bounded e rispetto di `Retry-After`; nessuna credenziale inviata (solo `content-type`) |
 | Richieste tile MVT | `src/world/runtime/vector-tile/provider.ts` | URL costruito solo da chiave tile validata (z/x/y interi, z ≤ 24) su endpoint fisso e dataset versionato pinnato (mai `latest`); timeout 30 s; budget di byte 16 MiB con `cancel()` dello stream a overrun; 404/204 = tile vuota deterministica; errori distinti (network/timeout/http/abort); cache LRU in memoria (128 tile decodificati) con dedup dei fetch in-flight, i fallimenti non vanno in cache; max 8 fetch concorrenti (coda FIFO); un solo retry su 429/502/503/504 con `Retry-After` clamped a 30 s, abort-aware |
@@ -88,9 +89,11 @@ Limiti dichiarati, per non sovra-claimare:
 - Non ruotare mirror o endpoint per aggirare intenzionalmente i rate limit;
   rispetta policy d'uso, quote e attribuzione dei provider
   ([ADR-007](docs/adr/ADR-007-public-osm-service-boundaries.md)).
-- La modalità live resta subordinata a un consenso esplicito e revocabile
-  ([ADR-009](docs/adr/ADR-009-live-runtime-consent.md)); nessuna acquisizione di
-  rete implicita nel bootstrap o nella modalità offline.
+- La modalità live è attiva di default su una sorgente pinnata con consenso
+  implicito ([ADR-012](docs/adr/ADR-012-live-online-by-default.md)); l'opt-out
+  dalla rete è la modalità offline, che non effettua alcuna acquisizione remota.
+  I provider opt-in `osm`/`http` restano subordinati all'allowlist di endpoint
+  ([ADR-009](docs/adr/ADR-009-live-runtime-consent.md), superseded).
 - Non includere chiavi, token o credenziali nel client browser, nemmeno per
   provider "proprietari".
 - Quando nascerà un server di proprietà del progetto che recupera URL

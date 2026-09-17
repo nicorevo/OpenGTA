@@ -174,38 +174,43 @@ npm run test:e2e
 npm run build
 ```
 
-### OpenStreetMap live mode
+### Modalità live (online di default)
 
-La modalità live usa Overpass per ottenere dati OpenStreetMap. Richiede
-consenso esplicito e limita le richieste per rispettare il servizio:
+La modalità live è attiva di default al load e usa la sorgente vettoriale
+OpenFreeMap (MVT) pinnata a un dataset versionato: l'endpoint è una costante
+di compile-time (mai input utente), il consenso è implicito e l'unico dato
+inviato al provider è l'origine della mappa. L'opt-out dalla rete è la
+modalità offline.
+
+Provider Overpass (OpenStreetMap, opt-in via URL) e endpoint autorizzato in
+produzione:
 
 ```text
-http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&consent=1
+http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17
 ```
 
-L’endpoint predefinito è `https://overpass-api.de/api/interpreter`. Per un
-ambiente di produzione usare un endpoint autorizzato o un’istanza Overpass
-gestita; non incorporare chiavi o credenziali nel client.
+L'endpoint Overpass predefinito è `https://overpass-api.de/api/interpreter`.
+Per un ambiente di produzione usare un endpoint autorizzato o un'istanza
+Overpass gestita; non incorporare chiavi o credenziali nel client.
 
 ### Prova della baseline
 
 Avvio: `npm install && npm run dev`, poi aprire `http://127.0.0.1:5173/`.
-Il default è la **modalità offline** (fixture Lecce, nessuna rete): guida con
-W, retromarcia con S, F3 per la diagnostica, L per le etichette.
+Il default è la **modalità online** (sorgente MVT OpenFreeMap pinnata): l'app
+avvia subito una sessione live con l'origine predefinita; guida con W,
+retromarcia con S, F3 per la diagnostica, L per le etichette.
 
-Modalità live dal pannello **"OpenGTA / Area di gioco"** (in alto a sinistra):
-selezionare "Online OSM", spuntare il consenso e premere Avvia. In
-alternativa, URL esplicito:
+Per giocare offline (fixture Lecce, nessuna rete) selezionare "Offline" dal
+pannello **"OpenGTA / Area di gioco"** (in alto a sinistra), oppure usare
+`http://127.0.0.1:5173/?mode=offline`. Il pannello consente di impostare
+l'origine (lat/lon), di scegliere la modalità e di riavviare la sessione con
+**Avvia**; provider e endpoint sono fissi alla sorgente MVT (non
+configurabili dall'interfaccia).
+
+Provider Overpass (OpenStreetMap) via URL esplicito:
 
 ```text
-http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17&consent=1
-```
-
-Modalità vettoriale sperimentale (OpenFreeMap z14, dataset pinnato
-`20260830_080001_pt`; endpoint fisso, mai input utente, mai default):
-
-```text
-http://127.0.0.1:5173/?mode=open-world-live&provider=openfreemap-mvt&consent=1
+http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17
 ```
 
 Cosa verificare durante la prova:
@@ -218,7 +223,7 @@ Cosa verificare durante la prova:
   lontani vengono rilasciati;
 - se il settore davanti non è ancora disponibile l'auto si ferma con
   "Settore davanti non disponibile" e riparte quando i dati arrivano;
-- `Interrompi` ferma la sessione; togliere il consenso la termina subito;
+- `Interrompi` ferma la sessione;
 - l'attribuzione OpenStreetMap resta sempre visibile.
 
 Limiti noti della baseline (dettagli in `docs/results/ONLINE-RUNTIME-RESULT.md`):

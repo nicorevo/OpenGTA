@@ -50,7 +50,7 @@ test("starts driving while a neighbor is delayed and recovers after an error", a
     if (url.startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
-  await page.goto(`/?mode=open-world-live&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
+  await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "error", { timeout: 15000 });
   fail = false;
   await page.getByRole("button", { name: "Riprova", exact: true }).click();
@@ -65,16 +65,14 @@ test("starts driving while a neighbor is delayed and recovers after an error", a
   expect(errors).toEqual([]);
 });
 
-test("offline and missing consent never contact a remote provider", async ({ page, baseURL }) => {
+test("offline mode never contacts a remote provider", async ({ page, baseURL }) => {
   const remote: string[] = [];
   await page.route("**/*", (route) => {
     if (route.request().url().startsWith(baseURL!)) return route.continue();
     remote.push(route.request().url());
     return route.abort();
   });
-  await page.goto("/");
+  await page.goto("/?mode=offline");
   await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toBeVisible();
-  await page.goto("/?mode=open-world-live&provider=osm");
-  await expect(page.locator("#config-error")).toContainText(/consent/i);
   expect(remote).toEqual([]);
 });
