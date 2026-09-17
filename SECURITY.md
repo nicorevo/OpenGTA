@@ -14,13 +14,14 @@ modalità live OSM con consenso esplicito e policy endpoint. Baseline stabile:
 commit `77312aa` sul ramo `opcl` (2026-09-10), evidenze in
 [`docs/results/ONLINE-RUNTIME-RESULT.md`](docs/results/ONLINE-RUNTIME-RESULT.md).
 
-Non esistono ancora nel codice: Web Worker, persistenza client nel browser
-(IndexedDB o equivalente; la cache attuale vive solo in memoria), multiplayer,
-telemetria, un server applicativo di proprietà del progetto, un hosting pubblico
-e una Content Security Policy dichiarata. Queste voci sono requisiti futuri con
-un trigger esplicito (vedi [Superfici future](#superfici-future)); finché non
-esistono nel codice, nessun documento deve descriverle al presente. Questo tipo
-di deriva è verificato dal
+Non esistono ancora nel codice: Web Worker, multiplayer, telemetria, un server
+applicativo di proprietà del progetto, un hosting pubblico e una Content
+Security Policy dichiarata. Queste voci sono requisiti futuri con un trigger
+esplicito (vedi [Superfici future](#superfici-future)); finché non esistono nel
+codice, nessun documento deve descriverle al presente. La persistenza client è
+presente: una cache IndexedDB dei chunk compilati, best-effort e bounded
+(vedi [Cache persistente](#superfici-reali-e-presidi-presenti)). Questo tipo di
+deriva è verificato dal
 [gate di consistenza documentale](docs/process/documentation-consistency-gate.md).
 
 ## Superfici reali e presidi presenti
@@ -30,14 +31,16 @@ di deriva è verificato dal
 | Configurazione da URL (`mode`, `provider`, `lat`, `lon`, `endpoint`, `consent`) | `src/world/runtime/live-config.ts`, `src/app/live-controls.ts` | allowlist di mode/provider; latitudine/longitudine validate con regex numerica e bound (±90 / ±180); endpoint ≤ 2048 caratteri, senza `username`/`password`/query/fragment; su input non valido si ricade sulla modalità offline con errore mostrato |
 | Consenso alla modalità live | `live-config.ts`, `src/app/bootstrap.ts` | `consent=1` obbligatorio; togliere il consenso ferma la sessione live e azzera la configurazione autorizzata, quindi `Riprova` non può riavviare il live senza consenso |
 | Policy degli endpoint | `live-config.ts` (`EndpointPolicy`) | corrispondenza esatta con l'allowlist HTTPS; in sviluppo è ammessa solo l'origine locale con path `/__test-geo`; il build di produzione non abilita l'eccezione locale (verificato dallo smoke su `dist`) |
-| Richieste al provider | `src/world/runtime/source.ts`, `src/world/runtime/request-scheduler.ts` | endpoint fisso configurato (nessuna rotazione di mirror); timeout 30 s; intervallo minimo 1 s (HTTP) / 2 s (Overpass); coda ≤ 32 con priorità; retry limitati con backoff bounded e rispetto di `Retry-After`; nessuna credenziale inviata (solo `content-type`) |
-| Payload OSM e `ReadableStream` | `source.ts`, `src/world/runtime/response-reader.ts` | budget di byte (8 MiB di default) applicato durante la lettura dello stream; abort e `cancel()` del reader; `TextDecoder` con `fatal`; `JSON.parse`; verifica di `elements` come array, ≤ 100 000 elementi, tipi ammessi `node`/`way`/`relation`; `remark` non vuoto dal provider = `provider-error` |
+| Richieste al provider | `src/world/runtime/source.ts`, `src/world/runtime/request-scheduler.ts`, `src/world/runtime/vector-tile/provider.ts` | endpoint configurato da allowlist; in sviluppo (solo build dev) è ammesso un secondario dichiarato per il provider Overpass, assente dal build di produzione (nessuna rotazione di mirror); timeout 30 s; intervallo minimo 1 s (HTTP) / 2 s (Overpass); coda ≤ 32 con priorità; retry limitati con backoff bounded e rispetto di `Retry-After`; nessuna credenziale inviata (solo `content-type`) |
+| Richieste tile MVT | `src/world/runtime/vector-tile/provider.ts` | URL costruito solo da chiave tile validata (z/x/y interi, z ≤ 24) su endpoint fisso e dataset versionato pinnato (mai `latest`); timeout 30 s; budget di byte 16 MiB con `cancel()` dello stream a overrun; 404/204 = tile vuota deterministica; errori distinti (network/timeout/http/abort) |
+| Payload OSM e `ReadableStream` | `source.ts`, `src/world/runtime/response-reader.ts`, `vector-tile/provider.ts` | budget di byte applicato durante la lettura dello stream (8 MiB di default per il percorso JSON; 16 MiB per i tile MVT); abort e `cancel()` del reader; `TextDecoder` con `fatal`; `JSON.parse`; verifica di `elements` come array, ≤ 100 000 elementi, tipi ammessi `node`/`way`/`relation`; `remark` non vuoto dal provider = `provider-error` |
 | Normalizzazione | `src/geo/normalize/osm.ts` | troncamento a 100 000 elementi con warning; way ≤ 20 000 nodi; relation ≤ 20 000 membri; validazione degli anelli poligonali; nessun nome/tag esterno interpretato come markup |
 | Compilazione e geometrie | `src/world/compiler/*`, `src/world/model/clip.ts`, `src/world/runtime/open-world.ts` | valori non finiti rifiutati prima di entrare nella fisica; chunk partizionati per cella; `regionId` bounded (≤ 128 caratteri) e raggio ≤ 100 km; numero di chunk pinned ≤ 32 |
-| Warm cache | `src/world/chunk/cache.ts`, `open-world.ts` | LRU solo in memoria (capacity 9); la chiave include namespace (versione proiezione, origine, lato cella, identità della source, profilo query) e versione del compiler: un record di namespace o versione diversi non viene mai riusato in silenzio; nessuna persistenza tra sessioni |
+| Warm cache | `src/world/chunk/cache.ts`, `open-world.ts` | LRU solo in memoria (capacity 9); la chiave include namespace (versione proiezione, origine, lato cella, identità della source, profilo query) e versione del compiler: un record di namespace o versione diversi non viene mai riusato in silenzio |
+| Cache persistente | `src/world/chunk/persistent.ts`, `persistent-codec.ts`, `persistent-indexeddb.ts`, `src/app/bootstrap.ts` | best-effort: se IndexedDB non è disponibile lo store è assente e il runtime continua con la sola cache in memoria; budget dichiarato 32 MiB con eviction LRU alla write; la chiave include namespace, id del chunk, versione del compiler e revisione del codec; alla lettura il record è deserializzato e validato per forma prima dell'uso: un record incompatibile o corrotto è scartato come miss, mai riusato in silenzio; nessun dato utente, nessuna credenziale |
 | Canvas e DOM | `src/render/pixi/*`, `bootstrap.ts`, `live-controls.ts` | tutto il testo applicativo passa da `textContent`; nessun `innerHTML`, `document.write`, `eval` o `new Function` nel codice applicativo; PixiJS non carica texture, font o asset da URL remoti |
 | WASM Rapier | `src/physics/rapier/adapter.ts` | binario incorporato nel bundle in base64 dal pacchetto `@dimforge/rapier2d-compat` versionato dal lockfile: nessuna fetch, nemmeno same-origin, nessun CDN e nessun URL configurabile; coordinate dei collider validate finite prima della creazione |
-| Diagnostica in pagina | `bootstrap.ts` | `window.__opengtaV0Debug` e `window.__opengtaV0Metrics` espongono solo stato di gioco, contatori e tempi: nessun segreto, nessun dato personale |
+| Diagnostica in pagina | `bootstrap.ts` | `window.__opengtaV0Debug` e `window.__opengtaV0Metrics` espongono stato di gioco, contatori, tempi e i chunk attivi compilati (geometrie pubbliche derivate da OSM, incluso il nome delle feature: dati pubblici, handle locale senza rete): nessun segreto, nessun dato personale |
 | Dati del fixture offline | `src/fixtures/geo/lecce-sant-oronzo-v0.raw.json` (importato da `bootstrap.ts`), `src/geo/normalize/osm.ts` | l'intero JSON raw finisce nel bundle client: nulla di privato o riservato può stare nella fixture. Il normalizzatore legge solo una allowlist di tag (`building`, `highway`, `landuse`, `natural`, `waterway`, `barrier`, `leisure`, `amenity`, `lanes`, `service`, `surface`, `tunnel`, `bridge`, `layer`, `oneway`, `area`, `historic`, `water`); i tag di contatto OSM presenti nella fixture (`website`, `email`, `phone`) restano dati inerti: non entrano nel mondo compilato, non vengono resi nel DOM, non diventano link e non vengono richiesti dalla rete |
 | Attribution e licenza dati | `bootstrap.ts` (riga di attribuzione), `docs/legal/osm-data-and-attribution.md`, `src/fixtures/geo/lecce-sant-oronzo-v0.PROVENANCE.md` | attribuzione OpenStreetMap sempre visibile; provenienza e licenza del fixture documentate separatamente dalla licenza del codice |
 | Supply chain | `package.json`, `package-lock.json` | npm con lockfile unico committato; dipendenze runtime minime (`pixi.js`, `@dimforge/rapier2d-compat`); nessun secret nel repository |
@@ -96,14 +99,17 @@ Limiti dichiarati, per non sovra-claimare:
 
 ### Browser, cache e storage
 
-- La warm cache attuale è solo in memoria, con capacità e chiave versionata:
+- La warm cache è solo in memoria, con capacità e chiave versionata:
   mantieni l'invariante per cui una response esterna non può causare crescita
   illimitata dello stato, e non riusare mai un record con namespace o versione
   di compiler diversi.
-- Quando verrà introdotto uno storage persistente (contratto `PersistentChunkStore`
-  in `tasks/city/README.md`), valida versione, origine e integrità dei dati letti
-  prima dell'uso, con quota, eviction e invalidazione dichiarate; una entry
-  corrotta o incompatibile va scartata, mai usata in silenzio.
+- Lo storage persistente attuale (contratto `PersistentChunkStore`,
+  implementazione `createIndexedDbChunkStore`) valida versione e integrità dei
+  dati letti prima dell'uso, con quota dichiarata (32 MiB), eviction LRU e
+  invalidazione tramite versione del compiler e del codec nella chiave: una
+  entry corrotta o incompatibile va scartata come miss, mai usata in silenzio.
+  La persistenza resta best-effort: la sua indisponibilità degrada alla sola
+  cache in memoria, mai a un errore di runtime.
 - Non conservare token di autenticazione accessibili a JavaScript in
   `localStorage`, `sessionStorage` o IndexedDB.
 
@@ -123,7 +129,6 @@ documento prima dell'introduzione.
 - **Web Worker**: considera non attendibili i messaggi ricevuti da un worker e
   valida i contratti su entrambi i lati del confine, inclusi dimensione e forma
   dei dati trasferiti.
-- **Storage persistente**: vedi la sezione browser e cache.
 - **Telemetria**: nessuna telemetria è presente nel codice; se introdotta, deve
   essere dichiarata all'utente, non deve includere coordinate o identificatori
   personali senza consenso esplicito, non deve caricare script di terze parti
@@ -185,5 +190,5 @@ Prima di chiudere una tranche o una milestone:
 
 Prima di introdurre il multiplayer, aggiornare il threat model con abuso del
 protocollo, cheating, denial of service, autenticazione, privacy e logging degli
-eventi di sicurezza. Prima di introdurre telemetria, storage persistente, worker
-o hosting pubblico, aggiornare le sezioni corrispondenti di questo documento.
+eventi di sicurezza. Prima di introdurre telemetria, worker o hosting
+pubblico, aggiornare le sezioni corrispondenti di questo documento.
