@@ -258,7 +258,7 @@ indipendente; RV-11 dopo gli altri task (verifica assenza di riferimenti).
 
 ### R-C: pulizia, dopo RV-11, RV-12
 
-- [ ] Nessun dead code; gate finale verde.
+- [x] Nessun dead code; gate finale verde.
 
 ### Rischi e scelte esplicite
 
