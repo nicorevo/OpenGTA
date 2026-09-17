@@ -1,8 +1,15 @@
 import { DEFAULT_ORIGIN, readRuntimeConfig, type EndpointPolicy, type RuntimeConfig } from "../world/runtime/live-config.ts";
+import { isTouchDevice } from "./touch-controls.ts";
 
 export function createLiveControls(root: HTMLElement, params: URLSearchParams, policy: EndpointPolicy, start: (config: RuntimeConfig) => Promise<void>) {
   const details = document.createElement("details"); details.id = "live-controls";
-  details.style.cssText = "position:fixed;left:12px;top:12px;z-index:2;background:#f4f5f7;color:#25272c;padding:10px 12px;border-radius:4px;width:min(320px,calc(100vw - 48px));box-shadow:0 2px 8px #0003;font-size:13px";
+  // The enlarged touch zoom bar (with the street toggle) sits at the top-right.
+  // Narrow the panel to clear it using the same isTouchDevice() check that
+  // enables the touch controls: a plain `pointer: coarse` media query does not
+  // fire on touchscreens reported with a fine primary pointer (e.g. laptops or
+  // DevTools responsive mode with hardware touch).
+  const panelWidth = isTouchDevice() ? "min(320px,calc(100vw - 100px))" : "min(320px,calc(100vw - 48px))";
+  details.style.cssText = "position:fixed;left:12px;top:12px;z-index:2;box-sizing:border-box;background:#f4f5f7;color:#25272c;padding:10px 12px;border-radius:4px;width:" + panelWidth + ";box-shadow:0 2px 8px #0003;font-size:13px";
   const summary = document.createElement("summary"); summary.textContent = "OpenGTA / Area di gioco"; summary.style.cursor = "pointer";
   const form = document.createElement("form"); form.noValidate = true; form.style.cssText = "display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px";
   const field = (title: string, control: HTMLElement, full = false) => {

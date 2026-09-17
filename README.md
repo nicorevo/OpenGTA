@@ -198,7 +198,11 @@ Overpass gestita; non incorporare chiavi o credenziali nel client.
 Avvio: `npm install && npm run dev`, poi aprire `http://127.0.0.1:5173/`.
 Il default è la **modalità online** (sorgente MVT OpenFreeMap pinnata): l'app
 avvia subito una sessione live con l'origine predefinita; guida con W,
-retromarcia con S, F3 per la diagnostica, L per le etichette.
+retromarcia con S, F3 per la diagnostica, L per le etichette. Su dispositivi
+con touch compaiono pulsanti on-screen ingranditi (accelerazione, retromarcia,
+sterza sinistra/destra) che guidano il veicolo alla pari della tastiera; la
+barra zoom in alto a destra è anch'essa ingrandita e aggiunge il tasto "Vie"
+per mostrare i nomi delle vie (stesso effetto del tasto L).
 
 Per giocare offline (fixture Lecce, nessuna rete) selezionare "Offline" dal
 pannello **"OpenGTA / Area di gioco"** (in alto a sinistra), oppure usare

@@ -17,6 +17,7 @@ import { switchView, type ViewLoop } from "./view-toggle.ts";
 import { advanceFixedStep } from "./fixed-step.ts";
 import { readVehicleInput } from "./input.ts";
 import { RuntimeMetrics } from "./metrics.ts";
+import { createTouchControls, isTouchDevice } from "./touch-controls.ts";
 
 const messages = { loading: "Caricamento area...", ready: "Area pronta", degraded: "Area parziale: alcuni settori non disponibili", empty: "Nessuna strada percorribile in questa area", error: "Caricamento non riuscito" };
 const errorMessages: Record<string, string> = { http: "Servizio non disponibile", network: "Connessione non riuscita", timeout: "Tempo di attesa scaduto", "provider-error": "Il provider ha restituito dati incompleti", "invalid-response": "Risposta geografica non valida", "queue-timeout": "Attesa del servizio scaduta", "response-too-large": "Risposta geografica troppo grande" };
@@ -41,15 +42,34 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   const stop = document.createElement("button"); stop.textContent = "Interrompi";
   status.append(message, retry, stop);
   const zoom = { in: () => {}, out: () => {}, level: () => 2 as 0 | 1 | 2 | 3 | 4 };
+  // Labels toggle is shared by the "L" key and the on-screen "Vie" button; the
+  // concrete implementation is bound to the active renderer inside start().
+  const labels = { toggle: () => false };
+  const updateLabelHint = (visible: boolean) => { hint.textContent = (visible ? "Nomi attivi" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`; };
   const zoomOutButton = document.createElement("button"); zoomOutButton.textContent = "−"; zoomOutButton.setAttribute("aria-label", "Riduci zoom");
   const zoomInButton = document.createElement("button"); zoomInButton.textContent = "+"; zoomInButton.setAttribute("aria-label", "Aumenta zoom");
-  const zoomBar = document.createElement("div");
-  zoomBar.style.cssText = "position:fixed;top:8px;right:8px;display:flex;gap:4px;z-index:3;background:#202225dd;padding:4px;border-radius:4px";
-  zoomBar.append(zoomOutButton, zoomInButton);
+  const vieButton = document.createElement("button"); vieButton.textContent = "street"; vieButton.setAttribute("aria-label", "Mostra nomi delle vie");
+  const isTouch = isTouchDevice();
+  if (isTouch) {
+    const bigZoom = "width:48px;height:44px;font-size:24px;line-height:1;background:#2b2f33;color:#fff;border:1px solid #ffffff33;border-radius:8px;";
+    zoomOutButton.style.cssText = bigZoom; zoomInButton.style.cssText = bigZoom;
+    vieButton.style.cssText = "width:48px;height:44px;font-size:15px;line-height:1;background:#2b2f33;color:#fff;border:1px solid #ffffff33;border-radius:8px;";
+  }
+  const zoomBar = document.createElement("div"); zoomBar.id = "zoom-bar";
+  // On touch the bar is a narrow vertical column, and the live-controls panel
+  // is narrowed (via isTouchDevice(), see live-controls.ts) so the two never overlap.
+  zoomBar.style.cssText = isTouch ? "position:fixed;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:3;background:#202225dd;padding:6px;border-radius:10px" : "position:fixed;top:8px;right:8px;display:flex;gap:4px;z-index:3;background:#202225dd;padding:4px;border-radius:4px";
+  if (isTouch) zoomBar.append(zoomOutButton, zoomInButton, vieButton);
+  else zoomBar.append(zoomOutButton, zoomInButton);
   const updateZoomState = () => { zoomOutButton.disabled = zoom.level() <= 0; zoomInButton.disabled = zoom.level() >= 4; };
   zoomInButton.onclick = () => { zoom.in(); zoomInButton.blur(); updateZoomState(); };
   zoomOutButton.onclick = () => { zoom.out(); zoomOutButton.blur(); updateZoomState(); };
+  vieButton.onclick = () => { const visible = labels.toggle(); vieButton.style.background = visible ? "#1f9d55" : "#2b2f33"; updateLabelHint(visible); vieButton.blur(); };
   root.append(tpCanvas, overlay, hint, status, zoomBar);
+  // Touch controls (mobile) write synthetic keys into the active session's
+  // input set, so they drive the vehicle exactly like the keyboard.
+  let activeKeys: Set<string> | undefined;
+  if (isTouchDevice()) createTouchControls(root, (key, pressed) => { const k = activeKeys; if (!k) return; if (pressed) k.add(key); else k.delete(key); });
   const params = new URLSearchParams(window.location.search);
   const policy = { ...DEFAULT_ENDPOINT_POLICY, developmentOrigin: import.meta.env.DEV ? window.location.origin : undefined };
   let config: RuntimeConfig;
@@ -78,6 +98,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       try { renderer = await createPixiRenderer(nextCanvas); }
       catch (error) { physics.dispose(); throw error; }
       if (token !== epoch) { physics.dispose(); renderer.dispose(); return; }
+      labels.toggle = () => renderer.toggleLabels();
       // First-person overlay canvas (hidden by default)
       const fpCanvas = document.createElement("canvas");
       fpCanvas.style.cssText = "position:fixed;inset:0;display:none;width:100%;height:100%;";
@@ -165,6 +186,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         ].join("\n");
       };
       const listeners = new AbortController(); const keys = new Set<string>();
+      activeKeys = keys;
       window.addEventListener("keydown", (event) => {
         if (event.target instanceof HTMLInputElement && ["text", "number", "url", "search", "email", "password", ""].includes(event.target.type)) return;
         if (event.target instanceof HTMLSelectElement) return;
@@ -173,7 +195,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         if (event.key === "F3") { event.preventDefault(); overlay.hidden = !overlay.hidden; updateOverlay(); }
         if (event.key === "+" || event.key === "=") { event.preventDefault(); zoom.in(); updateZoomState(); }
         if (event.key === "-" || event.key === "_") { event.preventDefault(); zoom.out(); updateZoomState(); }
-        if (!event.repeat && event.key.toLowerCase() === "l") hint.textContent = (renderer.toggleLabels() ? "Nomi attivi" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`;
+        if (!event.repeat && event.key.toLowerCase() === "l") updateLabelHint(labels.toggle());
         if (!event.repeat && event.key.toLowerCase() === "v") toggleFP();
         if (event.key.startsWith("Arrow")) event.preventDefault();
       }, { signal: listeners.signal });
@@ -203,7 +225,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         if (params.get("benchmark") === "1" && now - benchmarkStart >= 30000) { document.body.dataset.benchmarkComplete = "true"; document.body.dataset.benchmarkResult = JSON.stringify(metrics.snapshot()); }
         raf = requestAnimationFrame(frame);
       };
-      stopLoop = () => { cancelAnimationFrame(raf); listeners.abort(); keys.clear(); };
+      stopLoop = () => { cancelAnimationFrame(raf); listeners.abort(); keys.clear(); activeKeys = undefined; };
       raf = requestAnimationFrame(frame);
     } finally {
       if (token === epoch) { busy = false; retry.disabled = false; }
