@@ -270,7 +270,15 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     },
     presentationDiagnostics() {
       let culledFeatures = 0; let facades = 0; let roadCasing = true; let labels = 0;
-      for (const entry of presentations.values()) { culledFeatures += entry.culledFeatures; facades += entry.facades; roadCasing = roadCasing && entry.hasRoadCasing; labels += entry.labels.children.length; }
+      for (const entry of presentations.values()) {
+        culledFeatures += entry.culledFeatures;
+        facades += entry.facades;
+        roadCasing = roadCasing && entry.hasRoadCasing;
+        // The diagnostic reports the LOD-filtered label set, not the created
+        // Text nodes: while labels are hidden no Text is allocated, but the
+        // profiled count must stay stable for HUD/LOD inspection.
+        labels += visibleLabels(entry.chunk.labels, currentProfile).length;
+      }
       return { culledFeatures, facades, roadCasing, labels };
     },
     setZoom(level) { if (disposed) return; changeZoom(clampZoom(level)); },
