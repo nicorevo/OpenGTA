@@ -334,3 +334,32 @@ resta invariato.
 - [x] Pulsanti guidano; `street` alterna i nomi; pannello non sovrappone la barra zoom.
 - [x] Desktop invariato (nessun pulsante, barra compatta).
 - [x] Suite completa, typecheck, build, E2E verdi.
+
+---
+
+## Piano: Veicolo F1 (velocità, sprite e stabilità di guida)
+
+Data: 2026-09-17. Baseline codice: `f828a14`. Commit: `33bf6bf` (velocità +
+sprite F1), `568dcc0` (fix zig-zag). Result:
+`docs/results/F1-VEHICLE-RESULT.md`.
+
+### Obiettivo
+
+Aumentare la velocità dell'auto (~150 km/h) e modellarla in vista dall'alto come
+una Formula 1. Rendere i valori di guida esposti (pronti per futura UI) e
+riparare il drift/zig-zag che la velocità raddoppiata ha messo in evidenza.
+
+### Task
+
+| Stato | ID | Esito verificabile |
+| --- | --- | --- |
+| [x] | F1-01 | `controller.ts`: `VEHICLE_TUNING` (top speed 42 m/s, accel 13, freno 20); `stepVehicle(..., tuning)` overridable; spec aggiornata |
+| [x] | F1-02 | `renderer.ts`: `drawF1Vehicle` (naso, side pod, 4 ruote, ali, casco) al posto del rettangolo; `renderer-labels` mock `circle` |
+| [x] | F1-03 | `adapter.ts`: controller autorevole per velocità+rotazione, Rapier solo posizione, attrito 0, `angvel` resettato |
+| [x] | F1-04 | Test di regressione drift (muro angolato, throttle-only) + gate completa verde |
+
+### Checkpoint
+
+- [x] Dritto su strada libera con solo acceleratore (0° di drift di heading).
+- [x] Sprite top-down F1 riconoscibile (verificato a schermo).
+- [x] Suite completa, typecheck, build, E2E verdi.

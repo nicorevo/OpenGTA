@@ -126,3 +126,16 @@ Data: 2026-09-17. Baseline: `9e72120`. Commit: `4ba08f2` (UI), `f828a14`
 - [x] TOUCH-03: `live-controls.ts` pannello no-overlap (`box-sizing` + `isTouchDevice`).
 - [x] TOUCH-04: E2E `touch-controls.spec.ts` + indurimento `measurements.spec.ts`.
 - [x] C-TOUCH: suite, typecheck, build, E2E verdi.
+
+---
+
+## Veicolo F1 (velocità, sprite e stabilità di guida)
+
+Data: 2026-09-17. Baseline: `f828a14`. Commit: `33bf6bf` (velocità + sprite),
+`568dcc0` (fix zig-zag). Result: `docs/results/F1-VEHICLE-RESULT.md`.
+
+- [x] F1-01: `controller.ts` `VEHICLE_TUNING` (top speed 42 m/s, accel 13, freno 20) + spec.
+- [x] F1-02: `renderer.ts` `drawF1Vehicle` (top-down F1) + test geometria + mock `circle`.
+- [x] F1-03: `adapter.ts` controller autorevole v+rotazione, Rapier solo posizione, attrito 0, `angvel` resettato.
+- [x] F1-04: test di regressione drift (muro angolato, throttle-only) + gate completa verde.
+- [x] C-F1: suite (419), typecheck, build, E2E (25) verdi.

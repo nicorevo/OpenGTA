@@ -23,6 +23,7 @@ Non rieseguirli come backlog corrente.
 | Review Remediation (RV) | Completata — RV-01..12 verificati, checkpoint R-A/R-B/R-C; log in `tasks/executions/2026-09-17-RV-*.md`, stato in `tasks/plan.md` |
 | Live Online di Default | Completata — online al load con MVT pinnata e consenso implicito; ADR-012, risultato in `docs/results/LIVE-ONLINE-DEFAULT-RESULT.md` |
 | Controlli Touch Mobile | Completata — pulsanti on-screen, barra zoom + tasto `street`, pannello no-overlap; risultato in `docs/results/TOUCH-CONTROLS-RESULT.md` |
+| Veicolo F1 (velocità, sprite, stabilità) | Completata — top speed 42 m/s (~150 km/h), sprite top-down F1, fix drift/zig-zag (controller autorevole); risultato in `docs/results/F1-VEHICLE-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -82,12 +83,19 @@ anche con suite verde.
   ingrandita con tasto `street` (effetto `L`), pannello configurazioni che non
   sovrappone la barra zoom; desktop invariato. Risultato
   [TOUCH-CONTROLS-RESULT](../results/TOUCH-CONTROLS-RESULT.md).
+- Tranche **Veicolo F1** completata il 2026-09-17 (F1-01..04): velocità
+  ~150 km/h (42 m/s) via `VEHICLE_TUNING` (pronta per UI), sprite top-down F1
+  (`drawF1Vehicle`), e fix del drift/zig-zag senza sterzo (il controller arcade
+  è autorevole per velocità+rotazione, Rapier corregge solo la posizione;
+  commit `33bf6bf` + `568dcc0`). Risultato
+  [F1-VEHICLE-RESULT](../results/F1-VEHICLE-RESULT.md).
 - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
   custom tile schema ADR, riuso cache compilata, curated region package).
-- Baseline stabile per test utente: commit `f828a14` (tranche online di
-  default e touch completate; gate verde: 415 test unitari, 25 E2E + 1 canary
-  skipped); istruzioni di prova, stati attesi e limiti noti nella sezione
-  "Prova della baseline" del [README](../../README.md).
+- Baseline stabile per test utente: commit `568dcc0` (tranche Veicolo F1
+  completata: velocità ~150 km/h + sprite top-down F1 + fix drift/zig-zag; gate
+  verde: 419 test unitari, 25 E2E + 1 canary skipped); istruzioni di prova,
+  stati attesi e limiti noti nella sezione "Prova della baseline" del
+  [README](../../README.md).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log

@@ -29,11 +29,11 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `f828a14` sul ramo `opcl3D`
-(2026-09-17, online di default + controlli touch). Verificata con 415 test
-(56 file), 25 E2E (1 skipped) su dev server (più canary live separata), 1
-smoke del build di produzione, typecheck e build. Vedi
-[Prova della baseline](#prova-della-baseline).
+**Baseline stabile per test utente:** commit `568dcc0` sul ramo `opcl3D`
+(2026-09-17, veicolo F1: velocità ~150 km/h + sprite top-down F1 + fix
+drift/zig-zag). Verificata con 419 test (56 file), 25 E2E (1 skipped) su dev
+server (più canary live separata), 1 smoke del build di produzione, typecheck
+e build. Vedi [Prova della baseline](#prova-della-baseline).
 
 Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle
 `V`; strade in prospettiva vera + edifici box 3D; guard e2e
