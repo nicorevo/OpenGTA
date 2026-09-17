@@ -55,6 +55,44 @@ export function drawPolygon(graphics: Graphics, polygon: Polygon2D, scale: numbe
   }
   if (height > 0) graphics.poly(screenRing(polygon.outer)).stroke({ color: 0x27232c, width: 1 });
 }
+
+// Top-down F1 car, centered at the origin with +x as the forward direction.
+// Red body, dark wings/wheels and a gold helmet, matching the classic arcade
+// F1 look. Drawn to fit the VEHICLE_LENGTH_METERS x VEHICLE_WIDTH_METERS box.
+export function drawF1Vehicle(graphics: Graphics, length: number, width: number): void {
+  const L = length;
+  const W = width;
+  const body = 0xd1495b;
+  const dark = 0x15151b;
+  const accent = 0xf6bd60;
+  const tire = 0x0e0e12;
+
+  // Wheels (under the body): rear wheels are wider than the front, an F1 cue.
+  for (const side of [-1, 1] as const) {
+    const frontY = side === -1 ? -W * 0.50 : W * 0.34;
+    const rearY = side === -1 ? -W * 0.54 : W * 0.34;
+    graphics.roundRect(L * 0.14, frontY, L * 0.18, W * 0.16, 2).fill(tire);
+    graphics.roundRect(-L * 0.42, rearY, L * 0.20, W * 0.20, 2).fill(tire);
+  }
+
+  // Front and rear wings: wide, thin bars near each end.
+  graphics.roundRect(L * 0.40, -W * 0.46, L * 0.10, W * 0.92, 1.5).fill(dark);
+  graphics.roundRect(-L * 0.50, -W * 0.44, L * 0.09, W * 0.88, 1.5).fill(dark);
+
+  // Body spine from the engine cover to the nose base.
+  graphics.roundRect(-L * 0.40, -W * 0.17, L * 0.66, W * 0.34, W * 0.14).fill(body);
+
+  // Side pods: the body widens behind the cockpit.
+  graphics.roundRect(-L * 0.34, -W * 0.31, L * 0.30, W * 0.24, W * 0.10).fill(body);
+  graphics.roundRect(-L * 0.34, W * 0.07, L * 0.30, W * 0.24, W * 0.10).fill(body);
+
+  // Nose cone tapering from the cockpit to the front wing.
+  graphics.moveTo(L * 0.42, 0).lineTo(L * 0.10, -W * 0.14).lineTo(L * 0.10, W * 0.14).closePath().fill(body);
+
+  // Cockpit opening and helmet.
+  graphics.roundRect(-W * 0.04, -W * 0.12, W * 0.20, W * 0.24, 2).fill(dark);
+  graphics.circle(L * 0.05, 0, W * 0.08).fill(accent);
+}
 type CompiledRoad = CompiledChunkV0["roads"][number];
 function queueCenterlines(graphics: Graphics, roads: readonly CompiledRoad[], scale: number): void {
   for (const road of roads) {
@@ -130,8 +168,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const length = VEHICLE_LENGTH_METERS * VEHICLE_VISUAL_SCALE;
   const width = VEHICLE_WIDTH_METERS * VEHICLE_VISUAL_SCALE;
   const vehicle = new Graphics();
-  vehicle.roundRect(-length / 2, -width / 2, length, width, width * 0.2).fill(0xd1495b);
-  vehicle.moveTo(length / 2, 0).lineTo(length / 2 - width * 0.35, -width * 0.35).lineTo(length / 2 - width * 0.35, width * 0.35).closePath().fill(0xf6bd60).stroke({ color: 0x8c2636, width: 0.6 });
+  drawF1Vehicle(vehicle, length, width);
   world.addChild(vehicle);
   const presentations = new Map<string, ChunkPresentation>();
   let disposed = false;

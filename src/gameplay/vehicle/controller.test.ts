@@ -7,8 +7,16 @@ describe("arcade vehicle", () => {
     for (let index = 0; index < 300; index += 1) {
       state = stepVehicle(state, { throttle: 1, steer: 0, brake: 0 });
     }
-    expect(state.velocity.x).toBeCloseTo(22, 1);
+    expect(state.velocity.x).toBeCloseTo(42, 1);
     expect(state.position.x).toBeGreaterThan(0);
+  });
+
+  it("caps forward speed at the tuning ceiling and never exceeds it", () => {
+    let state = { position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, heading: 0 };
+    for (let index = 0; index < 1200; index += 1) {
+      state = stepVehicle(state, { throttle: 1, steer: 0, brake: 0 });
+      expect(state.velocity.x).toBeLessThanOrEqual(42 + 1e-6);
+    }
   });
 
   it("brakes to zero without reversing direction", () => {

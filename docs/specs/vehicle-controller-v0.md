@@ -41,18 +41,21 @@ Keyboard mapping is an input adapter concern.
 ## Initial tuning values
 
 ```text
-max forward speed       22 m/s
+max forward speed       42 m/s   (~150 km/h, F1-style)
 max reverse speed        7 m/s
-forward acceleration     9 m/s²
+forward acceleration    13 m/s²
 reverse acceleration     5 m/s²
-service braking         14 m/s²
+service braking         20 m/s²
 rolling deceleration     1.5 m/s²
 max steering rate        2.4 rad/s
 lateral grip             7.0 1/s
 minimum steer speed      0.8 m/s
+full steer speed         4 m/s
 ```
 
-These are tuning seeds, not physical claims.
+These are tuning seeds, not physical claims. They are exposed as
+`VEHICLE_TUNING` in `src/gameplay/vehicle/controller.ts` so the values can be
+surfaced as user-configurable (UI) without changing the controller math.
 
 ## Baseline control model
 

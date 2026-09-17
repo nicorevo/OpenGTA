@@ -29,6 +29,7 @@ vi.mock("pixi.js", () => {
     fill() { return this; }
     cut() { return this; }
     roundRect() { return this; }
+    circle() { return this; }
     moveTo() { return this; }
     lineTo() { return this; }
     closePath() { return this; }
