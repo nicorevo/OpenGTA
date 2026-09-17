@@ -12,8 +12,9 @@ import type { IndexedDbChunkStore, IndexedDbChunkStoreOptions } from "./persiste
  */
 
 const DB_NAME = "opengta-persistent-chunks";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_NAME = "chunk-entries";
+const METADATA_NAME = "chunk-metadata";
 
 type FakeHandler = (() => void) | null;
 type Operation<T> = { readonly ok: T } | { readonly error: unknown };
@@ -54,15 +55,18 @@ class FakeTransaction {
   private aborted = false;
 
   constructor(
-    private readonly database: FakeDatabase,
+    readonly database: FakeDatabase,
     readonly mode: "readonly" | "readwrite",
     private readonly plan: FailurePlan,
+    private readonly storeNames: readonly string[],
   ) {}
 
   objectStore(name: string): FakeObjectStore {
+    // Mirrors real browsers: a store not listed in the transaction is not found.
+    if (!this.storeNames.includes(name)) throw namedError("NotFoundError", `object store ${name} does not exist`);
     const entries = this.database.storeFor(name);
     if (!entries) throw namedError("NotFoundError", `object store ${name} does not exist`);
-    return new FakeObjectStore(this, entries, this.plan);
+    return new FakeObjectStore(this, entries, this.plan, name);
   }
 
   execute<T>(operation: () => Operation<T>): FakeRequest<T> {
@@ -102,6 +106,7 @@ class FakeObjectStore {
     private readonly transaction: FakeTransaction,
     private readonly entries: Map<string, unknown>,
     private readonly plan: FailurePlan,
+    private readonly name: string,
   ) {}
 
   get(key: string): FakeRequest<unknown> {
@@ -109,6 +114,7 @@ class FakeObjectStore {
   }
 
   getAll(): FakeRequest<unknown[]> {
+    this.transaction.database.owner.getAllStores.push(this.name);
     return this.transaction.execute((): Operation<unknown[]> => (this.plan.getAllError ? { error: this.plan.getAllError } : ok([...this.entries.values()])));
   }
 
@@ -140,6 +146,7 @@ class FakeObjectStore {
 class FakeDatabase {
   closed = false;
   constructor(
+    readonly owner: FakeIndexedDb,
     private readonly stores: Map<string, Map<string, unknown>>,
     private readonly plan: FailurePlan,
   ) {}
@@ -153,10 +160,16 @@ class FakeDatabase {
     if (!this.stores.has(name)) this.stores.set(name, new Map());
     return { name };
   }
-  transaction(name: string, mode: "readonly" | "readwrite"): FakeTransaction {
+  deleteObjectStore(name: string): void {
+    this.stores.delete(name);
+  }
+  transaction(names: string | readonly string[], mode: "readonly" | "readwrite"): FakeTransaction {
     if (this.closed) throw namedError("InvalidStateError", "the database connection is closed");
-    if (!this.stores.has(name)) throw namedError("NotFoundError", `object store ${name} does not exist`);
-    return new FakeTransaction(this, mode, this.plan);
+    const list = Array.isArray(names) ? [...names] : [names];
+    for (const name of list) {
+      if (!this.stores.has(name)) throw namedError("NotFoundError", `object store ${name} does not exist`);
+    }
+    return new FakeTransaction(this, mode, this.plan, list);
   }
   close(): void { this.closed = true; }
 }
@@ -164,6 +177,7 @@ class FakeDatabase {
 class FakeIndexedDb {
   readonly plan: FailurePlan = { blockUpgrade: false, denyOpen: false, throwOnOpen: null, readError: null, getAllError: null, writeError: null, deleteError: null, clearError: null };
   readonly openCalls: Array<{ name: string; version: number }> = [];
+  readonly getAllStores: string[] = [];
   private readonly storage = new Map<string, Map<string, Map<string, unknown>>>();
   private readonly versions = new Map<string, number>();
   private readonly connections: FakeDatabase[] = [];
@@ -173,6 +187,10 @@ class FakeIndexedDb {
   seed(key: string, value: unknown, storeName = STORE_NAME, databaseName = DB_NAME): void {
     let stores = this.storage.get(databaseName);
     if (!stores) { stores = new Map(); this.storage.set(databaseName, stores); }
+    // A v2 database always exposes both stores, whatever the injected writer did.
+    for (const name of [STORE_NAME, METADATA_NAME]) {
+      if (!stores.has(name)) stores.set(name, new Map());
+    }
     let entries = stores.get(storeName);
     if (!entries) { entries = new Map(); stores.set(storeName, entries); }
     entries.set(key, value);
@@ -207,7 +225,7 @@ class FakeIndexedDb {
     if (this.plan.blockUpgrade && version > current) { request.block(); return request; }
     let stores = this.storage.get(name);
     if (!stores) { stores = new Map(); this.storage.set(name, stores); }
-    const database = new FakeDatabase(stores, this.plan);
+    const database = new FakeDatabase(this, stores, this.plan);
     this.connections.push(database);
     if (version > current) {
       this.versions.set(name, version);
@@ -267,6 +285,7 @@ describe("indexedDB chunk store", () => {
     expect(mod.PERSISTENT_DATABASE_NAME).toBe(DB_NAME);
     expect(mod.PERSISTENT_DATABASE_VERSION).toBe(DB_VERSION);
     expect(mod.PERSISTENT_ENTRY_STORE).toBe(STORE_NAME);
+    expect(mod.PERSISTENT_METADATA_STORE).toBe(METADATA_NAME);
     expect(fake.keys()).toEqual([entryId(key())]);
   });
 
@@ -416,6 +435,63 @@ describe("indexedDB chunk store", () => {
     expect(await store.quota()).toEqual({ budgetBytes: 8, usedBytes: 8, entries: 2 });
   });
 
+  it("stores a metadata record alongside the blob", async () => {
+    const store = await mount();
+
+    await store.put(key(), bytes(7, 8));
+
+    const metadata = fake.record(entryId(key()), METADATA_NAME) as { id: unknown; bytes: unknown; storedAt: unknown } | undefined;
+    expect(metadata).toMatchObject({ id: entryId(key()), bytes: 2 });
+    expect(typeof metadata?.storedAt).toBe("number");
+  });
+
+  it("reconciles from the metadata index without reading the blob store", async () => {
+    const store = await mount({ budgetBytes: 64 });
+
+    await store.put(key(), bytes(1, 2, 3));
+
+    expect(fake.getAllStores).toEqual([METADATA_NAME]);
+  });
+
+  it("serializes concurrent writes and keeps the budget invariant", async () => {
+    const store = await mount({ budgetBytes: 8 });
+
+    const results = await Promise.allSettled([
+      store.put(key({ chunkId: "chunk:0:0" }), bytes(1, 1, 1, 1)),
+      store.put(key({ chunkId: "chunk:1:0" }), bytes(2, 2, 2, 2)),
+      store.put(key({ chunkId: "chunk:2:0" }), bytes(3, 3, 3, 3)),
+    ]);
+
+    expect(results.map((result) => result.status)).toEqual(["fulfilled", "fulfilled", "fulfilled"]);
+    const storedBytes = fake.keys().reduce((sum, id) => sum + ((fake.record(id) as { bytes: number }).bytes), 0);
+    expect(storedBytes).toBeLessThanOrEqual(8);
+    expect(await store.quota()).toEqual({ budgetBytes: 8, usedBytes: 8, entries: 2 });
+  });
+
+  it("evicts blob and metadata together", async () => {
+    const store = await mount({ budgetBytes: 8 });
+    await store.put(key({ chunkId: "chunk:0:0" }), bytes(1, 1, 1, 1));
+    await store.put(key({ chunkId: "chunk:1:0" }), bytes(2, 2, 2, 2));
+    await store.put(key({ chunkId: "chunk:2:0" }), bytes(3, 3, 3, 3));
+
+    const survivors = [entryId(key({ chunkId: "chunk:1:0" })), entryId(key({ chunkId: "chunk:2:0" }))].sort();
+    expect(fake.keys().sort()).toEqual(survivors);
+    expect(fake.keys(METADATA_NAME).sort()).toEqual(survivors);
+  });
+
+  it("drops v1 blob-only data when upgrading to the metadata index", async () => {
+    fake.seed(entryId(key()), { id: entryId(key()), value: bytes(1, 2), bytes: 2, storedAt: 1 });
+    fake.setVersion(DB_NAME, 1);
+    const store = await mount({ budgetBytes: 64 });
+
+    await expect(store.get(key())).resolves.toEqual({ status: "miss", reason: "absent" });
+    await store.put(key(), bytes(9));
+    expect(await read(store, key())).toEqual([9]);
+    expect(fake.keys()).toEqual([entryId(key())]);
+    expect(fake.keys(METADATA_NAME)).toEqual([entryId(key())]);
+    expect(await store.quota()).toEqual({ budgetBytes: 64, usedBytes: 1, entries: 1 });
+  });
+
   it("reports quota exhaustion explicitly without losing stored entries", async () => {
     const store = await mount({ budgetBytes: 8 });
     await store.put(key({ chunkId: "chunk:0:0" }), bytes(1, 2, 3, 4));
@@ -433,10 +509,12 @@ describe("indexedDB chunk store", () => {
 
     await expect(store.delete(key({ chunkId: "chunk:0:0" }))).resolves.toBe(true);
     await expect(store.delete(key({ chunkId: "chunk:0:0" }))).resolves.toBe(false);
+    expect(fake.keys(METADATA_NAME)).toEqual([entryId(key({ chunkId: "chunk:1:0" }))]);
     expect(await store.quota()).toEqual({ budgetBytes: 64, usedBytes: 3, entries: 1 });
 
     await store.clear();
     expect(await store.quota()).toEqual({ budgetBytes: 64, usedBytes: 0, entries: 0 });
+    expect(fake.keys(METADATA_NAME)).toEqual([]);
     expect(await read(store, key({ chunkId: "chunk:1:0" }))).toBeUndefined();
   });
 
