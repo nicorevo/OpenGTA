@@ -3,7 +3,10 @@ import { writeFile } from "node:fs/promises";
 import { liveWorld } from "../fixtures/live-world.ts";
 
 for (const trial of [1, 2, 3]) test(`records cold and warm session measurements ${trial}`, async ({ page, baseURL }) => {
-  test.setTimeout(40000);
+  // Load-tolerant: the full e2e suite runs many Chrome instances in parallel,
+  // so the slow "last chunk applied" phase can exceed default expect timeouts.
+  // These generous wait budgets only stretch the waits, not the assertions.
+  test.setTimeout(90000);
   let requests = 0;
   await page.route("**/*", (route) => {
     if (route.request().url() === "https://overpass-api.de/api/interpreter") { requests++; return route.fulfill({ json: liveWorld }); }
@@ -16,14 +19,14 @@ for (const trial of [1, 2, 3]) test(`records cold and warm session measurements 
   });
   const navigationStart = performance.now();
   await page.goto("/?mode=open-world-live&provider=osm&consent=1");
-  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready", { timeout: 30000 });
   const navigationToReadyMs = performance.now() - navigationStart;
-  await expect.poll(async () => (await snapshot()).session.runtime.pending.length, { timeout: 20000 }).toBe(0);
+  await expect.poll(async () => (await snapshot()).session.runtime.pending.length, { timeout: 60000 }).toBe(0);
   const cold = await snapshot(); const coldRequests = requests;
   await page.getByRole("button", { name: "Interrompi", exact: true }).click();
   await page.getByRole("button", { name: "Riprova", exact: true }).click();
-  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
-  await expect.poll(async () => (await snapshot()).metrics.frames).toBeGreaterThan(120);
+  await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready", { timeout: 30000 });
+  await expect.poll(async () => (await snapshot()).metrics.frames, { timeout: 30000 }).toBeGreaterThan(120);
   const warm = await snapshot();
   expect(requests).toBe(coldRequests);
   expect(cold.session.firstPlayableMs).toBeLessThan(cold.session.lastChunkAppliedMs);
