@@ -97,6 +97,6 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 
 ### P2 — pulizia
 
-- [ ] [RV-11](review/RV-11.md): rimozione dead code.
+- [x] [RV-11](review/RV-11.md): rimozione dead code.
 - [ ] [RV-12](review/RV-12.md): batch nits.
 - [ ] R-C: pulizia + gate finale.

@@ -18,18 +18,6 @@ export const DEFAULT_CAMERA_CONFIG: Readonly<CameraConfig> = Object.freeze({
   farClip: 150,
 });
 
-/** Output of a single perspective projection. */
-export interface ProjectedPoint {
-  /** Normalized X: -1 (left) to 1 (right). */
-  readonly sx: number;
-  /** Normalized Y: -1 (top) to 1 (bottom). */
-  readonly sy: number;
-  /** Normalized depth: 0 (near) to 1 (far). */
-  readonly depth: number;
-  /** True when the point is behind the camera or beyond the far clip. */
-  readonly rejected: boolean;
-}
-
 /**
  * Project a ground-level point (worldY = 0) at camera-space coordinates into
  * normalized device coordinates without any rejection. Polygon fills need
@@ -53,45 +41,4 @@ export function projectGroundNdc(worldX: number, worldZ: number, config: CameraC
 export function projectNdc(worldX: number, worldY: number, worldZ: number, config: CameraConfig): { readonly sx: number; readonly sy: number } {
   const halfFovTan = Math.tan((config.fovDegrees * Math.PI) / 180 / 2);
   return { sx: worldX / worldZ / halfFovTan, sy: (config.cameraHeight - worldY) / worldZ / halfFovTan };
-}
-
-/**
- * Project a world point onto the normalized screen plane.
- *
- * Coordinate convention:
- * - Z positive = forward (along the camera's gaze direction)
- * - X positive = right of the camera
- * - Y positive = up from ground level
- * - Camera sits at (0, cameraHeight, 0), looking along +Z
- *
- * Returns rejected=true when the point is behind the near clip or beyond
- * the far clip — callers should skip drawing such points.
- */
-export function projectPerspective(
-  worldX: number,
-  worldY: number,
-  worldZ: number,
-  config: CameraConfig,
-): ProjectedPoint {
-  // Behind camera?
-  if (worldZ <= 0) return { sx: 0, sy: 0, depth: 0, rejected: true };
-
-  const halfFovRad = (config.fovDegrees * Math.PI) / 180 / 2;
-  const halfFovTan = Math.tan(halfFovRad);
-
-  // Vertical angle: Y is measured from ground, camera is at cameraHeight
-  const relativeY = worldY - config.cameraHeight;
-  const sx = (worldX / worldZ) / halfFovTan;
-  const sy = -(relativeY / worldZ) / halfFovTan;
-
-  // Clipped?
-  if (sx < -2 || sx > 2 || sy < -2 || sy > 2) {
-    return { sx, sy, depth: 0, rejected: true };
-  }
-
-  const depth = (worldZ - config.nearClip) / (config.farClip - config.nearClip);
-  if (depth < 0) return { sx, sy, depth: 0, rejected: true };
-  if (depth > 1) return { sx, sy, depth: 1, rejected: true };
-
-  return { sx, sy, depth, rejected: false };
 }

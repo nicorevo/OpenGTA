@@ -48,7 +48,6 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
     onChunkReady(chunk, key) {
       if (disposed) return;
       const id = grid.idForKey(key); const previous = chunks.get(id);
-      const next = new Map(chunks); next.set(id, { key, chunk });
       try {
         options.physics.setChunk(id, chunk.collisions);
         options.renderer.setChunk(chunk);
