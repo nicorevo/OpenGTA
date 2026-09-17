@@ -162,6 +162,21 @@ function closedPolygon(points: readonly Vec2[]): Polygon2D | undefined {
   return outer ? { outer, holes: [] } : undefined;
 }
 
+function ringBounds(ring: readonly Vec2[]): { readonly minX: number; readonly minY: number; readonly maxX: number; readonly maxY: number } {
+  let minX = Infinity; let minY = Infinity; let maxX = -Infinity; let maxY = -Infinity;
+  for (const point of ring) {
+    if (point.x < minX) minX = point.x;
+    if (point.x > maxX) maxX = point.x;
+    if (point.y < minY) minY = point.y;
+    if (point.y > maxY) maxY = point.y;
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+function boundsIntersect(a: { readonly minX: number; readonly minY: number; readonly maxX: number; readonly maxY: number }, b: { readonly minX: number; readonly minY: number; readonly maxX: number; readonly maxY: number }): boolean {
+  return a.minX <= b.maxX && b.minX <= a.maxX && a.minY <= b.maxY && b.minY <= a.maxY;
+}
+
 function pointInRing(point: Vec2, ring: readonly Vec2[]): boolean {
   let inside = false;
   for (let index = 0, previous = ring.length - 1; index < ring.length; previous = index, index += 1) {
@@ -381,9 +396,16 @@ function addRelationBuildings(
     .map((ring) => projectRing(ring, "inner"))
     .filter((ring): ring is Vec2[] => ring !== undefined);
   const holesByOuter = outerRings.map(() => [] as Vec2[][]);
+  // Bbox pre-filter: a point inside an outer ring is always inside the outer
+  // ring's bbox, so pairs with disjoint bboxes can never contain the hole
+  // and skip point-in-ring entirely. Area and bounds are computed once per
+  // outer, not once per (hole, outer) pair.
+  const outerEntries = outerRings.map((outer, index) => ({ index, area: Math.abs(ringArea(outer)), bounds: ringBounds(outer) }));
   for (const inner of innerRings) {
-    const candidates = outerRings
-      .map((outer, index) => ({ index, area: Math.abs(ringArea(outer)), contains: pointInRing(inner[0], outer) }))
+    const innerBounds = ringBounds(inner);
+    const candidates = outerEntries
+      .filter((entry) => boundsIntersect(innerBounds, entry.bounds))
+      .map((entry) => ({ ...entry, contains: pointInRing(inner[0], outerRings[entry.index]) }))
       .filter((entry) => entry.contains)
       .sort((a, b) => a.area - b.area);
     if (candidates[0]) holesByOuter[candidates[0].index].push(inner);

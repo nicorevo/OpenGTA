@@ -68,6 +68,72 @@ describe("OSM normalization", () => {
     expect(region.buildings[0].footprint.holes).toHaveLength(1);
   });
 
+  it("assigns holes to far-apart outers without testing disjoint bboxes", () => {
+    const square = (x0: number, y0: number, x1: number, y1: number, baseId: number): { elements: RawOsm["elements"][number][]; wayId: number } => {
+      const [a, b, c, d] = [baseId, baseId + 1, baseId + 2, baseId + 3];
+      return {
+        wayId: baseId * 10,
+        elements: [
+          { type: "node", id: a, lat: y0, lon: x0 },
+          { type: "node", id: b, lat: y0, lon: x1 },
+          { type: "node", id: c, lat: y1, lon: x1 },
+          { type: "node", id: d, lat: y1, lon: x0 },
+          { type: "way", id: baseId * 10, nodes: [a, b, c, d, a] },
+        ],
+      };
+    };
+    const first = square(0, 0, 10, 10, 100);
+    const second = square(100, 0, 110, 10, 200);
+    const courtyard = square(104, 4, 106, 6, 300);
+    const region = normalizeOsm({ elements: [
+      ...first.elements,
+      ...second.elements,
+      ...courtyard.elements,
+      { type: "relation", id: 20, members: [
+        { type: "way", ref: first.wayId, role: "outer" },
+        { type: "way", ref: second.wayId, role: "outer" },
+        { type: "way", ref: courtyard.wayId, role: "inner" },
+      ], tags: { building: "historic" } },
+    ] }, identityProjector, origin);
+
+    expect(region.buildings).toHaveLength(2);
+    expect(region.buildings[0].footprint.holes).toHaveLength(0);
+    expect(region.buildings[1].footprint.holes).toHaveLength(1);
+    expect(region.warnings.filter((entry) => entry.code === "orphan-multipolygon-hole")).toEqual([]);
+  });
+
+  it("keeps point-in-ring for overlapping bboxes whose first point lies outside", () => {
+    // Inner square (18,8)-(22,12) straddles outer A's edge: its bbox overlaps
+    // A's bbox, but only point-in-ring can assign it (a containment-based
+    // pre-filter would wrongly drop it).
+    const outerA: RawOsm["elements"][number][] = [
+      { type: "node", id: 1, lat: 0, lon: 0 },
+      { type: "node", id: 2, lat: 0, lon: 20 },
+      { type: "node", id: 3, lat: 20, lon: 20 },
+      { type: "node", id: 4, lat: 20, lon: 0 },
+      { type: "way", id: 10, nodes: [1, 2, 3, 4, 1] },
+    ];
+    const inner: RawOsm["elements"][number][] = [
+      { type: "node", id: 5, lat: 8, lon: 18 },
+      { type: "node", id: 6, lat: 8, lon: 22 },
+      { type: "node", id: 7, lat: 12, lon: 22 },
+      { type: "node", id: 8, lat: 12, lon: 18 },
+      { type: "way", id: 11, nodes: [5, 6, 7, 8, 5] },
+    ];
+    const region = normalizeOsm({ elements: [
+      ...outerA,
+      ...inner,
+      { type: "relation", id: 20, members: [
+        { type: "way", ref: 10, role: "outer" },
+        { type: "way", ref: 11, role: "inner" },
+      ], tags: { building: "historic" } },
+    ] }, identityProjector, origin);
+
+    expect(region.buildings).toHaveLength(1);
+    expect(region.buildings[0].footprint.holes).toHaveLength(1);
+    expect(region.warnings.filter((entry) => entry.code === "orphan-multipolygon-hole")).toEqual([]);
+  });
+
   it("rejects open and degenerate standalone building ways", () => {
     const region = normalizeOsm({ elements: [
       { type: "node", id: 1, lat: 0, lon: 0 },
