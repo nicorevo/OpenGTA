@@ -82,7 +82,7 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 - [x] [RV-01](review/RV-01.md): cancel stream MVT sul budget.
 - [x] [RV-03](review/RV-03.md): test bench nel gate standard.
 - [x] [RV-02](review/RV-02.md): re-sync SECURITY.md.
-- [ ] [RV-05](review/RV-05.md): label O(1) + destroy.
+- [x] [RV-05](review/RV-05.md): label O(1) + destroy.
 - [ ] [RV-04](review/RV-04.md): cache tile + concorrenza bounded + retry.
 - [ ] R-A: P0 (cancellazione, cache, retry, label, docs, gate).
 

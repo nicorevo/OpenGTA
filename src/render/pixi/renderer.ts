@@ -34,6 +34,7 @@ const VEHICLE_WIDTH_METERS = 1.8;
 const VEHICLE_VISUAL_SCALE = 2.6;
 const ROAD_FILL = 0x53515a;
 const ROAD_EDGE = 0x302e38;
+const LABEL_TEXT_STYLE = { fontFamily: "Arial", fontSize: 10, fontWeight: "normal", fill: 0x000000, stroke: { color: 0xffffff, width: 2 } } as const;
 const ROAD_CASING_MIN_PX = 0.75;
 const ROAD_CASING_MAX_PX = 2.5;
 const ROAD_CASING_RATIO = 0.12;
@@ -219,22 +220,25 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     groundLayer.sortChildren(); roadCasingLayer.sortChildren(); roadSurfaceLayer.sortChildren(); buildingsLayer.sortChildren();
   };
 
+  // Each label belongs to exactly one chunk, so the per-chunk containers are
+  // the owners: no cross-presentation lookup, and every removed Text is
+  // destroyed (a bare removeChildren would leak its texture resources).
+  const clearLabelChildren = (entry: ChunkPresentation): void => {
+    for (const child of entry.labels.removeChildren()) child.destroy();
+  };
   const rebuildLabels = (): void => {
-    const chunks = [...presentations.values()].map((entry) => entry.chunk);
-    const allLabels = chunks.flatMap((chunk) => chunk.labels);
-    for (const entry of presentations.values()) {
-      entry.labels.removeChildren();
-    }
-    for (const label of visibleLabels(allLabels, currentProfile)) {
-      const owner = [...presentations.values()].find((entry) => entry.chunk.labels.includes(label));
-      if (!owner) continue;
-      const text = new Text({ text: label.text, style: { fontFamily: "Arial", fontSize: 10, fontWeight: "normal", fill: 0x000000, stroke: { color: 0xffffff, width: 2 } } });
-      text.anchor.set(0.5);
-      text.position.set(label.position.x * worldScale, -label.position.y * worldScale);
-      text.rotation = readableLabelAngle(label.angle);
-      owner.labels.addChild(text);
-    }
+    for (const entry of presentations.values()) clearLabelChildren(entry);
     labelLayer.visible = presentation.labelsVisible;
+    if (!presentation.labelsVisible) return;
+    for (const entry of presentations.values()) {
+      for (const label of visibleLabels(entry.chunk.labels, currentProfile)) {
+        const text = new Text({ text: label.text, style: LABEL_TEXT_STYLE });
+        text.anchor.set(0.5);
+        text.position.set(label.position.x * worldScale, -label.position.y * worldScale);
+        text.rotation = readableLabelAngle(label.angle);
+        entry.labels.addChild(text);
+      }
+    }
   };
 
   const setChunk = (chunk: CompiledChunkV0): void => {
@@ -280,7 +284,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     updateVehicle(nextPosition, heading) { if (disposed) return; position = { ...nextPosition }; updateCamera(); vehicle.position.set(position.x, -position.y); vehicle.rotation = -heading; },
     cameraBounds() { const halfX = app.screen.width / viewScale() / 2; const halfY = app.screen.height / viewScale() / 2; return { minX: position.x - halfX, maxX: position.x + halfX, minY: position.y - halfY, maxY: position.y + halfY }; },
     dispose() { if (disposed) return; disposed = true; presentations.clear(); app.ticker.remove(updateCamera); app.destroy(false, { children: true }); },
-    toggleLabels() { presentation = toggleLabels(presentation); labelLayer.visible = presentation.labelsVisible; return presentation.labelsVisible; },
+    toggleLabels() { presentation = toggleLabels(presentation); rebuildLabels(); return presentation.labelsVisible; },
   };
 
   function setChunkRemoval(chunkId: string): void {
