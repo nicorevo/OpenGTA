@@ -88,7 +88,7 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 
 ### P1 — robustness e performance
 
-- [ ] [RV-10](review/RV-10.md): validazione codec deser.
+- [x] [RV-10](review/RV-10.md): validazione codec deser.
 - [ ] [RV-09](review/RV-09.md): pre-filtro bbox relazioni OSM.
 - [ ] [RV-08](review/RV-08.md): write IndexedDB serializzate + indice.
 - [ ] [RV-06](review/RV-06.md): stop app Pixi inattiva al toggle.
