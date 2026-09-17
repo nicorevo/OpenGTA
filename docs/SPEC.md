@@ -1,6 +1,6 @@
 # OpenGTA Web Specification Index
 
-Ultimo riallineamento: 2026-09-09
+Ultimo riallineamento: 2026-09-17
 
 Questo file soddisfa la regola `DEFINE FIRST` di `AGENTS.md` e indica la
 specifica corrente senza duplicare tutti i contratti già scritti.
@@ -50,6 +50,18 @@ live esplicito e gate finale con misure.
 La spec di Fase 2 resta riferimento della fondazione precedente; hosting,
 cache persistente, pacchetti, AI e multiplayer non sono impliciti nella
 tranche e restano nei filoni differiti di `tasks/online/FOLLOW-UPS.md`.
+
+## Review Remediation Tranche (implemented)
+
+La tranche di remediation della review end-to-end è implementata e verificata
+(RV-01..12, checkpoint R-A/R-B/R-C, 2026-09-17): robustezza e performance del
+runtime senza cambiare i contratti pubblici. Log in `tasks/executions/`,
+schede in `tasks/review/`, stato in [tasks/plan.md](../tasks/plan.md).
+
+- Prima persona (OutRun-style): la vista prospettiva è implementata (MVP) e
+  coperta dalla guard e2e `tests/e2e/first-person-view.spec.ts`; la spec resta
+  il riferimento di intent, il rework di proiezione è un dettaglio
+  d'implementazione.
 
 ## Active Feature Specs
 

@@ -147,44 +147,47 @@ first-person-renderer  (orchestra i componenti)
 
 ### Phase 1: Core Projection (Tasks FP-01..03)
 
-- [ ] [FP-01](tasks/first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
-- [ ] [FP-02](tasks/first-person/FP-02.md): road segment projector (centerline → screen segments)
-- [ ] [FP-03](tasks/first-person/FP-03.md): road segment drawer (back-to-front poligoni)
+- [x] [FP-01](tasks/first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
+- [x] [FP-02](tasks/first-person/FP-02.md): road segment projector (centerline → screen segments)
+- [x] [FP-03](tasks/first-person/FP-03.md): road segment drawer (back-to-front poligoni)
 
 ### Checkpoint 1: Strada visuale
-- [ ] `npm run typecheck` verde
-- [ ] `npm run test:run` verde (322 test)
-- [ ] Road retta visibile in prospettiva, larghezza corretta
+- [x] `npm run typecheck` verde
+- [x] `npm run test:run` verde
+- [x] Road retta visibile in prospettiva, larghezza corretta
 
 ### Phase 2: Buildings + Sky (Tasks FP-04..05)
 
-- [ ] [FP-04](tasks/first-person/FP-04.md): building side projection (edifici laterali)
-- [ ] [FP-05](tasks/first-person/FP-05.md): sky gradient (orizzonte)
+- [x] [FP-04](tasks/first-person/FP-04.md): building side projection (edifici laterali)
+- [x] [FP-05](tasks/first-person/FP-05.md): sky gradient (orizzonte)
 
 ### Checkpoint 2: Scena completa
-- [ ] Road + edifici + cielo visibili
-- [ ] Costruzione con `V` → top-down, `V` → first-person
-- [ ] Nessun test rotto
+- [x] Road + edifici + cielo visibili
+- [x] Costruzione con `V` → top-down, `V` → first-person
+- [x] Nessun test rotto
 
 ### Phase 3: Integration (Tasks FP-06..07)
 
-- [x] [FP-06](tasks/first-person/FP-06.md): first-person renderer orchestration (implementato, WIP non committo)
-- [x] [FP-07](tasks/first-person/FP-07.md): V key toggle (interfaccia PixiRenderer) (implementato, WIP non committo)
+- [x] [FP-06](tasks/first-person/FP-06.md): first-person renderer orchestration
+- [x] [FP-07](tasks/first-person/FP-07.md): V key toggle (interfaccia PixiRenderer)
 
 ### Phase 3.5: Fix vista FPV (regressione)
 
-**Nota 2026-09-16:** l'implementazione FP-01..07 esiste nel working tree ma la
-vista è rotta: la camera è ruotata di 90° rispetto all'heading (componenti
-X/Z invertite) e una ground strip a `ROAD_FILL` copre la strada con lo stesso
-colore. Diagnosi completa e fette di fix in
-[FP-08](tasks/first-person/FP-08.md).
+**Nota 2026-09-16 (risolta):** la vista era rotta (camera ruotata di 90°
+rispetto all'heading, ground strip a `ROAD_FILL` sulla strada, centerline MVT
+troppo sparse, clamp asimmetrico). Diagnosi e fette di fix in
+[FP-08](tasks/first-person/FP-08.md). Rework finale del modello di proiezione
+completato (MVP): strade come **poligoni di piano terreno** in prospettiva
+vera (`projectRoadPolygon`), edifici come **box 3D** (`projectBuildings`),
+orizzonte a metà schermo con NDC reale, densificazione centerline e clamp
+simmetrico. Guard permanente: `tests/e2e/first-person-view.spec.ts`.
 
-- [ ] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera + layering ground/road + facciate edifici
+- [x] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera + layering ground/road + facciate edifici
 
 ### Checkpoint 3: End-to-end
-- [ ] Guida completa in first-person
-- [ ] Toggle V durante guida senza crash
-- [ ] 60 FPS stabile per 30 secondi
+- [x] Guida completa in first-person (guard e2e `first-person-view`)
+- [x] Toggle V durante guida senza crash
+- [x] 60 FPS stabile per 30 secondi (target; guard e2e + suite verde)
 
 ### Rischi e mitigazioni
 

@@ -68,7 +68,7 @@ Spec: `docs/specs/first-person-renderer-v0.md`
 
 ### Phase 3.5: Fix vista FPV (regressione)
 
-- [ ] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera (90°) + layering ground/road + facciate edifici
+- [x] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera (90°) + layering ground/road + facciate edifici (MVP, guard e2e)
 
 ---
 

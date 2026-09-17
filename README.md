@@ -29,11 +29,22 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `f7d5fff` sul ramo `opcl`
-(2026-09-11, Provider-Neutral World Streaming). Verificata con 322 test
-unitari, 10 test bench, 22 E2E su dev server (più canary live separata),
-1 smoke del build di produzione, typecheck e build. Vedi
+**Baseline stabile per test utente:** commit `4142db4` sul ramo `opcl3D`
+(2026-09-17, Review Remediation). Verificata con 406 test unitari
+(55 file), 11 test bench, 23 E2E (1 skipped) su dev server (più canary live
+separata), 1 smoke del build di produzione, typecheck e build. Vedi
 [Prova della baseline](#prova-della-baseline).
+
+Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle
+`V`; strade in prospettiva vera + edifici box 3D; guard e2e
+`first-person-view`):
+
+`docs/specs/first-person-renderer-v0.md` · `tasks/first-person/`
+
+Tranche Review Remediation (RV-01..12, checkpoint R-A/R-B/R-C; robustezza e
+performance del runtime, dettagli in `tasks/plan.md`):
+
+`tasks/review/` · `tasks/executions/2026-09-17-RV-*.md`
 
 Tranche City Drive Stable (solidità, zoom a livelli discreti con LOD 2D,
 cache persistente, gate su Lecce):

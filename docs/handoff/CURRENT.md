@@ -1,6 +1,6 @@
 # Punto di ingresso corrente
 
-Data: 2026-09-11
+Data: 2026-09-17
 
 Questo file sostituisce `CODEX-START-HERE.md` come avvio di sessione.
 
@@ -19,6 +19,8 @@ Non rieseguirli come backlog corrente.
 | Ripristino online | Completata — ONLINE-01..16 verificati, C1..C6; risultato in `docs/results/ONLINE-RUNTIME-RESULT.md` |
 | City Drive Stable | Completata — SOLID/ZOOM/LOD/CACHE/CITY verificati, C-A..C-E; risultato in `docs/results/CITY-DRIVE-STABLE-RESULT.md` |
 | Provider-Neutral World Streaming | Completata — DATA-00..14 verificati, D-A/D-B/D-C; risultato in `docs/results/PROVIDER-NEUTRAL-WORLD-STREAMING-RESULT.md` |
+| First-Person Renderer | Completata (MVP) — FP-01..08 verificati (FP-08 = fix vista FPV, rework prospettiva vera + box 3D); guard e2e `tests/e2e/first-person-view.spec.ts` |
+| Review Remediation (RV) | Completata — RV-01..12 verificati, checkpoint R-A/R-B/R-C; log in `tasks/executions/2026-09-17-RV-*.md`, stato in `tasks/plan.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -55,9 +57,24 @@ anche con suite verde.
   decisione GO VISUAL ONLY). DATA-15..18 restano righe di piano da
   dettagliare; il flag `provider=openfreemap-mvt` è sperimentale, mai
   default.
-- Baseline stabile per test utente: commit `f7d5fff` (DATA tranche
-  completata); istruzioni di prova, stati attesi e limiti noti nella sezione
-  "Prova della baseline" del [README](../../README.md).
+- Tranche **First-Person Renderer** completata (MVP) il 2026-09-16
+  (FP-01..08; FP-08 = fix vista FPV con rework in prospettiva vera
+  `projectRoadPolygon` + edifici box 3D + densificazione centerline; guard
+  e2e `tests/e2e/first-person-view.spec.ts`; spec
+  [first-person-renderer-v0](../specs/first-person-renderer-v0.md)).
+- Tranche **Review Remediation (RV)** completata il 2026-09-17
+  (RV-01..12, checkpoint R-A/R-B/R-C): robustezza e performance del runtime
+  (cancel stream su budget, cache tile + retry, label O(1), pre-filtro bbox,
+  validazione codec, write IndexedDB serializzate, stop app inattiva,
+  pre-cull strade FP, rimozione dead code, ring buffer metrics, Retry-After
+  HTTP-date, superficie stradale per-frammento). Log in
+  `tasks/executions/2026-09-17-RV-*.md`; stato in
+  [tasks/plan.md](../../tasks/plan.md) e [tasks/todo.md](../../tasks/todo.md).
+- Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+  custom tile schema ADR, riuso cache compilata, curated region package).
+- Baseline stabile per test utente: commit `4142db4` (RV tranche
+  completata, gate R-C verde); istruzioni di prova, stati attesi e limiti noti
+  nella sezione "Prova della baseline" del [README](../../README.md).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log
