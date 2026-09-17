@@ -13,6 +13,7 @@ import { createPixiRenderer } from "../render/pixi/renderer.ts";
 import { createFirstPersonRenderer } from "../render/pixi/first-person-renderer.ts";
 import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapier/adapter.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
+import { switchView, type ViewLoop } from "./view-toggle.ts";
 import { advanceFixedStep } from "./fixed-step.ts";
 import { readVehicleInput } from "./input.ts";
 import { RuntimeMetrics } from "./metrics.ts";
@@ -88,11 +89,23 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       if (token !== epoch) { physics.dispose(); firstPerson.dispose(); return; }
       let viewMode: "top-down" | "perspective" = "top-down";
       let fpVisible = false;
+      const topLoop: ViewLoop = { get started() { return renderer.app.ticker.started; }, stop: () => renderer.app.ticker.stop(), start: () => renderer.app.ticker.start(), render: () => renderer.app.render() };
+      const fpLoop: ViewLoop = { get started() { return firstPerson.app.ticker.started; }, stop: () => firstPerson.app.ticker.stop(), start: () => firstPerson.app.ticker.start(), render: () => firstPerson.app.render() };
+      // The FP canvas starts hidden: its render loop must not run.
+      fpLoop.stop();
       const toggleFP = () => {
         viewMode = viewMode === "top-down" ? "perspective" : "top-down";
         fpVisible = viewMode === "perspective";
         tpCanvas.style.display = viewMode === "top-down" ? "block" : "none";
         fpCanvas.style.display = viewMode === "perspective" ? "block" : "none";
+        if (fpVisible) {
+          // The FP scene only advances while visible: push the current chunks
+          // so the immediate pass draws a fresh scene, not a stale one.
+          const chunks = session ? session.getActiveChunks() : currentChunks;
+          if (chunks.length > 0) firstPerson.render(chunks);
+        }
+        if (fpVisible) switchView(topLoop, fpLoop);
+        else switchView(fpLoop, topLoop);
         hint.textContent = (viewMode === "perspective" ? "Modo: prima persona" : "OpenGTA") + ` | ${legend} | OpenStreetMap contributors`;
       };
       const { origin, live: liveConfig } = config;
@@ -125,7 +138,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const session = current;
       const vehicleSnapshot = () => session ? session.vehicle() : offlineVehicle ? { position: { ...offlineVehicle.position }, velocity: { ...offlineVehicle.velocity }, heading: offlineVehicle.heading } : undefined;
       const metrics = new RuntimeMetrics();
-      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), firstPerson: () => firstPerson.diagnostics() }) });
+      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });
       Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: Object.freeze({ snapshot: () => metrics.snapshot() }) });
       const updateStatus = () => {
         const snapshot = session?.snapshot(); if (!snapshot) return;

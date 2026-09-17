@@ -22,6 +22,15 @@ test("first-person view (V) projects the road ahead of the vehicle", async ({ pa
   await page.goto(`/?mode=open-world-live&provider=openfreemap-mvt&consent=1&lat=40.352027&lon=18.181308`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
 
+  const viewLoops = () => page.evaluate(() => (window as unknown as {
+    __opengtaV0Debug: { viewLoops(): { topDown: boolean; firstPerson: boolean } };
+  }).__opengtaV0Debug.viewLoops());
+  const fpDiagnostics = () => page.evaluate(() => (window as unknown as {
+    __opengtaV0Debug: { firstPerson(): { chunks: number; roadItems: number; buildingItems: number } };
+  }).__opengtaV0Debug.firstPerson());
+  // Only the visible view runs a render loop: the FP canvas starts hidden.
+  expect(await viewLoops()).toEqual({ topDown: true, firstPerson: false });
+
   // Drive a few seconds on the straight span, then switch to first-person.
   await page.keyboard.down("w");
   await page.waitForTimeout(4000);
@@ -29,9 +38,8 @@ test("first-person view (V) projects the road ahead of the vehicle", async ({ pa
   await page.keyboard.press("v");
   await page.waitForTimeout(500);
 
-  const diagnostics = await page.evaluate(() => (window as unknown as {
-    __opengtaV0Debug: { firstPerson(): { chunks: number; roadItems: number; buildingItems: number } };
-  }).__opengtaV0Debug.firstPerson());
+  const diagnostics = await fpDiagnostics();
+  expect(await viewLoops()).toEqual({ topDown: false, firstPerson: true });
 
   await page.screenshot({ path: "/tmp/opengta-fpv.png" });
 
@@ -40,5 +48,11 @@ test("first-person view (V) projects the road ahead of the vehicle", async ({ pa
   // dozens of segments within the 150 m render distance. A camera rotated
   // 90 degrees sees almost none (this regression shipped as proj: 3/35).
   expect(diagnostics.roadItems).toBeGreaterThan(5);
+
+  // Toggle back: the top-down loop resumes (and redraws immediately) and the
+  // first-person loop stops.
+  await page.keyboard.press("v");
+  await page.waitForTimeout(300);
+  expect(await viewLoops()).toEqual({ topDown: true, firstPerson: false });
   expect(errors).toEqual([]);
 });

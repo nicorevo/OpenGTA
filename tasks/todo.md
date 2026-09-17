@@ -91,7 +91,7 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 - [x] [RV-10](review/RV-10.md): validazione codec deser.
 - [x] [RV-09](review/RV-09.md): pre-filtro bbox relazioni OSM.
 - [x] [RV-08](review/RV-08.md): write IndexedDB serializzate + indice.
-- [ ] [RV-06](review/RV-06.md): stop app Pixi inattiva al toggle.
+- [x] [RV-06](review/RV-06.md): stop app Pixi inattiva al toggle.
 - [ ] [RV-07](review/RV-07.md): pre-cull strade FP.
 - [ ] R-B: robustness e performance.
 
