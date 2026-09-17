@@ -273,3 +273,64 @@ indipendente; RV-11 dopo gli altri task (verifica assenza di riferimenti).
 | `app.stop()` al toggle | Al restart è garantito un render pass immediato prima del loop rAF |
 | Rimozione dead code | Solo dopo i gate R-A/R-B; verifica a zero riferimenti con gli strumenti simbolici |
 | Retry-After HTTP-date | Parse allineato a `source.ts` (entrambi i formati) |
+
+---
+
+## Piano: Live Online di Default (MVT pinnata, consenso implicito)
+
+Data: 2026-09-17. Baseline codice: `4142db4`. Commit finale: `9e72120`.
+Result: `docs/results/LIVE-ONLINE-DEFAULT-RESULT.md`. ADR: ADR-012
+(supersede ADR-009).
+
+### Obiettivo
+
+La modalità live parte online al load con una sorgente vettoriale (MVT)
+pinnata e consenso implicito non revocabile: provider e endpoint restano
+fuori dall'input utente, l'opt-out dalla rete è la scelta esplicita della
+modalità offline, e i provider opt-in `osm`/`http` restano subordinati
+all'allowlist di endpoint.
+
+### Task
+
+| Stato | ID | Esito verificabile |
+| --- | --- | --- |
+| [x] | ONLINE-DEFAULT-01 | `live-config.ts` online di default su MVT pinnata; opt-out offline; allowlist per i provider opt-in |
+| [x] | ONLINE-DEFAULT-02 | `live-controls.ts` senza campi provider/endpoint; consenso fisso (checked + disabled); nessun `stop(revoked)` |
+| [x] | ONLINE-DEFAULT-03 | `bootstrap.ts` nuove firme (`stopCurrent`, `load`, `offline`); percorsi e E2E aggiornati |
+| [x] | ONLINE-DEFAULT-04 | ADR-012 creato, ADR-009 superseded; `SECURITY.md`/`README.md` riallineati |
+
+### Checkpoint
+
+- [x] Live online al load con MVT pinnata; offline senza richieste provider.
+- [x] Consenso implicito non revocabile; provider opt-in solo in allowlist.
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+---
+
+## Piano: Controlli Touch Mobile (pulsanti, zoom e nomi vie)
+
+Data: 2026-09-17. Baseline codice: `9e72120`. Commit finale: `4ba08f2`
+(pulsanti/zoom/street), `f828a14` (indurimento E2E misurazioni). Result:
+`docs/results/TOUCH-CONTROLS-RESULT.md`.
+
+### Obiettivo
+
+Su dispositivo touch, pulsanti on-screen per guidare (stesso comportamento
+della tastiera), barra zoom ingrandita con tasto `street` per i nomi delle
+vie, e pannello configurazioni che non sovrappone la barra zoom. Il desktop
+resta invariato.
+
+### Task
+
+| Stato | ID | Esito verificabile |
+| --- | --- | --- |
+| [x] | TOUCH-01 | `touch-controls.ts` (modulo puro + test): mapping `gas/reverse/left/right` → `w/s/a/d` |
+| [x] | TOUCH-02 | `bootstrap.ts`: pulsanti on-screen, barra zoom verticale, tasto `street` (effetto `L`) |
+| [x] | TOUCH-03 | `live-controls.ts`: pannello `box-sizing:border-box` + larghezza via `isTouchDevice()` (no overlap) |
+| [x] | TOUCH-04 | E2E `touch-controls.spec.ts` (contesto touch) + indurimento `measurements.spec.ts` |
+
+### Checkpoint
+
+- [x] Pulsanti guidano; `street` alterna i nomi; pannello non sovrappone la barra zoom.
+- [x] Desktop invariato (nessun pulsante, barra compatta).
+- [x] Suite completa, typecheck, build, E2E verdi.

@@ -21,6 +21,8 @@ Non rieseguirli come backlog corrente.
 | Provider-Neutral World Streaming | Completata — DATA-00..14 verificati, D-A/D-B/D-C; risultato in `docs/results/PROVIDER-NEUTRAL-WORLD-STREAMING-RESULT.md` |
 | First-Person Renderer | Completata (MVP) — FP-01..08 verificati (FP-08 = fix vista FPV, rework prospettiva vera + box 3D); guard e2e `tests/e2e/first-person-view.spec.ts` |
 | Review Remediation (RV) | Completata — RV-01..12 verificati, checkpoint R-A/R-B/R-C; log in `tasks/executions/2026-09-17-RV-*.md`, stato in `tasks/plan.md` |
+| Live Online di Default | Completata — online al load con MVT pinnata e consenso implicito; ADR-012, risultato in `docs/results/LIVE-ONLINE-DEFAULT-RESULT.md` |
+| Controlli Touch Mobile | Completata — pulsanti on-screen, barra zoom + tasto `street`, pannello no-overlap; risultato in `docs/results/TOUCH-CONTROLS-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -70,11 +72,22 @@ anche con suite verde.
   HTTP-date, superficie stradale per-frammento). Log in
   `tasks/executions/2026-09-17-RV-*.md`; stato in
   [tasks/plan.md](../../tasks/plan.md) e [tasks/todo.md](../../tasks/todo.md).
+- Tranche **Live Online di Default** completata il 2026-09-17
+  (ONLINE-DEFAULT-01..04): la modalità live parte online al load con sorgente
+  MVT pinnata (OpenFreeMap) e consenso implicito non revocabile; opt-out =
+  offline; provider opt-in in allowlist. ADR-012 (supersede ADR-009);
+  risultato [LIVE-ONLINE-DEFAULT-RESULT](../results/LIVE-ONLINE-DEFAULT-RESULT.md).
+- Tranche **Controlli Touch Mobile** completata il 2026-09-17 (TOUCH-01..04):
+  pulsanti on-screen per guidare (stesso comportamento tastiera), barra zoom
+  ingrandita con tasto `street` (effetto `L`), pannello configurazioni che non
+  sovrappone la barra zoom; desktop invariato. Risultato
+  [TOUCH-CONTROLS-RESULT](../results/TOUCH-CONTROLS-RESULT.md).
 - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
   custom tile schema ADR, riuso cache compilata, curated region package).
-- Baseline stabile per test utente: commit `4142db4` (RV tranche
-  completata, gate R-C verde); istruzioni di prova, stati attesi e limiti noti
-  nella sezione "Prova della baseline" del [README](../../README.md).
+- Baseline stabile per test utente: commit `f828a14` (tranche online di
+  default e touch completate; gate verde: 415 test unitari, 25 E2E + 1 canary
+  skipped); istruzioni di prova, stati attesi e limiti noti nella sezione
+  "Prova della baseline" del [README](../../README.md).
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log

@@ -100,3 +100,29 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 - [x] [RV-11](review/RV-11.md): rimozione dead code.
 - [x] [RV-12](review/RV-12.md): batch nits.
 - [x] R-C: pulizia + gate finale.
+
+---
+
+## Live Online di Default (MVT pinnata, consenso implicito)
+
+Data: 2026-09-17. Baseline: `4142db4`. Commit: `9e72120`. Result:
+`docs/results/LIVE-ONLINE-DEFAULT-RESULT.md`. ADR: ADR-012.
+
+- [x] ONLINE-DEFAULT-01: `live-config.ts` online di default su MVT pinnata + opt-out offline.
+- [x] ONLINE-DEFAULT-02: `live-controls.ts` senza provider/endpoint; consenso fisso non revocabile.
+- [x] ONLINE-DEFAULT-03: `bootstrap.ts` nuove firme; E2E aggiornati.
+- [x] ONLINE-DEFAULT-04: ADR-012 creato, ADR-009 superseded; SECURITY/README riallineati.
+- [x] C-OD: suite, typecheck, build, E2E verdi.
+
+---
+
+## Controlli Touch Mobile (pulsanti, zoom e nomi vie)
+
+Data: 2026-09-17. Baseline: `9e72120`. Commit: `4ba08f2` (UI), `f828a14`
+(E2E). Result: `docs/results/TOUCH-CONTROLS-RESULT.md`.
+
+- [x] TOUCH-01: `touch-controls.ts` (modulo puro + test).
+- [x] TOUCH-02: `bootstrap.ts` pulsanti on-screen + barra zoom + tasto `street`.
+- [x] TOUCH-03: `live-controls.ts` pannello no-overlap (`box-sizing` + `isTouchDevice`).
+- [x] TOUCH-04: E2E `touch-controls.spec.ts` + indurimento `measurements.spec.ts`.
+- [x] C-TOUCH: suite, typecheck, build, E2E verdi.

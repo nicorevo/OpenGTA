@@ -29,10 +29,10 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `4142db4` sul ramo `opcl3D`
-(2026-09-17, Review Remediation). Verificata con 406 test unitari
-(55 file), 11 test bench, 23 E2E (1 skipped) su dev server (più canary live
-separata), 1 smoke del build di produzione, typecheck e build. Vedi
+**Baseline stabile per test utente:** commit `f828a14` sul ramo `opcl3D`
+(2026-09-17, online di default + controlli touch). Verificata con 415 test
+(56 file), 25 E2E (1 skipped) su dev server (più canary live separata), 1
+smoke del build di produzione, typecheck e build. Vedi
 [Prova della baseline](#prova-della-baseline).
 
 Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle
@@ -201,8 +201,8 @@ avvia subito una sessione live con l'origine predefinita; guida con W,
 retromarcia con S, F3 per la diagnostica, L per le etichette. Su dispositivi
 con touch compaiono pulsanti on-screen ingranditi (accelerazione, retromarcia,
 sterza sinistra/destra) che guidano il veicolo alla pari della tastiera; la
-barra zoom in alto a destra è anch'essa ingrandita e aggiunge il tasto "Vie"
-per mostrare i nomi delle vie (stesso effetto del tasto L).
+barra zoom in alto a destra è anch'essa ingrandita e aggiunge il tasto
+"street" per mostrare i nomi delle vie (stesso effetto del tasto L).
 
 Per giocare offline (fixture Lecce, nessuna rete) selezionare "Offline" dal
 pannello **"OpenGTA / Area di gioco"** (in alto a sinistra), oppure usare
