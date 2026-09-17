@@ -193,3 +193,80 @@ colore. Diagnosi completa e fette di fix in
 | Proiezione prospettica produce artefatti | Basso | Clamp Z depth, early-out su segmenti dietro camera |
 | Edifici proiettati troppo grandi | Basso | Culling laterale ±30m, max height scale |
 | Performance sotto i 60fps | Alto | Disabilitare edifici se draw calls > 120 |
+
+---
+
+## Piano: Code Review Remediation (RV)
+
+Data: 2026-09-17. Analisi di riferimento: review complessiva del codice
+condotta il 2026-09-17 (0 critici, 5 da risolvere prima del merge, 6
+opzionali, 6 nit). Baseline codice: `ae92e10`. Baseline verificata: typecheck
+verde, 355/355 test su 48 file. Responsabile esecuzione: fullstack-developer
+(TDD).
+
+### Obiettivo
+
+Chiudere tutti i punti aperti della review: percorso MVT (cancellazione
+stream sul budget, cache tile con dedup in-flight, concorrenza bounded, retry
+che onora `Retry-After`), percorso caldo del renderer top-down (churn label
+O(N²) + Text abbandonati), re-sync documentale (SECURITY.md vs codice) e
+affidabilità del gate (test bench esclusi). Poi robustness (codec persistente,
+relazioni OSM, IndexedDB), prima persona (app inattiva, pre-cull strade) e
+pulizia (dead code, nits).
+
+### Come usare il piano
+
+1. Leggere [contratti e procedura comuni](review/README.md).
+2. Un task alla volta: scheda, dipendenze, TDD, gate comune, log.
+3. Aggiornare la riga qui e in [todo](todo.md) solo con evidenza.
+
+### Task ordinati
+
+Ordine = priorità + vincoli tecnici: RV-01 sblocca RV-04 (stesso file);
+RV-03 rinforza il gate prima dei task P0 rimanenti; RV-02 è documentale e
+indipendente; RV-11 dopo gli altri task (verifica assenza di riferimenti).
+
+| Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [ ] | [RV-01 Cancel stream MVT sul budget](review/RV-01.md) | Nessuna | S | Overrun budget → `reader.cancel()`; nessun stream aperto |
+| [ ] | [RV-03 Test bench nel gate](review/RV-03.md) | Nessuna | S | `npm run test:run` copre `tests/bench/*`; nessun side effect nel report |
+| [ ] | [RV-02 Re-sync SECURITY.md](review/RV-02.md) | Nessuna | S | Documentazione descrive IndexedDB, fallback DEV, budget effettivi; gate documentale |
+| [ ] | [RV-05 Label O(1) + destroy](review/RV-05.md) | Nessuna | M | Rebuild label senza O(N²); zero Text abbandonati; skip se nascoste |
+| [ ] | [RV-04 Cache tile + concorrenza + retry](review/RV-04.md) | RV-01 | L | Tile fetchato una sola volta (dedup in-flight); LRU bounded; retry 429/5xx con Retry-After e abort |
+| [ ] | [RV-10 Validazione codec deser](review/RV-10.md) | Nessuna | S | Record corrotti (NaN/null) scartati alla deser come miss |
+| [ ] | [RV-09 Pre-filtro bbox relazioni OSM](review/RV-09.md) | Nessuna | S | Point-in-ring solo dopo bbox reject; nessun regresso fixture |
+| [ ] | [RV-08 Write IndexedDB serializzate](review/RV-08.md) | Nessuna | M | Niente reconcile/evict concorrenti; invariant budget dopo ogni write |
+| [ ] | [RV-06 Stop app Pixi inattiva](review/RV-06.md) | Nessuna | S | L'app della vista nascosta non ha render loop attivo |
+| [ ] | [RV-07 Pre-cull strade FP](review/RV-07.md) | Nessuna | M | Nessuna densificazione per segmenti fuori frusta |
+| [ ] | [RV-11 Rimozione dead code](review/RV-11.md) | RV-05..07 | S | sky-drawer, projectPerspective, retry.test orfano, variabile mai letta rimossi |
+| [ ] | [RV-12 Batch nits](review/RV-12.md) | RV-11 | S | Ring buffer metrics; Retry-After HTTP-date; superficie per frammento; riga lunga |
+
+### Checkpoint
+
+### R-A: P0, dopo RV-01, RV-03, RV-02, RV-05, RV-04
+
+- [ ] Percorso MVT: cancellazione, cache, concorrenza, retry — SECURITY.md
+  §richieste al provider onorato da entrambi i provider.
+- [ ] Percorso caldo label O(1), nessun leak di Text.
+- [ ] Documentazione allineata al codice; gate include i test di regressione
+  DoS e di parità.
+- [ ] Suite completa, typecheck, build, E2E verdi.
+
+### R-B: robustness e performance, dopo RV-10, RV-09, RV-08, RV-06, RV-07
+
+- [ ] Suite completa, typecheck, build, E2E verdi.
+
+### R-C: pulizia, dopo RV-11, RV-12
+
+- [ ] Nessun dead code; gate finale verde.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione prevista |
+| --- | --- |
+| Cache tile con abort condiviso | La promessa in-flight non viene rejectata da un abort del singolo caller: il caller riceve l'errore di abort, il fetch prosegue per gli altri |
+| Retry su 429 | Massimo un retry per fetch, delay clamped (min(Retry-After, 30 s)), abort-aware; nessun retry su rete transitoria (il path Overpass ha già il backoff in scheduler) |
+| Evizione LRU di tile in uso | L'eviction riguarda solo fetch futuri: l'chunk attivo è già compilato |
+| `app.stop()` al toggle | Al restart è garantito un render pass immediato prima del loop rAF |
+| Rimozione dead code | Solo dopo i gate R-A/R-B; verifica a zero riferimenti con gli strumenti simbolici |
+| Retry-After HTTP-date | Parse allineato a `source.ts` (entrambi i formati) |

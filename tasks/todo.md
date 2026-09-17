@@ -69,3 +69,34 @@ Spec: `docs/specs/first-person-renderer-v0.md`
 ### Phase 3.5: Fix vista FPV (regressione)
 
 - [ ] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera (90°) + layering ground/road + facciate edifici
+
+---
+
+## Code Review Remediation (RV)
+
+Data: 2026-09-17. Fonte: review complessiva (baseline `ae92e10`).
+Prima di eseguire leggere [contratti e procedura](review/README.md).
+
+### P0 — da risolvere prima del merge
+
+- [ ] [RV-01](review/RV-01.md): cancel stream MVT sul budget.
+- [ ] [RV-03](review/RV-03.md): test bench nel gate standard.
+- [ ] [RV-02](review/RV-02.md): re-sync SECURITY.md.
+- [ ] [RV-05](review/RV-05.md): label O(1) + destroy.
+- [ ] [RV-04](review/RV-04.md): cache tile + concorrenza bounded + retry.
+- [ ] R-A: P0 (cancellazione, cache, retry, label, docs, gate).
+
+### P1 — robustness e performance
+
+- [ ] [RV-10](review/RV-10.md): validazione codec deser.
+- [ ] [RV-09](review/RV-09.md): pre-filtro bbox relazioni OSM.
+- [ ] [RV-08](review/RV-08.md): write IndexedDB serializzate + indice.
+- [ ] [RV-06](review/RV-06.md): stop app Pixi inattiva al toggle.
+- [ ] [RV-07](review/RV-07.md): pre-cull strade FP.
+- [ ] R-B: robustness e performance.
+
+### P2 — pulizia
+
+- [ ] [RV-11](review/RV-11.md): rimozione dead code.
+- [ ] [RV-12](review/RV-12.md): batch nits.
+- [ ] R-C: pulizia + gate finale.
