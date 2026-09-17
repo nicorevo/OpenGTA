@@ -93,10 +93,10 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 - [x] [RV-08](review/RV-08.md): write IndexedDB serializzate + indice.
 - [x] [RV-06](review/RV-06.md): stop app Pixi inattiva al toggle.
 - [x] [RV-07](review/RV-07.md): pre-cull strade FP.
-- [ ] R-B: robustness e performance.
+- [x] R-B: robustness e performance.
 
 ### P2 — pulizia
 
 - [x] [RV-11](review/RV-11.md): rimozione dead code.
-- [ ] [RV-12](review/RV-12.md): batch nits.
+- [x] [RV-12](review/RV-12.md): batch nits.
 - [ ] R-C: pulizia + gate finale.

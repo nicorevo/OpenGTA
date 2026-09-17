@@ -65,10 +65,18 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/** Both Retry-After formats, mirroring `retryAfterMilliseconds` in `source.ts`. */
 function parseRetryAfterMs(header: string | null): number | undefined {
   if (header === null) return undefined;
-  const seconds = Number(header);
-  return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : undefined;
+  const trimmed = header.trim();
+  if (trimmed === "") return undefined;
+  if (/^\d+(\.\d+)?$/.test(trimmed)) {
+    const milliseconds = Number(trimmed) * 1000;
+    return Number.isFinite(milliseconds) ? milliseconds : undefined;
+  }
+  if (!/[A-Za-z]/.test(trimmed)) return undefined;
+  const date = Date.parse(trimmed);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
 }
 
 async function fetchDecodedTile(url: string, signal: AbortSignal, timeoutMs: number, maxTileBytes: number): Promise<DecodedVectorTile | null> {

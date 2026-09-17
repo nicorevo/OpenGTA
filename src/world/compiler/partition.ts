@@ -2,15 +2,21 @@ import type { ChunkKey, ChunkGrid } from "../chunk/grid.ts";
 import { clipPolygonToBounds, clipPolylineToBounds } from "../model/clip.ts";
 import type { Bounds2D, Vec2 } from "../model/types.ts";
 import type { CollisionShape2D, CompiledChunkV0 } from "./compiled.ts";
+import { roadSurface } from "./road-surface.ts";
 
 function inside(point: Vec2, bounds: Bounds2D): boolean {
   return point.x >= bounds.minX && point.x < bounds.maxX && point.y >= bounds.minY && point.y < bounds.maxY;
 }
 
 function fragmentRoad(road: CompiledChunkV0["roads"][number], bounds: Bounds2D): CompiledChunkV0["roads"][number][] {
-  const surface = clipPolygonToBounds(road.surface, bounds);
-  if (!surface) return [];
-  return clipPolylineToBounds(road.centerline, bounds).map((centerline) => ({ ...road, surface, centerline }));
+  // Rebuild the surface from each fragment's own centerline: sharing the
+  // way's single clipped surface made every fragment paint the whole way,
+  // bridging the notch of U-shaped roads across the cell boundary.
+  return clipPolylineToBounds(road.centerline, bounds).flatMap((centerline) => {
+    const ribbon = roadSurface(centerline, road.widthMeters);
+    const surface = ribbon ? clipPolygonToBounds(ribbon, bounds) : undefined;
+    return surface ? [{ ...road, surface, centerline }] : [];
+  });
 }
 
 function fragmentCollision(collision: CollisionShape2D, bounds: Bounds2D): CollisionShape2D[] {

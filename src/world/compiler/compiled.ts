@@ -1,5 +1,6 @@
 import type { Bounds2D, Polygon2D, Vec2, WorldRegion } from "../model/types.ts";
 import { MIN_CARRIAGEWAY_METERS, createFootprintIndex, fitCarriagewayMeters } from "./road-fit.ts";
+import { roadSurface } from "./road-surface.ts";
 
 export type CollisionShape2D =
   | { readonly kind: "polygon"; readonly featureId: string; readonly polygon: Polygon2D }
@@ -11,35 +12,6 @@ export interface CompileDiagnostics { readonly inputFeatureCount: number; readon
 export interface CompileResult { readonly chunks: readonly CompiledChunkV0[]; readonly diagnostics: CompileDiagnostics; }
 
 const widths: Record<string, number> = { motorway: 12, trunk: 10, primary: 9, secondary: 8, tertiary: 7, residential: 6, service: 4, pedestrian: 4, path: 2, "parking-aisle": 3.5, unknown: 5 };
-const polygon = (outer: readonly Vec2[]): Polygon2D => ({ outer, holes: [] });
-const JOIN_EPSILON_METERS = 1e-9;
-function roadSurface(points: readonly Vec2[], width: number): Polygon2D | undefined {
-  if (points.length < 2 || !Number.isFinite(width) || width <= 0) return undefined;
-  const half = width / 2;
-  const normals: Vec2[] = []; const vertices: Vec2[] = [];
-  for (let i = 0; i < points.length - 1; i += 1) {
-    const a = points[i]; const b = points[i + 1]; const dx = b.x - a.x; const dy = b.y - a.y; const length = Math.hypot(dx, dy);
-    if (!length) continue;
-    normals.push({ x: -dy / length * half, y: dx / length * half });
-    if (vertices.length === 0) vertices.push(a);
-    vertices.push(b);
-  }
-  if (normals.length === 0) return undefined;
-  const left: Vec2[] = []; const right: Vec2[] = [];
-  for (let i = 0; i < vertices.length; i += 1) {
-    const vertex = vertices[i];
-    const before = normals[Math.max(0, i - 1)];
-    const after = normals[Math.min(i, normals.length - 1)];
-    left.push({ x: vertex.x + before.x, y: vertex.y + before.y });
-    right.push({ x: vertex.x - before.x, y: vertex.y - before.y });
-    if (Math.hypot(after.x - before.x, after.y - before.y) > JOIN_EPSILON_METERS) {
-      left.push({ x: vertex.x + after.x, y: vertex.y + after.y });
-      right.push({ x: vertex.x - after.x, y: vertex.y - after.y });
-    }
-  }
-  if (left.length < 2) return undefined;
-  return polygon([...left, ...right.reverse()]);
-}
 function midpoint(points: readonly Vec2[]): { position: Vec2; angle: number } | undefined { if (points.length < 2) return undefined; let total = 0; for (let i = 1; i < points.length; i += 1) total += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y); if (total === 0) return undefined; let distance = total / 2; for (let i = 1; i < points.length; i += 1) { const a = points[i - 1]; const b = points[i]; const length = Math.hypot(b.x - a.x, b.y - a.y); if (distance <= length) return { position: { x: a.x + (b.x - a.x) * distance / length, y: a.y + (b.y - a.y) * distance / length }, angle: Math.atan2(b.y - a.y, b.x - a.x) }; distance -= length; } return undefined; }
 
 export interface CompileRegionOptions { readonly signal?: AbortSignal }

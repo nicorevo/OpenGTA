@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { RuntimeMetrics } from "./metrics.ts";
 
 describe("runtime metrics", () => {
@@ -34,5 +34,35 @@ describe("runtime metrics", () => {
 
     expect(snapshot.simulationDebtDrops).toBe(2);
     expect(snapshot.droppedSimulationSeconds).toBeCloseTo(0.15);
+  });
+
+  it("keeps a bounded frame window of the most recent samples without array shifts", () => {
+    const metrics = new RuntimeMetrics();
+    const shiftSpy = vi.spyOn(Array.prototype, "shift");
+    try {
+      for (let i = 0; i < 1_800; i += 1) metrics.recordFrame(1);
+      metrics.recordFrame(1_000);
+
+      const snapshot = metrics.snapshot();
+
+      // Window = the most recent 1_800 samples: the oldest 1 ms sample is
+      // evicted, the counter keeps the lifetime total.
+      expect(snapshot.averageFrameMs).toBeCloseTo((1_799 * 1 + 1_000) / 1_800);
+      expect(snapshot.maxFrameMs).toBe(1_000);
+      expect(snapshot.frames).toBe(1_801);
+      expect(shiftSpy).not.toHaveBeenCalled();
+    } finally {
+      shiftSpy.mockRestore();
+    }
+  });
+
+  it("keeps a bounded physics window of the most recent samples", () => {
+    const metrics = new RuntimeMetrics();
+    for (let i = 0; i < 3_600; i += 1) metrics.recordPhysicsStep(1);
+    metrics.recordPhysicsStep(100);
+
+    const snapshot = metrics.snapshot();
+
+    expect(snapshot.averagePhysicsMs).toBeCloseTo((3_599 * 1 + 100) / 3_600);
   });
 });

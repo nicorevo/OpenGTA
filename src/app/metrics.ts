@@ -20,9 +20,16 @@ function percentile(values: readonly number[], rank: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * rank))];
 }
 
+const FRAME_WINDOW = 1_800;
+const PHYSICS_WINDOW = 3_600;
+
 export class RuntimeMetrics {
-  private readonly frameTimes: number[] = [];
-  private readonly physicsTimes: number[] = [];
+  private readonly frameTimes = new Float64Array(FRAME_WINDOW);
+  private readonly physicsTimes = new Float64Array(PHYSICS_WINDOW);
+  private frameCursor = 0;
+  private frameCount = 0;
+  private physicsCursor = 0;
+  private physicsCount = 0;
   private physicsTime = 0;
   private frames = 0;
   private longFrames = 0;
@@ -33,18 +40,28 @@ export class RuntimeMetrics {
 
   recordFrame(frameMs: number): void {
     const safeFrameMs = Number.isFinite(frameMs) && frameMs >= 0 ? frameMs : 0;
-    this.frameTimes.push(safeFrameMs);
-    if (this.frameTimes.length > 1_800) this.frameTimes.shift();
+    this.frameTimes[this.frameCursor] = safeFrameMs;
+    this.frameCursor = (this.frameCursor + 1) % FRAME_WINDOW;
+    if (this.frameCount < FRAME_WINDOW) this.frameCount += 1;
     this.frames += 1;
     if (safeFrameMs > 33.3) this.longFrames += 1;
   }
 
   recordPhysicsStep(physicsMs: number): void {
     const safePhysicsMs = Number.isFinite(physicsMs) && physicsMs >= 0 ? physicsMs : 0;
-    this.physicsTimes.push(safePhysicsMs);
-    if (this.physicsTimes.length > 3_600) this.physicsTimes.shift();
+    this.physicsTimes[this.physicsCursor] = safePhysicsMs;
+    this.physicsCursor = (this.physicsCursor + 1) % PHYSICS_WINDOW;
+    if (this.physicsCount < PHYSICS_WINDOW) this.physicsCount += 1;
     this.physicsTime += safePhysicsMs;
     this.physicsSteps += 1;
+  }
+
+  /** Oldest-to-newest view of the ring buffer's samples (O(window), only on snapshot). */
+  private windowOf(buffer: Float64Array, cursor: number, count: number): number[] {
+    const values: number[] = [];
+    const start = (cursor - count + buffer.length) % buffer.length;
+    for (let i = 0; i < count; i += 1) values.push(buffer[(start + i) % buffer.length]);
+    return values;
   }
 
   recordSimulationDebtDrop(seconds: number): void {
@@ -54,20 +71,22 @@ export class RuntimeMetrics {
   }
 
   snapshot(): FrameMetricsSnapshot {
-    const totalFrameMs = this.frameTimes.reduce((sum, value) => sum + value, 0);
+    const frameTimes = this.windowOf(this.frameTimes, this.frameCursor, this.frameCount);
+    const physicsTimes = this.windowOf(this.physicsTimes, this.physicsCursor, this.physicsCount);
+    const totalFrameMs = frameTimes.reduce((sum, value) => sum + value, 0);
     const elapsedSeconds = Math.max(0.001, (performance.now() - this.startedAt) / 1_000);
     return {
       frames: this.frames,
       fps: this.frames / elapsedSeconds,
-      averageFrameMs: this.frameTimes.length ? totalFrameMs / this.frameTimes.length : 0,
-      medianFrameMs: percentile(this.frameTimes, 0.5),
-      p95FrameMs: percentile(this.frameTimes, 0.95),
-      p99FrameMs: percentile(this.frameTimes, 0.99),
-      maxFrameMs: this.frameTimes.length ? Math.max(...this.frameTimes) : 0,
+      averageFrameMs: frameTimes.length ? totalFrameMs / frameTimes.length : 0,
+      medianFrameMs: percentile(frameTimes, 0.5),
+      p95FrameMs: percentile(frameTimes, 0.95),
+      p99FrameMs: percentile(frameTimes, 0.99),
+      maxFrameMs: frameTimes.length ? Math.max(...frameTimes) : 0,
       longFrames: this.longFrames,
       physicsSteps: this.physicsSteps,
       averagePhysicsMs: this.physicsSteps ? this.physicsTime / this.physicsSteps : 0,
-      p95PhysicsMs: percentile(this.physicsTimes, 0.95),
+      p95PhysicsMs: percentile(physicsTimes, 0.95),
       simulationDebtDrops: this.simulationDebtDrops,
       droppedSimulationSeconds: this.droppedSimulationSeconds,
     };

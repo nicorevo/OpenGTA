@@ -50,6 +50,28 @@ it("retries once honoring Retry-After, then serves the tile", async () => {
   }
 });
 
+it("retries once honoring a Retry-After HTTP-date, then serves the tile", async () => {
+  vi.useFakeTimers();
+  try {
+    vi.setSystemTime(new Date("2026-09-17T12:00:00Z"));
+    const retryAfter = new Date(Date.now() + 2_000).toUTCString();
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 429, headers: { "retry-after": retryAfter } }))
+      .mockResolvedValueOnce(new Response(fixtureBytes, { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const pending = createOpenFreeMapProvider().getTile({ z: 14, x: 9019, y: 6181 }, new AbortController().signal);
+    // The HTTP-date is 2 s ahead: the retry must not fire before it (the
+    // numeric-only parser fell back to the 1 s default).
+    await vi.advanceTimersByTimeAsync(1_999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(pending).resolves.toMatchObject({ layerCount: 11 });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("gives up after a single retry, surfacing the last Retry-After", async () => {
   vi.useFakeTimers();
   try {
