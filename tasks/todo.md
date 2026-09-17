@@ -1,7 +1,7 @@
 # Checklist: Provider-Neutral World Streaming
 
 Data: 2026-09-11.
-Stato: pianificato; nessun task avviato.
+Stato: completato (DATA-00..14); DATA-15..18 da dettagliare.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
 [contratti e procedura](data/README.md).
@@ -52,23 +52,23 @@ Spec: `docs/specs/first-person-renderer-v0.md`
 
 ### Phase 1: Core Projection
 
-- [x] [FP-01](tasks/first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
-- [x] [FP-02](tasks/first-person/FP-02.md): road segment projector (centerline → screen segments)
-- [x] [FP-03](tasks/first-person/FP-03.md): road segment drawer (back-to-front poligoni)
+- [x] [FP-01](first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
+- [x] [FP-02](first-person/FP-02.md): road segment projector (centerline → screen segments)
+- [x] [FP-03](first-person/FP-03.md): road segment drawer (back-to-front poligoni)
 
 ### Phase 2: Environment
 
-- [x] [FP-04](tasks/first-person/FP-04.md): building side projection (edifici laterali)
-- [x] [FP-05](tasks/first-person/FP-05.md): sky gradient (orizzonte)
+- [x] [FP-04](first-person/FP-04.md): building side projection (edifici laterali)
+- [x] [FP-05](first-person/FP-05.md): sky gradient (orizzonte)
 
 ### Phase 3: Integration
 
-- [x] [FP-06](tasks/first-person/FP-06.md): first-person renderer orchestration
-- [x] [FP-07](tasks/first-person/FP-07.md): V key toggle (interfaccia PixiRenderer)
+- [x] [FP-06](first-person/FP-06.md): first-person renderer orchestration
+- [x] [FP-07](first-person/FP-07.md): V key toggle (interfaccia PixiRenderer)
 
 ### Phase 3.5: Fix vista FPV (regressione)
 
-- [x] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera (90°) + layering ground/road + facciate edifici (MVP, guard e2e)
+- [x] [FP-08](first-person/FP-08.md): fix orientamento camera (90°) + layering ground/road + facciate edifici (MVP, guard e2e)
 
 ---
 

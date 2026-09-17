@@ -2,7 +2,7 @@
 
 Data: 2026-09-11. Analisi di riferimento:
 `docs/OpenGTA-DATA-SOURCE-MIGRATION.md` (migrazione Overpass → MVT/PMTiles).
-Stato: pianificato; implementazione non avviata.
+Stato: completato (DATA-00..14); DATA-15..18 da dettagliare.
 Baseline codice: `4e42d82`. Responsabile della pianificazione: tech-lead-planner.
 
 ## Obiettivo
@@ -147,9 +147,9 @@ first-person-renderer  (orchestra i componenti)
 
 ### Phase 1: Core Projection (Tasks FP-01..03)
 
-- [x] [FP-01](tasks/first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
-- [x] [FP-02](tasks/first-person/FP-02.md): road segment projector (centerline → screen segments)
-- [x] [FP-03](tasks/first-person/FP-03.md): road segment drawer (back-to-front poligoni)
+- [x] [FP-01](first-person/FP-01.md): camera 3D config (FOV, height, projection matrix)
+- [x] [FP-02](first-person/FP-02.md): road segment projector (centerline → screen segments)
+- [x] [FP-03](first-person/FP-03.md): road segment drawer (back-to-front poligoni)
 
 ### Checkpoint 1: Strada visuale
 - [x] `npm run typecheck` verde
@@ -158,8 +158,8 @@ first-person-renderer  (orchestra i componenti)
 
 ### Phase 2: Buildings + Sky (Tasks FP-04..05)
 
-- [x] [FP-04](tasks/first-person/FP-04.md): building side projection (edifici laterali)
-- [x] [FP-05](tasks/first-person/FP-05.md): sky gradient (orizzonte)
+- [x] [FP-04](first-person/FP-04.md): building side projection (edifici laterali)
+- [x] [FP-05](first-person/FP-05.md): sky gradient (orizzonte)
 
 ### Checkpoint 2: Scena completa
 - [x] Road + edifici + cielo visibili
@@ -168,21 +168,21 @@ first-person-renderer  (orchestra i componenti)
 
 ### Phase 3: Integration (Tasks FP-06..07)
 
-- [x] [FP-06](tasks/first-person/FP-06.md): first-person renderer orchestration
-- [x] [FP-07](tasks/first-person/FP-07.md): V key toggle (interfaccia PixiRenderer)
+- [x] [FP-06](first-person/FP-06.md): first-person renderer orchestration
+- [x] [FP-07](first-person/FP-07.md): V key toggle (interfaccia PixiRenderer)
 
 ### Phase 3.5: Fix vista FPV (regressione)
 
 **Nota 2026-09-16 (risolta):** la vista era rotta (camera ruotata di 90°
 rispetto all'heading, ground strip a `ROAD_FILL` sulla strada, centerline MVT
 troppo sparse, clamp asimmetrico). Diagnosi e fette di fix in
-[FP-08](tasks/first-person/FP-08.md). Rework finale del modello di proiezione
+[FP-08](first-person/FP-08.md). Rework finale del modello di proiezione
 completato (MVP): strade come **poligoni di piano terreno** in prospettiva
 vera (`projectRoadPolygon`), edifici come **box 3D** (`projectBuildings`),
 orizzonte a metà schermo con NDC reale, densificazione centerline e clamp
 simmetrico. Guard permanente: `tests/e2e/first-person-view.spec.ts`.
 
-- [x] [FP-08](tasks/first-person/FP-08.md): fix orientamento camera + layering ground/road + facciate edifici
+- [x] [FP-08](first-person/FP-08.md): fix orientamento camera + layering ground/road + facciate edifici
 
 ### Checkpoint 3: End-to-end
 - [x] Guida completa in first-person (guard e2e `first-person-view`)
