@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ndcToScreen, toBuildingDrawItem, toRoadDrawItem, ROAD_FILL } from "./first-person-renderer.ts";
+import { firstPersonDebugLine, ndcToScreen, toBuildingDrawItem, toRoadDrawItem, ROAD_FILL } from "./first-person-renderer.ts";
 import { projectRoadPolygon } from "./first-person/road-projector.ts";
 import { projectBuildings } from "./first-person/building-projector.ts";
 import { DEFAULT_CAMERA_CONFIG } from "./first-person/camera3d.ts";
@@ -53,5 +53,13 @@ describe("first-person screen mapping", () => {
     expect(Math.max(...wall.points.map((p) => p.y))).toBeGreaterThan(500);
     // The roof is above the wall bottoms.
     expect(Math.max(...roof.points.map((p) => p.y))).toBeLessThan(Math.max(...wall.points.map((p) => p.y)));
+  });
+});
+
+describe("first-person debug line", () => {
+  it("formats the overlay line (the renderer updates the Text only when it changes)", () => {
+    expect(
+      firstPersonDebugLine({ camX: 12.4, camY: -3.6, headingRad: Math.PI / 2, chunks: 4, roads: 10, buildings: 5, roadItems: 3, buildingItems: 2 }),
+    ).toBe("FPV | cam:12,-4 | heading:90deg | chunks:4 roads:10 bldgs:5 proj:3/2");
   });
 });

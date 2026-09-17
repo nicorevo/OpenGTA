@@ -60,6 +60,20 @@ export function toBuildingDrawItem(projected: ProjectedBuildingBox, w: number, h
   };
 }
 
+/** Builds the FP debug overlay line; the renderer re-assigns the Text only when it changes. */
+export function firstPersonDebugLine(input: {
+  camX: number;
+  camY: number;
+  headingRad: number;
+  chunks: number;
+  roads: number;
+  buildings: number;
+  roadItems: number;
+  buildingItems: number;
+}): string {
+  return `FPV | cam:${input.camX.toFixed(0)},${input.camY.toFixed(0)} | heading:${(input.headingRad * 180 / Math.PI).toFixed(0)}deg | chunks:${input.chunks} roads:${input.roads} bldgs:${input.buildings} proj:${input.roadItems}/${input.buildingItems}`;
+}
+
 export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Promise<FirstPersonRenderer> {
   const app = new Application();
   await app.init({ canvas, background: 0x00000000, antialias: true, preference: "webgl", resizeTo: canvas.parentElement ?? window });
@@ -87,6 +101,7 @@ export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Prom
   let vehiclePos: Vec2 = { x: 0, y: 0 };
   let vehicleHeading = 0;
   let lastDiagnostics = { chunks: 0, roadItems: 0, buildingItems: 0 };
+  let lastDebugMsg = "";
 
   const renderScene = (chunks: readonly CompiledChunkV0[]): void => {
     const w = app.screen.width;
@@ -155,8 +170,20 @@ export async function createFirstPersonRenderer(canvas: HTMLCanvasElement): Prom
     const roadItemCount = items.filter((i) => i.kind === "road").length;
     const buildingItemCount = items.filter((i) => i.kind !== "road").length;
     lastDiagnostics = { chunks: chunks.length, roadItems: roadItemCount, buildingItems: buildingItemCount };
-    const debugMsg = `FPV | cam:${camPos.x.toFixed(0)},${camPos.y.toFixed(0)} | heading:${(vehicleHeading * 180 / Math.PI).toFixed(0)}deg | chunks:${chunks.length} roads:${roadCount} bldgs:${buildingCount} proj:${roadItemCount}/${buildingItemCount}`;
-    debugTextStyle.text = debugMsg;
+    const debugMsg = firstPersonDebugLine({
+      camX: camPos.x,
+      camY: camPos.y,
+      headingRad: vehicleHeading,
+      chunks: chunks.length,
+      roads: roadCount,
+      buildings: buildingCount,
+      roadItems: roadItemCount,
+      buildingItems: buildingItemCount,
+    });
+    if (debugMsg !== lastDebugMsg) {
+      lastDebugMsg = debugMsg;
+      debugTextStyle.text = debugMsg;
+    }
   };
 
   return {

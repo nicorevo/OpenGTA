@@ -62,6 +62,35 @@ function clipHalfPlane(points: readonly CameraPoint[], inside: (p: CameraPoint) 
   return out;
 }
 
+/**
+ * Cheap visibility test for a road, computed from the raw centerline
+ * vertices only (before densification). Densified samples are linear blends
+ * of the raw vertices and edge points are perpendicular offsets of at most
+ * halfWidthMeters, so the camera-space z range of the raw vertices padded by
+ * halfWidthMeters bounds the z of every point the projected polygon could
+ * contain: if that padded range misses [nearClip, farClip], the near/far
+ * clipping below is guaranteed to produce nothing.
+ */
+export function roadMightBeVisible(
+  centerline: readonly Vec2[],
+  halfWidthMeters: number,
+  cameraPos: Vec2,
+  cameraHeading: number,
+  cameraConfig: CameraConfig,
+): boolean {
+  if (centerline.length < 2) return false;
+  const cosH = Math.cos(cameraHeading);
+  const sinH = Math.sin(cameraHeading);
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const v of centerline) {
+    const z = (v.x - cameraPos.x) * cosH + (v.y - cameraPos.y) * sinH;
+    if (z < minZ) minZ = z;
+    if (z > maxZ) maxZ = z;
+  }
+  return maxZ + halfWidthMeters >= cameraConfig.nearClip && minZ - halfWidthMeters <= cameraConfig.farClip;
+}
+
 /** A road projected as a fillable ground-plane polygon. */
 export interface ProjectedRoadPolygon {
   /** Fill vertices in NDC (sx: -1..1, sy: 0=horizon, + below), clamped. */
@@ -99,10 +128,16 @@ export function projectRoadPolygon(
     return { x: -dx * sinH + dy * cosH, z: dx * cosH + dy * sinH };
   };
 
+  const halfWidth = widthMeters / 2;
+  // Pre-cull before densification: a raw-vertex z bbox missing the visible
+  // range (padded by half the road width) is guaranteed to yield nothing
+  // after near/far clipping, so the road is skipped before the densified
+  // sample allocations.
+  if (!roadMightBeVisible(centerline, halfWidth, cameraPos, cameraHeading, cameraConfig)) return null;
+
   const sampled = densifyWorld(centerline, DENSIFY_STEP_METERS);
   if (sampled.length < 2) return null;
 
-  const halfWidth = widthMeters / 2;
   const left: CameraPoint[] = [];
   const right: CameraPoint[] = [];
   for (const s of sampled) {
