@@ -22,6 +22,7 @@ async function readBoundedBytes(response: Response, signal: AbortSignal, maxByte
   const reader = response.body.getReader();
   const parts: Uint8Array[] = [];
   let size = 0;
+  let complete = false;
   try {
     while (true) {
       const part = await reader.read();
@@ -33,10 +34,11 @@ async function readBoundedBytes(response: Response, signal: AbortSignal, maxByte
     const merged = new Uint8Array(size);
     let offset = 0;
     for (const part of parts) { merged.set(part, offset); offset += part.byteLength; }
+    complete = true;
     return merged;
   } finally {
+    if (!complete) void reader.cancel().catch(() => {});
     reader.releaseLock();
-    if (signal.aborted) void reader.cancel().catch(() => {});
   }
 }
 

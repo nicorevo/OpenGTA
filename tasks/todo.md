@@ -79,7 +79,7 @@ Prima di eseguire leggere [contratti e procedura](review/README.md).
 
 ### P0 — da risolvere prima del merge
 
-- [ ] [RV-01](review/RV-01.md): cancel stream MVT sul budget.
+- [x] [RV-01](review/RV-01.md): cancel stream MVT sul budget.
 - [ ] [RV-03](review/RV-03.md): test bench nel gate standard.
 - [ ] [RV-02](review/RV-02.md): re-sync SECURITY.md.
 - [ ] [RV-05](review/RV-05.md): label O(1) + destroy.

@@ -37,6 +37,20 @@ it("classifies network, timeout and oversized payloads distinctly", async () => 
   await expect(createOpenFreeMapProvider().getTile({ z: 14, x: 0, y: 0 }, new AbortController().signal)).rejects.toMatchObject({ code: "http", status: 429, retryAfterMs: 2000 });
 });
 
+it("cancels the stream when the byte budget is exceeded", async () => {
+  let cancelled = false;
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new Uint8Array(200).fill(1));
+      controller.enqueue(new Uint8Array(200).fill(1));
+    },
+    cancel() { cancelled = true; },
+  });
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(stream, { status: 200 })));
+  await expect(createOpenFreeMapProvider({ maxTileBytes: 100 }).getTile({ z: 14, x: 0, y: 0 }, new AbortController().signal)).rejects.toMatchObject({ code: "response-too-large" });
+  expect(cancelled).toBe(true);
+});
+
 it("propagates abort and never retries", async () => {
   const controller = new AbortController();
   controller.abort();
