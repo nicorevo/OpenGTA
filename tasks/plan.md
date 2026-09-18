@@ -442,3 +442,46 @@ Alberi/levels/lanes = follow-up (cambio schema codec).
 | MVT buildingType="unknown" → no varietà da tipo | Variabilità deterministica da posizione (seed) |
 | Cuciture colore tra tile per lo stesso edificio | Seed da posizione mondiale quantizzata (non dal featureId tile-dipendente) |
 | Palette troppo "Google" | Valori GTA mute/terrosi; verifica a schermo |
+
+---
+
+## Piano: Fisica Veicolo (peso, derapata, reazione, +40% velocità)
+
+Data: 2026-09-18. Baseline codice: `bc635c6`. Spec:
+`docs/specs/vehicle-physics-v1.md`. Result:
+`docs/results/VEHICLE-PHYSICS-RESULT.md`.
+
+### Obiettivo
+
+Dare al veicolo un "peso" percepibile (niente galleggiamento) e una reazione
+legata alla fisica, movimenti più realistici, e velocità massima super-fast
+(prima richiesta +40% → 58.8 m/s; poi alzata a 84 m/s / ~302 km/h).
+Resto nel controller arcade puro (`controller.ts`): curva motore, grip/derapata
+per velocità, coasting più pesante, ribilanciamento tuning; più un leggero skew
+della scocca in curva (`renderer.ts`). Niente cambio di schema, niente nuova
+fisica di contatto, niente modifiche a collider/spawn/fixed-step.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | VP-01 | Nessuna | M | `controller.ts`: curva motore + grip/derapata per velocità + coasting pesante + `VEHICLE_TUNING` (super-fast, `maxForwardSpeed 84`); `controller.test.ts` verde (vmax, curva motore, derapata per velocità) |
+| [x] | VP-02 | VP-01 | S | `renderer.ts`: skew della scocca da velocità laterale (`updateVehicle` + `velocity` opzionale); skew=0 a dritta, e2e rendering/driving verde |
+| [x] | VP-03 | VP-01, VP-02 | M | Gate: typecheck, 437/438 unit (1 flaky da carico, verde in isolamento), build, e2e non-flaky (8) verdi + screenshot curva a zoom ravvicinato |
+| [ ] | VP-04 | VP-03 | S | `VEHICLE-PHYSICS-RESULT.md` + `CURRENT.md` fase/baseline + commit |
+
+### Checkpoint
+
+- [x] L'auto accelera con curva motore (non rampa lineare), scivola in derapata a velocità
+      (derapata ~16° a 50 m/s, ~10° a bassa velocità = agganciata), e coasting più pesante.
+- [x] Velocità massima ~302 km/h (super-fast, `maxForwardSpeed 84`).
+- [x] Su curva a velocità: flessione visiva della scocca (skew da velocità laterale) + derapata.
+- [x] Suite: typecheck, 437/438 unit (1 flaky da carico, verde in isolamento), build, E2E non-flaky (8) verdi.
+
+### Rischi
+
+| Rischio | Gestione |
+| --- | --- |
+| "Feel" soggettivo (quanto drift/peso) | Tutti i valori in `VEHICLE_TUNING` (ritocco rapido); screenshot + invio a ritocchi |
+| `adapter.test.ts` (reverse) sensibile al tuning | reverseAcceleration rialzato (14); test di regressione drift invariato |
+| Skew troppo forte/falso | Effetto sottile, clamped; solo da velocità laterale (0 a dritta) |

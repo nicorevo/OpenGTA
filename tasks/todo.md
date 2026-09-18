@@ -163,3 +163,15 @@ Data: 2026-09-18. Preset GTA (niente Google). Spec: `docs/specs/gta-world-detail
 - [x] WD-03: gate completa verde (434 unit, 25 e2e) + screenshot tier vicino.
 - [x] WD-04: `GTA-WORLD-DETAIL-RESULT.md` scritto; `CURRENT.md`/`README.md` baseline al commit.
 - [ ] WD-05 (follow-up): alberi + `sourceLevels`/`laneCount` nel compilato (cambio schema, benefici OSM).
+
+---
+
+## Fisica Veicolo (peso, derapata, reazione, +40% velocità)
+
+Data: 2026-09-18. Baseline: `bc635c6`. Spec: `docs/specs/vehicle-physics-v1.md`.
+Result: `docs/results/VEHICLE-PHYSICS-RESULT.md`.
+
+- [x] VP-01: `controller.ts` curva motore + grip/derapata per velocità + coasting pesante + `VEHICLE_TUNING` (super-fast, `maxForwardSpeed 84`); `controller.test.ts` verde.
+- [x] VP-02: `renderer.ts` skew della scocca da velocità laterale (`updateVehicle` + `velocity` opzionale); plumbing `runtime-session`/`bootstrap`.
+- [x] VP-03: gate verde (typecheck, 437/438 unit — 1 flaky da carico verde in isolamento, build, e2e non-flaky 8) + screenshot curva.
+- [ ] VP-04: commit + `CURRENT.md`/`README.md` baseline al commit.
