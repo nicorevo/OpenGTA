@@ -61,6 +61,7 @@ export function compileRegion(region: WorldRegion, options: CompileRegionOptions
   const compileMs = performance.now() - compileStarted;
   const diagnostics: CompileDiagnostics = { inputFeatureCount, compiledFeatureCount, skippedFeatureCount, warnings, stageDurationsMs: { compile: compileMs, total: compileMs } };
   for (const area of region.landAreas) { const name = area.tags?.name; if (name) labels.push({ featureId: area.id, text: name, position: area.area.outer.reduce((sum, point) => ({ x: sum.x + point.x / area.area.outer.length, y: sum.y + point.y / area.area.outer.length }), { x: 0, y: 0 }), angle: 0, kind: "place", priority: 105 }); }
+  for (const water of region.waterAreas) { const name = water.tags?.name; if (!name) continue; const area = water.area; const position = area ? area.outer.reduce((sum, point) => ({ x: sum.x + point.x / area.outer.length, y: sum.y + point.y / area.outer.length }), { x: 0, y: 0 }) : midpoint(water.line?.points ?? [])?.position; if (position) labels.push({ featureId: water.id, text: name, position, angle: 0, kind: "place", priority: 105 }); }
   labels.sort((a, b) => b.priority - a.priority || a.text.localeCompare(b.text));
   const chunk: CompiledChunkV0 = { schemaVersion: 0, id: `${region.id}:chunk:0`, spatial: { regionId: region.id, bounds: region.bounds, originOffset: { x: 0, y: 0 } }, ground, roads, buildings, labels, collisions, featureIndex, diagnostics };
   return { chunks: [chunk], diagnostics };
