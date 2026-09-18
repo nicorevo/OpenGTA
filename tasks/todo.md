@@ -139,3 +139,27 @@ Data: 2026-09-17. Baseline: `f828a14`. Commit: `33bf6bf` (velocità + sprite),
 - [x] F1-03: `adapter.ts` controller autorevole v+rotazione, Rapier solo posizione, attrito 0, `angvel` resettato.
 - [x] F1-04: test di regressione drift (muro angolato, throttle-only) + gate completa verde.
 - [x] C-F1: suite (419), typecheck, build, E2E (25) verdi.
+
+---
+
+## Zoom Ravvicinato (look GTA 1)
+
+Data: 2026-09-17. Baseline: `568dcc0`. Spec: `docs/specs/close-zoom-v1.md`.
+
+- [x] CZ-01: `camera.ts` `ZOOM_STEPS` alto (4.0, 14.0); default 1.0; mapping LOD invariato.
+- [x] CZ-02: `renderer.ts` `sidewalkLayer` marciapiedi grigio attorno alle strade (medium/near).
+- [x] CZ-03: `renderer.ts` `dashSegments` + `roadMarkingLayer` strisce tratteggiate (medium+near, min ~1.5 px).
+- [x] CZ-04: screenshot zoom ravvicinato + gate completa (426 unit, typecheck, build, 25 E2E).
+- [x] CZ-05: `CLOSE-ZOOM-RESULT.md` + `CURRENT.md` + `README.md` baseline.
+
+---
+
+## Dettaglio Mondo GTA (classi già nel chunk)
+
+Data: 2026-09-18. Preset GTA (niente Google). Spec: `docs/specs/gta-world-detail-v1.md`.
+
+- [x] WD-01: helper puri in `renderer.ts` — `groundFill`, `roadStyle`, `buildingStyle`, `positionSeed` + test.
+- [x] WD-02: wiring renderer (terreno/strada/edificio) sugli helper; `groupRoadsByStyleAndWidth`; nessun nuovo layer/campo.
+- [x] WD-03: gate completa verde (434 unit, 25 e2e) + screenshot tier vicino.
+- [x] WD-04: `GTA-WORLD-DETAIL-RESULT.md` scritto; `CURRENT.md`/`README.md` baseline al commit.
+- [ ] WD-05 (follow-up): alberi + `sourceLevels`/`laneCount` nel compilato (cambio schema, benefici OSM).

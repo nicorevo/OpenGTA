@@ -29,11 +29,12 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `568dcc0` sul ramo `opcl3D`
-(2026-09-17, veicolo F1: velocità ~150 km/h + sprite top-down F1 + fix
-drift/zig-zag). Verificata con 419 test (56 file), 25 E2E (1 skipped) su dev
-server (più canary live separata), 1 smoke del build di produzione, typecheck
-e build. Vedi [Prova della baseline](#prova-della-baseline).
+**Baseline stabile per test utente:** commit `bc635c6` sul ramo `opcl3D`
+(2026-09-18, look GTA: zoom ravvicinato ×14 + striscia centrale bianca +
+marciapiedi + palette mondo per classe + label acque). Verificata con 435 test
+(56 file), 25 E2E (1 skipped) su dev server (più canary live separata), 1 smoke
+del build di produzione, typecheck e build. Vedi
+[Prova della baseline](#prova-della-baseline).
 
 Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle
 `V`; strade in prospettiva vera + edifici box 3D; guard e2e
@@ -239,9 +240,10 @@ Limiti noti della baseline (dettagli in `docs/results/ONLINE-RUNTIME-RESULT.md`)
   servizio occupato producono `empty`/`error` espliciti, non un mondo finto;
 - le misure di prestazione sono headless con GPU software: non promettono
   FPS dell'hardware dell'utente;
-- lo zoom `+/−` (pulsanti in alto a destra o tasti `+`/`-`) ha 5 livelli con
-  LOD near/medium/far; il dettaglio si riduce allontanandosi e la domanda
-  di streaming segue la camera;
+- lo zoom `+/−` (pulsanti in alto a destra o tasti `+`/`-`) ha 5 livelli
+  (fino a ×14, vista "auto grande" tipo GTA 1) con LOD near/medium/far; da
+  vicino compaiono i marciapiedi e la striscia centrale bianca sulle strade; il
+  dettaglio si riduce allontanandosi e la domanda di streaming segue la camera;
 - un reload della pagina riusa i chunk compilati dalla cache persistente
   (IndexedDB) senza nuove richieste al provider;
 - la porta E2E è configurabile con `OPENGTA_E2E_PORT` (default 5180);

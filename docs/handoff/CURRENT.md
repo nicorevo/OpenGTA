@@ -1,6 +1,6 @@
 # Punto di ingresso corrente
 
-Data: 2026-09-17
+Data: 2026-09-18
 
 Questo file sostituisce `CODEX-START-HERE.md` come avvio di sessione.
 
@@ -24,6 +24,9 @@ Non rieseguirli come backlog corrente.
 | Live Online di Default | Completata — online al load con MVT pinnata e consenso implicito; ADR-012, risultato in `docs/results/LIVE-ONLINE-DEFAULT-RESULT.md` |
 | Controlli Touch Mobile | Completata — pulsanti on-screen, barra zoom + tasto `street`, pannello no-overlap; risultato in `docs/results/TOUCH-CONTROLS-RESULT.md` |
 | Veicolo F1 (velocità, sprite, stabilità) | Completata — top speed 42 m/s (~150 km/h), sprite top-down F1, fix drift/zig-zag (controller autorevole); risultato in `docs/results/F1-VEHICLE-RESULT.md` |
+| Zoom ravvicinato (look GTA 1) | Completata (commit `bc635c6`) — CZ-01..05: `ZOOM_STEPS` fino a ×14, striscia centrale bianca + marciapiedi (dati già nel chunk); spec `docs/specs/close-zoom-v1.md`, risultato in `docs/results/CLOSE-ZOOM-RESULT.md` |
+| Dettaglio mondo GTA (classi nel chunk) | Completata (commit `bc635c6`) — WD-01..04: terreno/strada/edificio per `styleKey` di classe in preset GTA (helper puri + raggruppamento strade per classe); spec `docs/specs/gta-world-detail-v1.md`, risultato in `docs/results/GTA-WORLD-DETAIL-RESULT.md` |
+| Label acque (fiumi/laghi) | Completata (commit `475dbae`) — nomi di laghi/fiumi ricevuti ma prima non pubblicati, ora emessi come label; test in `src/world/compiler/compiled.test.ts` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -88,14 +91,36 @@ anche con suite verde.
   (`drawF1Vehicle`), e fix del drift/zig-zag senza sterzo (il controller arcade
   è autorevole per velocità+rotazione, Rapier corregge solo la posizione;
   commit `33bf6bf` + `568dcc0`). Risultato
-  [F1-VEHICLE-RESULT](../results/F1-VEHICLE-RESULT.md).
+   [F1-VEHICLE-RESULT](../results/F1-VEHICLE-RESULT.md).
+- Tranche **Zoom ravvicinato (look GTA 1)** completata il 2026-09-18 (commit
+  `bc635c6`, CZ-01..05): `ZOOM_STEPS` fino a ×14 (auto grande), striscia centrale
+  bianca (dal tier medium in su, look GTA) e marciapiedi derivati da
+  `centerline`+`widthMeters` già nel chunk; spec [close-zoom-v1](../specs/close-zoom-v1.md),
+  risultato [CLOSE-ZOOM-RESULT](../results/CLOSE-ZOOM-RESULT.md).
+- Tranche **Dettaglio mondo GTA** completata il 2026-09-18 (commit `bc635c6`,
+  WD-01..04): ri-renderizzazione in preset GTA delle `styleKey` di classe già nel
+  chunk — terreno per `landClass`, strade per `roadClass` (raggruppamento per
+  larghezza+classe in `groupRoadsByStyleAndWidth`), edifici per `buildingType` o
+  variabilità deterministica da posizione (seed FNV-1a, indipendente dal tile →
+  niente cuciture). Helper puri testati; gate verde (435 unit, 25 E2E).
+  Risultato [GTA-WORLD-DETAIL-RESULT](../results/GTA-WORLD-DETAIL-RESULT.md).
+  Follow-up (alberi, `sourceLevels`, `laneCount`) = cambio schema compilato,
+  da pianificare come tranche a sé.
+- Tranche **Label acque** completata il 2026-09-18 (commit `475dbae`): i nomi di
+  laghi/fiumi (`tags.name` su `waterAreas`) erano ricevuti ma non pubblicati; ora
+  il compiler li emette come label (baricentro per le aree, punto medio per i corsi
+  d'acqua, `kind:"place"`, priorità 105). Test in `src/world/compiler/compiled.test.ts`.
 - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
   custom tile schema ADR, riuso cache compilata, curated region package).
-- Baseline stabile per test utente: commit `568dcc0` (tranche Veicolo F1
-  completata: velocità ~150 km/h + sprite top-down F1 + fix drift/zig-zag; gate
-  verde: 419 test unitari, 25 E2E + 1 canary skipped); istruzioni di prova,
-  stati attesi e limiti noti nella sezione "Prova della baseline" del
-  [README](../../README.md).
+- Baseline stabile per test utente: commit `bc635c6` (look GTA: zoom ×14 +
+  striscia centrale bianca + marciapiedi + palette mondo per classe; label acque
+  in `475dbae`; gate verde: 435 test unitari, 25 E2E + 1 canary skipped);
+  istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
+  baseline" del [README](../../README.md).
+- Worktree attuale (2026-09-18, **uncommitted** su `568dcc0`): applicate e
+  verificate le tranche Zoom ravvicinato (CZ) + Dettaglio mondo GTA (WD) — gate
+  verde (434 unit, 25 E2E + 1 canary skipped, typecheck, build). Il bump della
+  baseline (nuovo commit + hash) avviene al commit, solo su richiesta esplicita.
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log

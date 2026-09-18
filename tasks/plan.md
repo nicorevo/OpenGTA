@@ -363,3 +363,82 @@ riparare il drift/zig-zag che la velocità raddoppiata ha messo in evidenza.
 - [x] Dritto su strada libera con solo acceleratore (0° di drift di heading).
 - [x] Sprite top-down F1 riconoscibile (verificato a schermo).
 - [x] Suite completa, typecheck, build, E2E verdi.
+
+---
+
+## Piano: Zoom Ravvicinato (look GTA 1)
+
+Data: 2026-09-17. Baseline codice: `568dcc0`. Spec:
+`docs/specs/close-zoom-v1.md`.
+
+### Obiettivo
+
+Consentire di zoomare fino a un livello "avvicinato" stile GTA 1 (~30–40 px/m,
+auto grande) con strisce di carreggiata tratteggiate, marciapiedi attorno alle
+strade e facciate edifici. Il look distante (default) resta invariato.
+Fattibile senza nuove fonti di dati: marciapiede e strisce derivano da
+`centerline` + `widthMeters` già presenti nel chunk compilato.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | CZ-01 | Nessuna | S | `ZOOM_STEPS` alto (4.0, 14.0); default resta 1.0; mapping LOD invariato; `camera.test.ts` verde |
+| [x] | CZ-02 | CZ-01 | M | `sidewalkLayer` grigio attorno alle strade su medium/near; `presentationDiagnostics().sidewalks` |
+| [x] | CZ-03 | CZ-01 | M | Helper `dashSegments` + `roadMarkingLayer` tratteggio dal tier medium in su (visibile nel gioco normale, min ~1.5 px); `presentationDiagnostics().roadMarkings` |
+| [x] | CZ-04 | CZ-02, CZ-03 | M | Screenshot zoom ravvicinato (auto grande, strisce, marciapiedi) + gate completa verde (426 unit, 25 e2e) |
+| [x] | CZ-05 | CZ-04 | S | `docs/results/CLOSE-ZOOM-RESULT.md` + `CURRENT.md` fase/baseline + `README.md` baseline |
+
+### Checkpoint
+
+- [x] Zoom ravvicinato raggiungibile (tasto `+` fino al livello 4); default invariato.
+- [x] A zoom ravvicinato: auto grande, strisce tratteggiate, marciapiedi (verificato a schermo).
+- [x] Suite completa (426), typecheck, build, E2E (25) verdi.
+
+### Rischi
+
+| Rischio | Gestione |
+| --- | --- |
+| Fattore 4 fuori range rispetto al riferimento | Fattore "experimental": ricalibro su screenshot (CZ-04) |
+| Tratteggio granulare a schermi grandi | Lunghezza in metri (non px): scala con lo zoom, costante nel mondo |
+| Marciapiedi si sovrappongono agli incroci | Stroke round: si fondono in un'unica sagoma |
+| Performance a zoom ravvicinato | Area visibile piccola (pochi chunk): più leggera del lontano |
+
+## Piano: Dettaglio Mondo GTA (classi già nel chunk)
+
+Data: 2026-09-18. Baseline codice: working tree post `568dcc0` (+ close-zoom
+uncommitted). Spec: `docs/specs/gta-world-detail-v1.md`.
+
+### Obiettivo
+
+Mantenendo il **preset GTA**, ri-renderizzare le `styleKey` di classe già presenti nel
+chunk (`landClass`, `roadClass`, `buildingType`, `waterClass`) con helper puri in
+`renderer.ts`. Dato (verificato): il provider live MVT varia `roadClass`/`landClass` ma
+ha `buildingType="unknown"` e `trees=∅`; l'OSM/Overpass popola tutto. L'edificio usa
+variabilità deterministica da posizione (funziona in MVT e OSM, niente cuciture tra tile).
+Alberi/levels/lanes = follow-up (cambio schema codec).
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | WD-01 | Nessuna | M | Helper puri `groundFill`/`roadStyle`/`buildingStyle`/`positionSeed` in `renderer.ts` + test (distinti per classe, buildingStyle deterministico, seed stabile) |
+| [x] | WD-02 | WD-01 | M | Wiring renderer: terreno/strada/edificio usano gli helper; `groupRoadsByStyleAndWidth`; nessun nuovo layer/campo/LOD |
+| [x] | WD-03 | WD-02 | M | Gate completa verde (434 unit, 25 e2e) + screenshot tier vicino (strada per classe, niente crash) |
+| [x] | WD-04 | WD-03 | S | `GTA-WORLD-DETAIL-RESULT.md` scritto; `CURRENT.md`/`README.md` baseline al commit |
+| [ ] | WD-05 | (follow-up) | L | Alberi + `sourceLevels`/`laneCount` nel compilato (cambio schema) + render (benefici OSM) |
+
+### Checkpoint
+
+- [x] Strade con emfasi per classe (screenshot: strada `residential` col tono della classe).
+- [x] Tetti colorati vari GTA, stabili tra tile (unit `buildingStyle`/`positionSeed`; disegnati senza errori dall'e2e).
+- [x] Palette terreno per `landClass` (unit: colori distinti; il fixture non ha landuse, la varietà si apprezza su mappa reale).
+- [x] Suite completa (434), typecheck, build, E2E (25) verdi + screenshot.
+
+### Rischi
+
+| Rischio | Gestione |
+| --- | --- |
+| MVT buildingType="unknown" → no varietà da tipo | Variabilità deterministica da posizione (seed) |
+| Cuciture colore tra tile per lo stesso edificio | Seed da posizione mondiale quantizzata (non dal featureId tile-dipendente) |
+| Palette troppo "Google" | Valori GTA mute/terrosi; verifica a schermo |
