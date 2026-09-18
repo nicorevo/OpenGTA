@@ -12,6 +12,13 @@ export interface RoadStrokeGroup<T extends StrokeableRoad> {
   readonly roads: readonly T[];
 }
 
+/** A width-group that also carries its styleKey so it can be stroked per class. */
+export interface ClassedRoadGroup<T extends StrokeableRoad & { readonly styleKey?: string }> {
+  readonly widthMeters: number;
+  readonly styleKey: string;
+  readonly roads: readonly T[];
+}
+
 /**
  * Roads sharing a width are stroked as a single path so junctions merge instead
  * of showing the outline of every individual segment quad.
@@ -27,6 +34,26 @@ export function groupRoadsByWidth<T extends StrokeableRoad>(roads: readonly T[])
   return [...groups.entries()]
     .sort(([a], [b]) => a - b)
     .map(([widthMeters, group]) => ({ widthMeters, roads: group }));
+}
+
+/**
+ * Like groupRoadsByWidth but also splits by styleKey (road class), so each group
+ * can be stroked with a class-specific color while same-class junctions still
+ * merge into a single path. Sorted narrow-first, then by class (stable painter
+ * order, matching groupRoadsByWidth).
+ */
+export function groupRoadsByStyleAndWidth<T extends StrokeableRoad & { readonly styleKey?: string }>(roads: readonly T[]): ClassedRoadGroup<T>[] {
+  const groups = new Map<string, T[]>();
+  for (const road of roads) {
+    if (!Number.isFinite(road.widthMeters) || road.widthMeters <= 0) continue;
+    const key = `${road.widthMeters}\u0000${road.styleKey ?? ""}`;
+    const group = groups.get(key);
+    if (group) group.push(road);
+    else groups.set(key, [road]);
+  }
+  return [...groups.values()]
+    .sort((a, b) => a[0].widthMeters - b[0].widthMeters || (a[0].styleKey ?? "").localeCompare(b[0].styleKey ?? ""))
+    .map((group) => ({ widthMeters: group[0].widthMeters, styleKey: group[0].styleKey ?? "", roads: group }));
 }
 
 /**

@@ -30,6 +30,15 @@ describe("camera zoom levels", () => {
     expect(factors.every((factor, index) => index === 0 || factor > factors[index - 1])).toBe(true);
   });
 
+  it("pulls the world in ~10x the default at the max level (GTA-1-like close)", () => {
+    // The close levels must pull the camera far beyond a single notch: at max
+    // zoom the car should read roughly 10x larger than the default view, so the
+    // top-down detail (dashes, sidewalks, facades) becomes legible.
+    expect(zoomFactor(4) / zoomFactor(DEFAULT_ZOOM)).toBeGreaterThanOrEqual(10);
+    expect(zoomFactor(3) / zoomFactor(DEFAULT_ZOOM)).toBeGreaterThan(1);
+    expect(zoomFactor(4) / zoomFactor(DEFAULT_ZOOM)).toBeLessThan(100);
+  });
+
   it("maps levels to the initial LOD tiers of the design", () => {
     expect([0, 1, 2, 3, 4].map((level) => lodForZoom(clampZoom(level)))).toEqual(["far", "far", "medium", "near", "near"]);
   });

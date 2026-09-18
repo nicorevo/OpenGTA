@@ -19,7 +19,7 @@ test("chunk presentations grow and shrink only by the changed chunks", async ({ 
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { runtime: { pending: string[] } } } }).__opengtaV0Debug.session().runtime.pending.length)), { timeout: 20000 }).toBe(0);
   const loaded = await presentation();
   expect(loaded.chunkPresentations).toBeGreaterThan(early.chunkPresentations);
-  expect(loaded.graphicsObjects).toBe(loaded.chunkPresentations * 5);
+  expect(loaded.graphicsObjects).toBe(loaded.chunkPresentations * 7);
   // No demand change: presentations must not churn while idle.
   await page.waitForTimeout(1500);
   const idle = await presentation();
@@ -32,6 +32,6 @@ test("chunk presentations grow and shrink only by the changed chunks", async ({ 
   await expect.poll(async () => (await page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { runtime: { pending: string[] } } } }).__opengtaV0Debug.session().runtime.pending.length)), { timeout: 20000 }).toBe(0);
   const crossed = await presentation();
   expect(crossed.chunkPresentations).toBeLessThanOrEqual(12);
-  expect(crossed.graphicsObjects).toBe(crossed.chunkPresentations * 5);
+  expect(crossed.graphicsObjects).toBe(crossed.chunkPresentations * 7);
   expect(errors).toEqual([]);
 });

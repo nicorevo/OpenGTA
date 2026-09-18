@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupRoadsByWidth, sortBuildingsForPainter } from "./scene-order.ts";
+import { groupRoadsByStyleAndWidth, groupRoadsByWidth, sortBuildingsForPainter } from "./scene-order.ts";
 
 const road = (featureId: string, widthMeters: number) => ({ featureId, widthMeters });
 const building = (featureId: string, x: number, y: number) => ({ featureId, roof: { outer: [{ x, y }, { x: x + 1, y }, { x: x + 1, y: y + 1 }, { x, y: y + 1 }] } });
@@ -17,6 +17,27 @@ describe("road stroke grouping", () => {
 
   it("ignores roads without a usable width", () => {
     expect(groupRoadsByWidth([road("broken", 0), road("ok", 6)]).map((group) => group.widthMeters)).toEqual([6]);
+  });
+});
+
+describe("classed road stroke grouping", () => {
+  const classed = (featureId: string, widthMeters: number, styleKey: string) => ({ featureId, widthMeters, styleKey });
+
+  it("splits a width group by class so each group has one styleKey", () => {
+    const groups = groupRoadsByStyleAndWidth([
+      classed("a", 6, "road:residential"),
+      classed("b", 6, "road:motorway"),
+      classed("c", 6, "road:residential"),
+    ]);
+    expect(groups).toHaveLength(2);
+    expect(groups.map((group) => group.styleKey)).toEqual(["road:motorway", "road:residential"]);
+    expect(groups[1].roads.map((entry) => entry.featureId)).toEqual(["a", "c"]);
+  });
+
+  it("still sorts narrow roads before wide ones", () => {
+    expect(
+      groupRoadsByStyleAndWidth([classed("w", 12, "road:primary"), classed("n", 2, "road:service")]).map((group) => group.widthMeters),
+    ).toEqual([2, 12]);
   });
 });
 
