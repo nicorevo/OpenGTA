@@ -20,7 +20,9 @@ export interface VehicleTuning {
   readonly brakeDeceleration: number;    // m/s^2
   readonly rollingDeceleration: number;  // m/s^2
   readonly maxSteerRate: number;         // rad/s
-  readonly lateralGrip: number;          // 1/s
+  readonly lateralGripBase: number;      // 1/s, grip at low speed (tight, no float)
+  readonly lateralGripAtSpeed: number;   // 1/s, grip at top speed (drift / weight)
+  readonly engineTaper: number;          // 0..1, engine fill: accel at top = (1-taper)*base
   readonly minSteerSpeed: number;        // m/s
   readonly fullSteerSpeed: number;       // m/s
 }
@@ -28,14 +30,16 @@ export interface VehicleTuning {
 // F1-style tuning seed. Kept as a single named object so the values can be
 // surfaced as user-configurable (UI) without touching the controller math.
 export const VEHICLE_TUNING: VehicleTuning = {
-  maxForwardSpeed: 42,
-  maxReverseSpeed: 7,
-  forwardAcceleration: 13,
-  reverseAcceleration: 5,
-  brakeDeceleration: 20,
-  rollingDeceleration: 1.5,
+  maxForwardSpeed: 84,          // super-fast -> ~302 km/h
+  maxReverseSpeed: 14,
+  forwardAcceleration: 20,
+  reverseAcceleration: 16,
+  brakeDeceleration: 48,        // strong: stoppable from ~300 km/h
+  rollingDeceleration: 2.6,
   maxSteerRate: 2.4,
-  lateralGrip: 7.0,
+  lateralGripBase: 16,          // grounded at low speed (~9 deg slide)
+  lateralGripAtSpeed: 6,        // drift / weight at top speed (~18 deg slide)
+  engineTaper: 0.7,             // engine fill: 30% pull left at top speed
   minSteerSpeed: 0.8,
   fullSteerSpeed: 4,
 };
@@ -57,13 +61,26 @@ export function stepVehicle(state: VehicleState, input: VehicleInput, dt = 1 / 6
   let longitudinal = state.velocity.x * forward.x + state.velocity.y * forward.y;
   const lateral = state.velocity.x * right.x + state.velocity.y * right.y;
   const target = throttle >= 0 ? tuning.maxForwardSpeed * throttle : tuning.maxReverseSpeed * throttle;
-  const acceleration = throttle === 0 ? tuning.rollingDeceleration : throttle >= 0 ? tuning.forwardAcceleration : tuning.reverseAcceleration;
+  let acceleration: number;
+  if (throttle === 0) {
+    acceleration = tuning.rollingDeceleration;
+  } else if (throttle > 0) {
+    // Engine curve: full pull at low speed, tapering as it approaches top speed.
+    const fill = clamp(longitudinal / tuning.maxForwardSpeed, 0, 1);
+    acceleration = tuning.forwardAcceleration * (1 - tuning.engineTaper * fill);
+  } else {
+    acceleration = tuning.reverseAcceleration;
+  }
 
   longitudinal = moveTowards(longitudinal, target, acceleration * dt);
   longitudinal = moveTowards(longitudinal, 0, tuning.brakeDeceleration * brake * dt);
   longitudinal = clamp(longitudinal, -tuning.maxReverseSpeed, tuning.maxForwardSpeed);
 
-  const lateralDamping = Math.max(0, 1 - tuning.lateralGrip * dt);
+  // Tires: grip is high at low speed (grounded, no float) and lower at speed
+  // (visible drift / weight).
+  const speedFill = clamp(Math.abs(longitudinal) / tuning.maxForwardSpeed, 0, 1);
+  const grip = tuning.lateralGripBase + (tuning.lateralGripAtSpeed - tuning.lateralGripBase) * speedFill;
+  const lateralDamping = Math.max(0, 1 - grip * dt);
   const newLateral = lateral * lateralDamping;
   const speedFactor = Math.abs(longitudinal) < tuning.minSteerSpeed ? 0 : Math.min(1, Math.abs(longitudinal) / tuning.fullSteerSpeed);
   const heading = state.heading
