@@ -24,7 +24,7 @@ export interface PixiRenderer {
   zoomIn(): ZoomLevel;
   zoomOut(): ZoomLevel;
   cameraState(): CameraState;
-  updateVehicle(position: { x: number; y: number }, heading: number): void;
+  updateVehicle(position: { x: number; y: number }, heading: number, velocity?: { x: number; y: number }): void;
   toggleLabels(): boolean;
   cameraBounds(): Bounds2D;
   dispose(): void;
@@ -477,7 +477,24 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       const halfY = app.screen.height / viewScale() / 2;
       return { zoomLevel, zoomFactor: zoomFactor(zoomLevel), bounds: { minX: position.x - halfX, maxX: position.x + halfX, minY: position.y - halfY, maxY: position.y + halfY } };
     },
-    updateVehicle(nextPosition, heading) { if (disposed) return; position = { ...nextPosition }; updateCamera(); vehicle.position.set(position.x, -position.y); vehicle.rotation = -heading; },
+    updateVehicle(nextPosition, heading, velocity) {
+      if (disposed) return;
+      position = { ...nextPosition };
+      updateCamera();
+      vehicle.position.set(position.x, -position.y);
+      vehicle.rotation = -heading;
+      // Subtle body flex into the drift: a small shear driven by the sideways
+      // (lateral) velocity the physics produces when the car slides in a turn.
+      // Zero when going straight, so the sprite is undistorted at rest.
+      if (velocity) {
+        const forward = { x: Math.cos(heading), y: Math.sin(heading) };
+        const right = { x: -forward.y, y: forward.x };
+        const lateral = velocity.x * right.x + velocity.y * right.y;
+        vehicle.skew.x = Math.max(-0.08, Math.min(0.08, -lateral / 26));
+      } else {
+        vehicle.skew.x = 0;
+      }
+    },
     cameraBounds() { const halfX = app.screen.width / viewScale() / 2; const halfY = app.screen.height / viewScale() / 2; return { minX: position.x - halfX, maxX: position.x + halfX, minY: position.y - halfY, maxY: position.y + halfY }; },
     dispose() { if (disposed) return; disposed = true; presentations.clear(); app.ticker.remove(updateCamera); app.destroy(false, { children: true }); },
     toggleLabels() { presentation = toggleLabels(presentation); rebuildLabels(); return presentation.labelsVisible; },

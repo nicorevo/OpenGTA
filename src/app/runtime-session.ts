@@ -65,7 +65,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
         if (result.kind === "pose") {
           vehicle = options.physics.createVehicle({ ...result.pose.position, heading: result.pose.heading });
           firstPlayableMs = performance.now() - startedAt;
-          options.renderer.updateVehicle(vehicle.position, vehicle.heading);
+          options.renderer.updateVehicle(vehicle.position, vehicle.heading, vehicle.velocity);
         }
       }
     },
@@ -104,7 +104,7 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
       if (disposed || fatal || !vehicle) return;
       const keys = available();
       vehicle = options.physics.stepVehicle(vehicle, input, (pose) => isPoseAvailable(grid, pose, keys));
-      options.renderer.updateVehicle(vehicle.position, vehicle.heading);
+      options.renderer.updateVehicle(vehicle.position, vehicle.heading, vehicle.velocity);
     },
     vehicle() { return vehicle ? { position: { ...vehicle.position }, velocity: { ...vehicle.velocity }, heading: vehicle.heading } : undefined; },
     /** Expose active compiled chunks for external renderers (e.g. first-person). */

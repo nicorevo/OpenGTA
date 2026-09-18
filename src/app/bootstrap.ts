@@ -215,8 +215,8 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
           else if (offlineVehicle) { offlineVehicle = physics.stepVehicle(offlineVehicle, input); metrics.recordPhysicsStep(performance.now() - startTime); }
         }
         const veh = session?.vehicle();
-        if (veh) { renderer.updateVehicle(veh.position, veh.heading); firstPerson.updateVehicle(veh.position, veh.heading); }
-        else if (offlineVehicle) { renderer.updateVehicle(offlineVehicle.position, offlineVehicle.heading); firstPerson.updateVehicle(offlineVehicle.position, offlineVehicle.heading); }
+        if (veh) { renderer.updateVehicle(veh.position, veh.heading, veh.velocity); firstPerson.updateVehicle(veh.position, veh.heading); }
+        else if (offlineVehicle) { renderer.updateVehicle(offlineVehicle.position, offlineVehicle.heading, offlineVehicle.velocity); firstPerson.updateVehicle(offlineVehicle.position, offlineVehicle.heading); }
         // Forward active chunks to the FP renderer only while it is on
         // screen: rendering a hidden canvas costs a full pass per frame.
         metrics.recordFrame(frameMs);
