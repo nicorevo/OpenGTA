@@ -29,11 +29,11 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `bc635c6` sul ramo `opcl3D`
-(2026-09-18, look GTA: zoom ravvicinato ×14 + striscia centrale bianca +
-marciapiedi + palette mondo per classe + label acque). Verificata con 435 test
-(56 file), 25 E2E (1 skipped) su dev server (più canary live separata), 1 smoke
-del build di produzione, typecheck e build. Vedi
+**Baseline stabile per test utente:** commit `28fe0ee` sul ramo `opcl3D`
+(2026-09-18, fisica veicolo: peso/derapata + top speed 84 m/s ~302 km/h +
+skew scocca in curva; su base look GTA `bc635c6` + label acque `475dbae`).
+Verificata con 438 test (56 file — 1 flaky da carico, verde in isolamento),
+25 E2E non-flaky (1 skipped), smoke del build di produzione, typecheck e build. Vedi
 [Prova della baseline](#prova-della-baseline).
 
 Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle

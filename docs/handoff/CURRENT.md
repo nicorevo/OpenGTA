@@ -27,6 +27,7 @@ Non rieseguirli come backlog corrente.
 | Zoom ravvicinato (look GTA 1) | Completata (commit `bc635c6`) — CZ-01..05: `ZOOM_STEPS` fino a ×14, striscia centrale bianca + marciapiedi (dati già nel chunk); spec `docs/specs/close-zoom-v1.md`, risultato in `docs/results/CLOSE-ZOOM-RESULT.md` |
 | Dettaglio mondo GTA (classi nel chunk) | Completata (commit `bc635c6`) — WD-01..04: terreno/strada/edificio per `styleKey` di classe in preset GTA (helper puri + raggruppamento strade per classe); spec `docs/specs/gta-world-detail-v1.md`, risultato in `docs/results/GTA-WORLD-DETAIL-RESULT.md` |
 | Label acque (fiumi/laghi) | Completata (commit `475dbae`) — nomi di laghi/fiumi ricevuti ma prima non pubblicati, ora emessi come label; test in `src/world/compiler/compiled.test.ts` |
+| Fisica veicolo (peso, derapata, +velocità) | Completata (commit `28fe0ee`) — VP-01..03: curva motore, grip/derapata per velocità, coasting pesante, top speed 84 m/s (~302 km/h), skew scocca in curva; spec `docs/specs/vehicle-physics-v1.md`, risultato in `docs/results/VEHICLE-PHYSICS-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -109,18 +110,28 @@ anche con suite verde.
 - Tranche **Label acque** completata il 2026-09-18 (commit `475dbae`): i nomi di
   laghi/fiumi (`tags.name` su `waterAreas`) erano ricevuti ma non pubblicati; ora
   il compiler li emette come label (baricentro per le aree, punto medio per i corsi
-  d'acqua, `kind:"place"`, priorità 105). Test in `src/world/compiler/compiled.test.ts`.
+   d'acqua, `kind:"place"`, priorità 105). Test in `src/world/compiler/compiled.test.ts`.
+- Tranche **Fisica veicolo** completata il 2026-09-18 (commit `28fe0ee`,
+  VP-01..03): guida con "peso" (niente galleggiamento) — curva motore (accel che
+  cala verso la top speed), grip/derapata per velocità (agganciata a bassa velocità,
+  ~18° di slide a 80 m/s), coasting più pesante; top speed 84 m/s (~302 km/h, 0→100
+  in ~1.6 s, frenata ~69 m) e leggera flessione (skew) della scocca in curva da
+  velocità laterale. Tutti i valori in `VEHICLE_TUNING` per ritocchi del feel.
+  Spec [vehicle-physics-v1](../specs/vehicle-physics-v1.md), risultato
+  [VEHICLE-PHYSICS-RESULT](../results/VEHICLE-PHYSICS-RESULT.md).
 - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
   custom tile schema ADR, riuso cache compilata, curated region package).
-- Baseline stabile per test utente: commit `bc635c6` (look GTA: zoom ×14 +
-  striscia centrale bianca + marciapiedi + palette mondo per classe; label acque
-  in `475dbae`; gate verde: 435 test unitari, 25 E2E + 1 canary skipped);
+- Baseline stabile per test utente: commit `28fe0ee` (fisica veicolo: peso/derapata
+  + top speed 84 m/s ~302 km/h + skew scocca; su base look GTA `bc635c6` + label
+  acque `475dbae`; gate verde: 438 test unitari — 1 flaky da carico verde in
+  isolamento, 25 E2E non-flaky + 1 canary skipped);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
-- Worktree attuale (2026-09-18, **uncommitted** su `568dcc0`): applicate e
-  verificate le tranche Zoom ravvicinato (CZ) + Dettaglio mondo GTA (WD) — gate
-  verde (434 unit, 25 E2E + 1 canary skipped, typecheck, build). Il bump della
-  baseline (nuovo commit + hash) avviene al commit, solo su richiesta esplicita.
+- Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,
+  label acque, fisica veicolo) commit, ultima `28fe0ee`. Gate verde (typecheck,
+  build, 438 unit — 1 flaky da carico verde in isolamento, 25 E2E non-flaky).
+  Il bump della baseline (nuovo commit + hash) avviene al commit, su richiesta
+  esplicita.
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log
