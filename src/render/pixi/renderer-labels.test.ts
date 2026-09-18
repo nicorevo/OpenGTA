@@ -88,29 +88,32 @@ describe("label rebuild lifecycle", () => {
 
   it("creates no label texts while labels are hidden", async () => {
     const renderer = await createPixiRenderer(canvas);
+    const baseline = fakeState.texts.length; // the car's decal texts, created at init
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
-    expect(fakeState.texts).toHaveLength(0);
+    expect(fakeState.texts).toHaveLength(baseline);
     renderer.dispose();
   });
 
   it("destroys the previous label texts on rebuild and keeps one per visible label", async () => {
     const renderer = await createPixiRenderer(canvas);
+    const baseline = fakeState.texts.length; // the car's decal texts, created at init
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
-    expect(fakeState.texts).toHaveLength(1);
-    expect(fakeState.texts[0]?.destroyed).toBe(false);
+    expect(fakeState.texts).toHaveLength(baseline + 1);
+    expect(fakeState.texts[baseline]?.destroyed).toBe(false);
     // A new chunk object with the same content forces the streaming rebuild.
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
-    expect(fakeState.texts).toHaveLength(2);
-    expect(fakeState.texts[0]?.destroyed).toBe(true);
-    expect(fakeState.texts[1]?.destroyed).toBe(false);
+    expect(fakeState.texts).toHaveLength(baseline + 2);
+    expect(fakeState.texts[baseline]?.destroyed).toBe(true);
+    expect(fakeState.texts[baseline + 1]?.destroyed).toBe(false);
     expect(renderer.presentationDiagnostics().labels).toBe(1);
     renderer.dispose();
   });
 
   it("creates a label only for its own chunk and drops it with the chunk", async () => {
     const renderer = await createPixiRenderer(canvas);
-    const alive = () => fakeState.texts.filter((text) => !text.destroyed).map((text) => text.text).sort();
+    const baseline = fakeState.texts.length; // the car's decal texts, created at init
+    const alive = () => fakeState.texts.slice(baseline).filter((text) => !text.destroyed).map((text) => text.text).sort();
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90), labelText("a2", "Two", 3, 4, 90)]));
     expect(alive()).toEqual(["One", "Two"]);
@@ -124,22 +127,24 @@ describe("label rebuild lifecycle", () => {
 
   it("filters labels by the LOD profile priority", async () => {
     const renderer = await createPixiRenderer(canvas);
+    const baseline = fakeState.texts.length; // the car's decal texts, created at init
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "Major", 1, 2, 90), labelText("a2", "Minor", 3, 4, 40)]));
-    expect(fakeState.texts).toHaveLength(1);
-    expect(fakeState.texts[0]?.text).toBe("Major");
+    expect(fakeState.texts).toHaveLength(baseline + 1);
+    expect(fakeState.texts[baseline]?.text).toBe("Major");
     renderer.dispose();
   });
 
   it("drops the remaining texts when labels are toggled off", async () => {
     const renderer = await createPixiRenderer(canvas);
+    const baseline = fakeState.texts.length; // the car's decal texts, created at init
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
-    expect(fakeState.texts).toHaveLength(1);
+    expect(fakeState.texts).toHaveLength(baseline + 1);
     renderer.toggleLabels();
-    expect(fakeState.texts[0]?.destroyed).toBe(true);
+    expect(fakeState.texts[baseline]?.destroyed).toBe(true);
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
-    expect(fakeState.texts).toHaveLength(1);
+    expect(fakeState.texts).toHaveLength(baseline + 1);
     renderer.dispose();
   });
 });
