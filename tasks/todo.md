@@ -174,4 +174,13 @@ Result: `docs/results/VEHICLE-PHYSICS-RESULT.md`.
 - [x] VP-01: `controller.ts` curva motore + grip/derapata per velocità + coasting pesante + `VEHICLE_TUNING` (super-fast, `maxForwardSpeed 84`); `controller.test.ts` verde.
 - [x] VP-02: `renderer.ts` skew della scocca da velocità laterale (`updateVehicle` + `velocity` opzionale); plumbing `runtime-session`/`bootstrap`.
 - [x] VP-03: gate verde (typecheck, 437/438 unit — 1 flaky da carico verde in isolamento, build, e2e non-flaky 8) + screenshot curva.
-- [ ] VP-04: commit + `CURRENT.md`/`README.md` baseline al commit.
+- [x] VP-04: commit (`15685e5`/`a57c372`/`28fe0ee`/`62b9771`) + `CURRENT.md`/`README.md` baseline.
+
+## Look Veicolo "General Lee" (berlina rossa, ombra a terra, decal nitide)
+
+Data: 2026-09-18. Baseline: `28fe0ee`. Result: `docs/results/GENERAL-LEE-VEHICLE-RESULT.md`.
+
+- [x] GL-01: `renderer.ts` `drawGeneralLee` (red Charger: scocca rossa, 4 ruote, parabrezza/finestrino, fari/stop) al posto di `drawF1Vehicle`; `renderer.test.ts` verde.
+- [x] GL-02: ombra a terra (Container ombra + scocca), scivola con la piega; `VEHICLE_VISUAL_SCALE` 2.6 → 3.0.
+- [x] GL-03: decal nitide "GENERAL LEE" (tetto) + "01" (porte) via `makeWorldText` (rasterizza 128px poi scala).
+- [x] GL-04: gate verde (typecheck, 438/438 unit, build, e2e non-flaky 8) + screenshot nitido; fix `renderer-labels.test.ts` (baseline decal).

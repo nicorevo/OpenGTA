@@ -29,10 +29,10 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `28fe0ee` sul ramo `opcl3D`
-(2026-09-18, fisica veicolo: peso/derapata + top speed 84 m/s ~302 km/h +
-skew scocca in curva; su base look GTA `bc635c6` + label acque `475dbae`).
-Verificata con 438 test (56 file — 1 flaky da carico, verde in isolamento),
+**Baseline stabile per test utente:** commit `583e045` sul ramo `opcl3D`
+(2026-09-18, look auto "General Lee": berlina rossa Dodge Charger + ombra a
+terra + scritta "GENERAL LEE"/"01" nitide; su base fisica veicolo `28fe0ee`,
+look GTA `bc635c6` + label acque `475dbae`). Verificata con 438 test (56 file),
 25 E2E non-flaky (1 skipped), smoke del build di produzione, typecheck e build. Vedi
 [Prova della baseline](#prova-della-baseline).
 

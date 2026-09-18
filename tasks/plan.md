@@ -468,7 +468,7 @@ fisica di contatto, niente modifiche a collider/spawn/fixed-step.
 | [x] | VP-01 | Nessuna | M | `controller.ts`: curva motore + grip/derapata per velocità + coasting pesante + `VEHICLE_TUNING` (super-fast, `maxForwardSpeed 84`); `controller.test.ts` verde (vmax, curva motore, derapata per velocità) |
 | [x] | VP-02 | VP-01 | S | `renderer.ts`: skew della scocca da velocità laterale (`updateVehicle` + `velocity` opzionale); skew=0 a dritta, e2e rendering/driving verde |
 | [x] | VP-03 | VP-01, VP-02 | M | Gate: typecheck, 437/438 unit (1 flaky da carico, verde in isolamento), build, e2e non-flaky (8) verdi + screenshot curva a zoom ravvicinato |
-| [ ] | VP-04 | VP-03 | S | `VEHICLE-PHYSICS-RESULT.md` + `CURRENT.md` fase/baseline + commit |
+| [x] | VP-04 | VP-03 | S | `VEHICLE-PHYSICS-RESULT.md` + `CURRENT.md` fase/baseline + commit (`15685e5`/`a57c372`/`28fe0ee`/`62b9771`) |
 
 ### Checkpoint
 
@@ -485,3 +485,42 @@ fisica di contatto, niente modifiche a collider/spawn/fixed-step.
 | "Feel" soggettivo (quanto drift/peso) | Tutti i valori in `VEHICLE_TUNING` (ritocco rapido); screenshot + invio a ritocchi |
 | `adapter.test.ts` (reverse) sensibile al tuning | reverseAcceleration rialzato (14); test di regressione drift invariato |
 | Skew troppo forte/falso | Effetto sottile, clamped; solo da velocità laterale (0 a dritta) |
+
+## Piano: Look Veicolo "General Lee" (berlina rossa, ombra a terra, decal nitide)
+
+Data: 2026-09-18. Baseline codice: `28fe0ee`. Result:
+`docs/results/GENERAL-LEE-VEHICLE-RESULT.md`.
+
+### Obiettivo
+
+Rifare lo sprite dell'auto (prima F1) perché richiami il "General Lee", la Dodge
+Charger 1969 di *The Dukes of Hazzard* (la macchina dei due cugini Duke): scocca
+rossa, 4 ruote, parabrezza + finestrino posteriore, fari/stop, scritta
+"GENERAL LEE" sul tetto e "01" sulle porte. In più ridurre l'effetto
+galleggiamento: ombra morbida a terra sotto la scocca che si sposta con la piega
+in curva (auto appoggiata e inclinata, non flottante). Tutto in `renderer.ts`;
+niente cambio di fisica (già in `controller.ts`), niente collider/spawn.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | GL-01 | Nessuna | M | `renderer.ts`: `drawGeneralLee` (red Charger: scocca rossa, 4 ruote, parabrezza/finestrino, fari/stop) al posto di `drawF1Vehicle`; `renderer.test.ts` verde (centro scocca, 4 ruote, footprint) |
+| [x] | GL-02 | GL-01 | M | Ombra a terra: `vehicle` → Container(ombra + gruppo scocca); ombra morbida (alpha 0.16) che scivola contro la piega; `VEHICLE_VISUAL_SCALE` 2.6 → 3.0 (scocca più leggibile) |
+| [x] | GL-03 | GL-01, GL-02 | M | Decal nitide "GENERAL LEE" (tetto) + "01" (porte) via `makeWorldText` (Text rasterizzata a 128px poi ridimensionata → nitida allo zoom ravvicinato, non la banda sfocata di un Text 1x ingrandito) |
+| [x] | GL-04 | GL-01..03 | M | Gate: typecheck, 438/438 unit, build, e2e non-flaky (8) verdi + screenshot nitido; fix `renderer-labels.test.ts` (baseline = decal dell'auto, così il conteggio label resta pulito) |
+
+### Checkpoint
+
+- [x] L'auto è una berlina rossa (Dodge Charger) riconoscibile, non più una F1.
+- [x] Scritta "GENERAL LEE" sul tetto + "01" sulle porte, nitide a zoom ravvicinato.
+- [x] Ombra morbida a terra sotto la scocca (riduce il galleggiamento); si sposta con la piega in curva.
+- [x] Suite: typecheck, 438/438 unit, build, E2E non-flaky (8) verdi + screenshot.
+
+### Rischi
+
+| Rischio | Gestione |
+| --- | --- |
+| Testo nel mondo sfocato allo zoom (texture 1x ingrandita ~26×) | `makeWorldText`: rasterizza a 128px poi scala in basso → nitido a ogni zoom |
+| Conteggio label nei test contaminate dalle decal dell'auto | `renderer-labels.test.ts` usa una baseline (decal create all'iniz) e asserisce sui delta |
+| Scocca più grande (scale 3.0) | Solo visiva (il collider resta in `shape.ts`); auto più presente, tipo GTA |

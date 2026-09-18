@@ -28,6 +28,7 @@ Non rieseguirli come backlog corrente.
 | Dettaglio mondo GTA (classi nel chunk) | Completata (commit `bc635c6`) — WD-01..04: terreno/strada/edificio per `styleKey` di classe in preset GTA (helper puri + raggruppamento strade per classe); spec `docs/specs/gta-world-detail-v1.md`, risultato in `docs/results/GTA-WORLD-DETAIL-RESULT.md` |
 | Label acque (fiumi/laghi) | Completata (commit `475dbae`) — nomi di laghi/fiumi ricevuti ma prima non pubblicati, ora emessi come label; test in `src/world/compiler/compiled.test.ts` |
 | Fisica veicolo (peso, derapata, +velocità) | Completata (commit `28fe0ee`) — VP-01..03: curva motore, grip/derapata per velocità, coasting pesante, top speed 84 m/s (~302 km/h), skew scocca in curva; spec `docs/specs/vehicle-physics-v1.md`, risultato in `docs/results/VEHICLE-PHYSICS-RESULT.md` |
+| Look auto "General Lee" (berlina rossa, ombra, decal) | Completata (commit `583e045`) — GL-01..04: sprite Dodge Charger rossa, ombra a terra che appoggia la scocca, scritta "GENERAL LEE"/"01" nitide, scale 3.0; risultato in `docs/results/GENERAL-LEE-VEHICLE-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -119,19 +120,27 @@ anche con suite verde.
   velocità laterale. Tutti i valori in `VEHICLE_TUNING` per ritocchi del feel.
   Spec [vehicle-physics-v1](../specs/vehicle-physics-v1.md), risultato
   [VEHICLE-PHYSICS-RESULT](../results/VEHICLE-PHYSICS-RESULT.md).
-- Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+ - Tranche **Look auto "General Lee"** completata il 2026-09-18 (commit `583e045`,
+   GL-01..04): sprite dell'auto da F1 a Dodge Charger rossa (il General Lee di
+   *The Dukes of Hazzard*), ombra morbida a terra che appoggia la scocca e scivola
+   con la piega in curva (niente galleggiamento), scritta "GENERAL LEE" sul tetto e
+   "01" sulle porte nitide (rasterizzate a 128px via `makeWorldText`),
+   `VEHICLE_VISUAL_SCALE` 3.0. Fisica/collider invariati. Risultato
+   [GENERAL-LEE-VEHICLE-RESULT](../results/GENERAL-LEE-VEHICLE-RESULT.md).
+ - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
   custom tile schema ADR, riuso cache compilata, curated region package).
-- Baseline stabile per test utente: commit `28fe0ee` (fisica veicolo: peso/derapata
-  + top speed 84 m/s ~302 km/h + skew scocca; su base look GTA `bc635c6` + label
-  acque `475dbae`; gate verde: 438 test unitari — 1 flaky da carico verde in
-  isolamento, 25 E2E non-flaky + 1 canary skipped);
+ - Baseline stabile per test utente: commit `583e045` (look auto "General Lee":
+   berlina rossa Dodge Charger + ombra a terra + decal "GENERAL LEE"/"01" nitide;
+   su base fisica veicolo `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;
+   gate verde: 438 test unitari, 24 E2E non-flaky + 1 canary skipped, `bootstrap`
+   flaky da carico come noto);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
-- Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,
-  label acque, fisica veicolo) commit, ultima `28fe0ee`. Gate verde (typecheck,
-  build, 438 unit — 1 flaky da carico verde in isolamento, 25 E2E non-flaky).
-  Il bump della baseline (nuovo commit + hash) avviene al commit, su richiesta
-  esplicita.
+ - Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,
+   label acque, fisica veicolo, look General Lee) commit, ultima `583e045`. Gate
+   verde (typecheck, build, 438 unit, 24 E2E non-flaky; `bootstrap` flaky da
+   carico come noto). Il bump della baseline (nuovo commit + hash) avviene al
+   commit, su richiesta esplicita.
 
 La pianificazione e' stata richiesta il 2026-09-08 e completata il 2026-09-09.
 L'esecuzione procede per schede: ogni consegna e' registrata nel proprio log
