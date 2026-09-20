@@ -16,6 +16,79 @@ passa isolato e nella suite con due worker. Nessuno script lint disponibile.
 Verifica visiva in Chrome a zoom massimo: sprite originale, nessun errore JS.
 Provenienza: `src/render/pixi/assets/taxi.PROVENANCE.md`.
 
+---
+
+# Piano: GTA 2D — citta' dall'alto (strade e palazzi)
+
+Data: 2026-09-20. Stato: G2D-00 consegnato, G2D-01..18 da fare.
+Baseline codice: `758255a`. Analisi:
+`docs/analysis/GTA-2D-VISUAL-GAP-2026-09-20.md`; spec:
+`docs/specs/gta-2d-city-v1.md`; ADR proposta:
+`docs/adr/ADR-013-gta-top-down-presentation.md`. Istruzioni e schede:
+[gta-2d/README.md](gta-2d/README.md).
+
+## Obiettivo
+
+Guidare il taxi in una citta' dall'alto con proporzioni, materiali stradali,
+marciapiedi e facciate paragonabili allo screenshot fornito: prima un
+incrocio giocabile e due isolati (finestre, tetti, ombre), poi l'applicazione
+alle geometrie reali offline e MVT. Collisioni e sagome geografiche restano
+2D; la vista prima persona esistente continua a consumare gli stessi chunk.
+
+## Come usare il piano
+
+1. Leggere [istruzioni e contratti comuni](gta-2d/README.md).
+2. Un task alla volta: scheda, dipendenze, TDD, gate comune, log.
+3. Aggiornare la riga qui e in [todo](todo.md) solo con evidenza.
+
+## Task ordinati
+
+| Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | [G2D-00 Quartiere di riferimento](gta-2d/G2D-00.md) | Nessuna | M | Fixture X/T/Y/curva/vicolo + 7 palazzi, boot offline nell'harness, baseline a 3 viewport con GPU/distinzione software (`GTA-2D-BASELINE.md`) |
+| [ ] | [G2D-01 Proporzioni taxi, strada e camera](gta-2d/G2D-01.md) | G2D-00 | M | Taxi 35-55 x 16-27 px a 640x480; strada 6 m >= 2 larghezze auto; zoom max separato |
+| [ ] | [G2D-02 Prova della profondita' prospettica](gta-2d/G2D-02.md) | G2D-01 | M | GO/NO-GO su pareti base-tetto, camera 4 quadranti, risultato `GTA-2D-PROJECTION-RESULT.md` |
+| [ ] | [G2D-03 Asfalto con materiale continuo](gta-2d/G2D-03.md) | G2D-02 | M | Atlas con 2 asfalti, UV metriche, fallback colore, provenienza |
+| [ ] | [G2D-04 Marciapiedi pavimentati e cordoli](gta-2d/G2D-04.md) | G2D-03 | M | Fascia pavimentata esterna alla carreggiata, cordolo, riduzione nei vicoli |
+| [ ] | [G2D-05 Incroci raccordati X, T e Y](gta-2d/G2D-05.md) | G2D-04 | M | Centro unico senza cordoli/marciapiedi; livelli incompatibili dichiarati ambigui |
+| [ ] | [G2D-06 Segnaletica coerente con l'incrocio](gta-2d/G2D-06.md) | G2D-05 | M | Preset giallo/bianco, fase metrica, niente mezzeria nei vicoli |
+| [ ] | [G2D-07 Contratto dei metadati visivi e cache](gta-2d/G2D-07.md) | G2D-02 | M | Contratti opzionali validati; payload V0 compatibile; corrotti = cache miss |
+| [ ] | [G2D-08 Provenienza dei contorni dalle tile](gta-2d/G2D-08.md) | G2D-07 | M | Bordi veri vs tagli del normalizzatore; partial esplicito |
+| [ ] | [G2D-09 Metadati continui dopo compilazione e partizione](gta-2d/G2D-09.md) | G2D-08 | M | Bordi/distanze propagati nel clipping; compilerVersion bump |
+| [ ] | [G2D-10 Facciate modulari nel renderer di gioco](gta-2d/G2D-10.md) | G2D-02, G2D-03, G2D-09 | M | 4 famiglie di facciata con finestre; nessuna parete sui tagli |
+| [ ] | [G2D-11 Tetti, cornici e dettagli degli edifici](gta-2d/G2D-11.md) | G2D-10 | M | 3 tetti, cornice continua, dettagli deterministici |
+| [ ] | [G2D-12 Ombre e visibilita' del taxi](gta-2d/G2D-12.md) | G2D-11, G2D-06 | M | Ombre coerenti; policy di occlusione del taxi; via la corridor mask |
+| [ ] | [G2D-13 Continuita' grafica tra chunk](gta-2d/G2D-13.md) | G2D-09, G2D-12 | M | UV/seed/fase stabili tra arrivi invertiti e reload |
+| [ ] | [G2D-14 LOD e culling della profondita'](gta-2d/G2D-14.md) | G2D-13 | M | Culling sui bounds proiettati; tier senza salti |
+| [ ] | [G2D-15 Arredo urbano decorativo essenziale](gta-2d/G2D-15.md) | G2D-14 | M | Tombini/cestini/lampioni deterministici, rinviabile |
+| [ ] | [G2D-16 Verifica sulla citta' reale e sulle tile MVT](gta-2d/G2D-16.md) | G2D-14 | M | Replay deterministico 2 tile + 4 chunk + fixture Lecce |
+| [ ] | [G2D-17 Budget di rendering e lifecycle](gta-2d/G2D-17.md) | G2D-16, G2D-15 | M | p95 <= 16.7 ms desktop / 33.3 ms mobile su GPU dichiarata |
+| [ ] | [G2D-18 Confronto finale e consegna](gta-2d/G2D-18.md) | G2D-17 | M | Scorecard pass/fail sui gate A-E, handoff |
+
+## Checkpoint
+
+| Gate | Task | Risultato |
+| --- | --- | --- |
+| A proporzioni/proiezione | 00-02 | GO/NO-GO della proiezione |
+| B incrocio completo | 03-06 | asfalto, pavimentazione, cordoli, strisce |
+| Dati | 07-09 | identita', bordi e cache prima delle facciate live |
+| C quartiere | 10-12 | facciate, tetti, ombre, taxi leggibile |
+| D continuita' | 13-16 | LOD, citta' reale; 15 separabile |
+| E consegna | 17-18 | misure, regressioni, scorecard |
+
+Verifiche intermedie dopo 03-04, 07-08 e 13-14. Il filone 07-09 puo'
+procedere indipendentemente da 03-06 dopo il PoC; niente modifiche
+concorrenti sugli stessi file. Il piano non avvia agenti.
+
+## Rischi e scelte esplicite
+
+| Rischio | Gestione prevista |
+| --- | --- |
+| Proiezione/ordinamento Pixi non reggono | GO/NO-GO in G2D-02; fallback piatto documentato; ADR resta Proposed |
+| Contorni tagliati dal clipping | Provenienza dei bordi prima del taglio (G2D-08/09); partial esplicito |
+| Maschera stradale taglia le facciate | Sostituita in G2D-12 con policy di occlusione esplicita |
+| Nessun target FPS gia' misurato | Misure solo su GPU/dispositivo dichiarati (G2D-17); headless separato |
+
 # Piano: Provider-Neutral World Streaming (tranche DATA)
 
 Data: 2026-09-11. Analisi di riferimento:

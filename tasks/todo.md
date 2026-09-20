@@ -1,3 +1,47 @@
+# Checklist: GTA 2D (citta' dall'alto, strade e palazzi)
+
+Data: 2026-09-20. Stato: G2D-00 consegnato; G2D-01..18 da fare.
+
+Fonte: [piano](plan.md). Prima di eseguire leggere
+[istruzioni e contratti comuni](gta-2d/README.md).
+
+## Gate A: proporzioni e proiezione
+
+- [x] [G2D-00](gta-2d/G2D-00.md): quartiere di riferimento ripetibile.
+- [ ] [G2D-01](gta-2d/G2D-01.md): proporzioni taxi, strada e camera.
+- [ ] [G2D-02](gta-2d/G2D-02.md): prova della profondita' prospettica.
+
+## Gate B: incrocio completo
+
+- [ ] [G2D-03](gta-2d/G2D-03.md): asfalto con materiale continuo.
+- [ ] [G2D-04](gta-2d/G2D-04.md): marciapiedi pavimentati e cordoli.
+- [ ] [G2D-05](gta-2d/G2D-05.md): incroci raccordati X, T e Y.
+- [ ] [G2D-06](gta-2d/G2D-06.md): segnaletica coerente con l'incrocio.
+
+## Dati: identita', bordi e cache
+
+- [ ] [G2D-07](gta-2d/G2D-07.md): contratto dei metadati visivi e cache.
+- [ ] [G2D-08](gta-2d/G2D-08.md): provenienza dei contorni dalle tile.
+- [ ] [G2D-09](gta-2d/G2D-09.md): metadati continui dopo compilazione e partizione.
+
+## Gate C: quartiere con facciate, tetti e ombre
+
+- [ ] [G2D-10](gta-2d/G2D-10.md): facciate modulari nel renderer di gioco.
+- [ ] [G2D-11](gta-2d/G2D-11.md): tetti, cornici e dettagli degli edifici.
+- [ ] [G2D-12](gta-2d/G2D-12.md): ombre e visibilita' del taxi.
+
+## Gate D: continuita', LOD, citta' reale
+
+- [ ] [G2D-13](gta-2d/G2D-13.md): continuita' grafica tra chunk.
+- [ ] [G2D-14](gta-2d/G2D-14.md): LOD e culling della profondita'.
+- [ ] [G2D-15](gta-2d/G2D-15.md): arredo urbano decorativo essenziale.
+- [ ] [G2D-16](gta-2d/G2D-16.md): verifica sulla citta' reale e sulle tile MVT.
+
+## Gate E: misure, regressioni e consegna
+
+- [ ] [G2D-17](gta-2d/G2D-17.md): budget di rendering e lifecycle.
+- [ ] [G2D-18](gta-2d/G2D-18.md): confronto finale e consegna.
+
 # Checklist: Provider-Neutral World Streaming
 
 Data: 2026-09-11.

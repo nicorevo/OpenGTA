@@ -1,3 +1,14 @@
 <!doctype html>
 <html><head><title>OpenGTA test harness</title><meta name="viewport" content="width=device-width, initial-scale=1"></head>
-<body style="margin:0"><div id="root" style="width:100vw;height:100vh"><canvas></canvas></div></body></html>
+<body style="margin:0"><div id="root" style="width:100vw;height:100vh"><canvas></canvas></div>
+<script type="module">
+  // G2D-00: scena ripetibile del quartiere GTA 2D (?fixture=gta-city), per la
+  // verifica visiva manuale e la spec E2E gta-city. Le altre spec dell'harness
+  // caricano la pagina senza parametro: il boot non parte.
+  if (new URLSearchParams(location.search).get("fixture") === "gta-city") {
+    const { bootGtaCityFixture } = await import("/tests/fixtures/gta-city.ts");
+    const canvas = document.querySelector("#root canvas");
+    if (canvas) await bootGtaCityFixture(canvas);
+  }
+</script>
+</body></html>
