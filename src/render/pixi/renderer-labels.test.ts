@@ -36,6 +36,10 @@ vi.mock("pixi.js", () => {
     stroke() { return this; }
     containsPoint() { return false; }
   }
+  class FakeSprite extends FakeContainer {
+    anchor = { set() { /* sprite origin */ } };
+  }
+  const Assets = { load: async () => ({ width: 192, height: 93, source: {} }) };
   class FakeText extends FakeContainer {
     destroyed = false;
     anchor = { set() { /* anchor is a render concern */ } };
@@ -58,7 +62,7 @@ vi.mock("pixi.js", () => {
     destroy() { /* teardown is a render concern */ }
   }
   class FakePoint { constructor(readonly x: number, readonly y: number) { /* geometry probe */ } }
-  return { Application: FakeApplication, Container: FakeContainer, Graphics: FakeGraphics, Text: FakeText, Point: FakePoint };
+  return { Assets, Sprite: FakeSprite, Application: FakeApplication, Container: FakeContainer, Graphics: FakeGraphics, Text: FakeText, Point: FakePoint };
 });
 
 import { createPixiRenderer } from "./renderer.ts";
@@ -88,7 +92,7 @@ describe("label rebuild lifecycle", () => {
 
   it("creates no label texts while labels are hidden", async () => {
     const renderer = await createPixiRenderer(canvas);
-    const baseline = fakeState.texts.length; // the car's decal texts, created at init
+    const baseline = fakeState.texts.length; // no vehicle texts at init (taxi has no decals)
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
     expect(fakeState.texts).toHaveLength(baseline);
     renderer.dispose();
@@ -96,7 +100,7 @@ describe("label rebuild lifecycle", () => {
 
   it("destroys the previous label texts on rebuild and keeps one per visible label", async () => {
     const renderer = await createPixiRenderer(canvas);
-    const baseline = fakeState.texts.length; // the car's decal texts, created at init
+    const baseline = fakeState.texts.length; // no vehicle texts at init (taxi has no decals)
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
     expect(fakeState.texts).toHaveLength(baseline + 1);
@@ -112,7 +116,7 @@ describe("label rebuild lifecycle", () => {
 
   it("creates a label only for its own chunk and drops it with the chunk", async () => {
     const renderer = await createPixiRenderer(canvas);
-    const baseline = fakeState.texts.length; // the car's decal texts, created at init
+    const baseline = fakeState.texts.length; // no vehicle texts at init (taxi has no decals)
     const alive = () => fakeState.texts.slice(baseline).filter((text) => !text.destroyed).map((text) => text.text).sort();
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90), labelText("a2", "Two", 3, 4, 90)]));
@@ -127,7 +131,7 @@ describe("label rebuild lifecycle", () => {
 
   it("filters labels by the LOD profile priority", async () => {
     const renderer = await createPixiRenderer(canvas);
-    const baseline = fakeState.texts.length; // the car's decal texts, created at init
+    const baseline = fakeState.texts.length; // no vehicle texts at init (taxi has no decals)
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "Major", 1, 2, 90), labelText("a2", "Minor", 3, 4, 40)]));
     expect(fakeState.texts).toHaveLength(baseline + 1);
@@ -137,7 +141,7 @@ describe("label rebuild lifecycle", () => {
 
   it("drops the remaining texts when labels are toggled off", async () => {
     const renderer = await createPixiRenderer(canvas);
-    const baseline = fakeState.texts.length; // the car's decal texts, created at init
+    const baseline = fakeState.texts.length; // no vehicle texts at init (taxi has no decals)
     renderer.toggleLabels();
     renderer.setChunk(makeChunk("a", [labelText("a1", "One", 1, 2, 90)]));
     expect(fakeState.texts).toHaveLength(baseline + 1);

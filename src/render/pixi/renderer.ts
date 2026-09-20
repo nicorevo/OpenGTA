@@ -1,10 +1,13 @@
-import { Application, Container, Graphics, Text } from "pixi.js";
+import { Application, Assets, Container, Graphics, Text, type Texture } from "pixi.js";
 import type { CompiledChunkV0, CompiledLabel } from "../../world/compiler/compiled.ts";
 import type { Bounds2D, Polygon2D, Vec2 } from "../../world/model/types.ts";
 import { createPresentationState, toggleLabels, type PresentationState } from "./presentation.ts";
 import { groupRoadsByStyleAndWidth, sortBuildingsForPainter, type ClassedRoadGroup } from "./scene-order.ts";
 import { clampZoom, lodForZoom, zoomFactor, type LodTier, type ZoomLevel } from "../../app/camera.ts";
 import { lodProfileForTier, type LodPresentationProfile, type RoadDetailLevel } from "../lod-profile.ts";
+
+import taxiImageUrl from "./assets/taxi-gta1.png?inline";
+import { createTaxiSprite } from "./taxi.ts";
 
 export interface CameraState { readonly zoomLevel: ZoomLevel; readonly zoomFactor: number; readonly bounds: Bounds2D }
 export interface PixiRenderer {
@@ -166,65 +169,6 @@ export function drawPolygon(graphics: Graphics, polygon: Polygon2D, scale: numbe
   if (height > 0) graphics.poly(screenRing(polygon.outer)).stroke({ color: 0x27232c, width: 1 });
 }
 
-// The General Lee — the 1969 Dodge Charger from The Dukes of Hazzard — as a
-// top-down sprite: a bright red body, four corner tires, a wide flat front
-// windshield, a red roof between the windscreens (the "GENERAL LEE" decal sits
-// on it) and a rear window. Centered at the origin with +x as the forward
-// direction. Drawn to fit the VEHICLE_LENGTH_METERS x VEHICLE_WIDTH_METERS box.
-export function drawGeneralLee(graphics: Graphics, length: number, width: number): void {
-  const L = length;
-  const W = width;
-  const red = 0x8a1420;
-  const glass = 0x1b2530;
-  const tire = 0x0e0e12;
-  const headlight = 0xf2e49c;
-  const taillight = 0x7a1116;
-
-  // Four tires at the corners, just outside the body.
-  for (const end of [-1, 1] as const) {
-    for (const side of [-1, 1] as const) {
-      const cx = end * L * 0.30;
-      const cy = side * W * 0.42;
-      graphics.roundRect(cx - L * 0.09, cy - W * 0.08, L * 0.18, W * 0.16, 1.5).fill(tire);
-    }
-  }
-
-  // Red Charger body (forward is +x).
-  graphics.roundRect(-L * 0.44, -W * 0.44, L * 0.88, W * 0.88, W * 0.32).fill(red);
-
-  // Wide flat front windshield and a shorter rear window; the red body between
-  // them is the roof where the "GENERAL LEE" decal is placed by the caller.
-  graphics.roundRect(L * 0.28, -W * 0.36, L * 0.12, W * 0.72, W * 0.08).fill(glass);
-  graphics.roundRect(-L * 0.40, -W * 0.34, L * 0.10, W * 0.68, W * 0.08).fill(glass);
-
-  // Headlights (front) and tail lights (rear).
-  for (const side of [-1, 1] as const) {
-    graphics.roundRect(L * 0.40, side * W * 0.30 - W * 0.04, L * 0.05, W * 0.08, 1).fill(headlight);
-    graphics.roundRect(-L * 0.44, side * W * 0.30 - W * 0.04, L * 0.05, W * 0.08, 1).fill(taillight);
-  }
-}
-
-/**
- * Crisp world-space label: the text is rasterized at a large fixed size then
- * scaled down to `localFontSize`, so it stays sharp even when the (much larger)
- * world transform magnifies the car. A plain `Text` would be generated at 1x
- * and smeared into a blur at close zoom.
- */
-function makeWorldText(text: string, localFontSize: number, position: { x: number; y: number }): Text {
-  const renderSize = 128;
-  const style = {
-    fontFamily: "sans-serif",
-    fontWeight: "900",
-    fill: 0xffffff,
-    fontSize: renderSize,
-    stroke: { color: 0x1f0406, width: renderSize * 0.07 },
-  } as const;
-  const label = new Text({ text, style });
-  label.anchor.set(0.5);
-  label.scale.set(localFontSize / renderSize);
-  label.position.set(position.x, position.y);
-  return label;
-}
 type CompiledRoad = CompiledChunkV0["roads"][number];
 function queueCenterlines(graphics: Graphics, roads: readonly CompiledRoad[], scale: number): void {
   for (const road of roads) {
@@ -334,15 +278,12 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   vehicleShadow
     .roundRect(-length * 0.46, -width * 0.43, length * 0.92, width * 0.86, width * 0.30)
     .fill({ color: 0x000000, alpha: 0.16 });
-  // The body plus its decals (roof "GENERAL LEE", door "01") live in one group
-  // so the drift flex (skew) bends the whole car, not just the painted body.
+  // The body lives in its own group so the drift flex (skew) bends the whole
+  // car, not just the painted body.
   const vehicleBodyGroup = new Container();
-  const vehicleBody = new Graphics();
-  drawGeneralLee(vehicleBody, length, width);
-  const roofDecal = makeWorldText("GENERAL LEE", length * 0.14, { x: 0, y: 0 });
-  const leftDecal = makeWorldText("01", length * 0.12, { x: 0, y: width * 0.30 });
-  const rightDecal = makeWorldText("01", length * 0.12, { x: 0, y: -width * 0.30 });
-  vehicleBodyGroup.addChild(vehicleBody, roofDecal, leftDecal, rightDecal);
+  const taxiTexture = await Assets.load<Texture>(taxiImageUrl);
+  const vehicleBody = createTaxiSprite(taxiTexture, length, width);
+  vehicleBodyGroup.addChild(vehicleBody);
   vehicle.addChild(vehicleShadow, vehicleBodyGroup);
   world.addChild(vehicle);
   const presentations = new Map<string, ChunkPresentation>();

@@ -1,6 +1,6 @@
 import { Graphics, Point } from "pixi.js";
 import { describe, expect, it } from "vitest";
-import { buildingStyle, dashSegments, drawGeneralLee, drawPolygon, groundFill, positionSeed, roadMarkingsEnabled, roadStyle, sidewalkEnabled, sidewalkPadPx } from "./renderer.ts";
+import { buildingStyle, dashSegments, drawPolygon, groundFill, positionSeed, roadMarkingsEnabled, roadStyle, sidewalkEnabled, sidewalkPadPx } from "./renderer.ts";
 
 describe("Pixi polygon rendering", () => {
   it("keeps canonical holes transparent", () => {
@@ -13,28 +13,6 @@ describe("Pixi polygon rendering", () => {
 
     expect(graphics.containsPoint(new Point(1, -1))).toBe(true);
     expect(graphics.containsPoint(new Point(5, -5))).toBe(false);
-  });
-});
-
-describe("General Lee rendering", () => {
-  const L = 10;
-  const W = 4.5;
-  const car = () => { const g = new Graphics(); drawGeneralLee(g, L, W); return g; };
-
-  it("fills the body, the cabin band and all four wheels", () => {
-    const g = car();
-    expect(g.containsPoint(new Point(0, 0))).toBe(true);            // body center
-    expect(g.containsPoint(new Point(L * 0.30, 0))).toBe(true);     // front body
-    expect(g.containsPoint(new Point(-L * 0.30, 0))).toBe(true);    // rear body
-    expect(g.containsPoint(new Point(L * 0.30, W * 0.42))).toBe(true);   // front wheel
-    expect(g.containsPoint(new Point(-L * 0.30, -W * 0.42))).toBe(true); // rear wheel
-  });
-
-  it("stays within the vehicle footprint", () => {
-    const g = car();
-    expect(g.containsPoint(new Point(L / 2 + 1, 0))).toBe(false);  // beyond the nose
-    expect(g.containsPoint(new Point(0, W / 2 + 1))).toBe(false);  // beyond the side
-    expect(g.containsPoint(new Point(20, 20))).toBe(false);        // far outside
   });
 });
 

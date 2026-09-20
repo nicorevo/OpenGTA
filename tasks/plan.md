@@ -1,3 +1,21 @@
+# Piano: Taxi giallo GTA 1
+
+Data: 2026-09-20. Obiettivo: usare l'immagine allegata dall'utente come
+sprite del taxi, con proporzioni originali, muso orientato nella direzione
+di guida e texture inclusa nel bundle per funzionare offline.
+
+- [x] TAXI-01: integrare lo sprite locale mantenendo ombra, zoom e derapata;
+      verificare proporzioni e orientamento con test unitari.
+- [x] TAXI-02: eseguire suite, typecheck, build e verifica browser della guida;
+      registrare provenienza dell'asset e risultato.
+
+Esito: 438 test unitari verdi (`npm run test:run -- --maxWorkers=2`),
+typecheck e build verdi, 4 E2E bootstrap/zoom verdi. Il test della rotta lunga
+ha superato 5 s durante la prima esecuzione concorrente con build/browser;
+passa isolato e nella suite con due worker. Nessuno script lint disponibile.
+Verifica visiva in Chrome a zoom massimo: sprite originale, nessun errore JS.
+Provenienza: `src/render/pixi/assets/taxi.PROVENANCE.md`.
+
 # Piano: Provider-Neutral World Streaming (tranche DATA)
 
 Data: 2026-09-11. Analisi di riferimento:
