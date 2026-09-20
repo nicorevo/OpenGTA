@@ -85,3 +85,25 @@ a 640 x 480 copre ~360 m, ben oltre un incrocio leggibile.
 - La variante chunk-boundary e' verificata strutturalmente (2 frammenti
   per `bld-seam`, 2 per `via-tee`, 1 per `bld-bassa`); la resa dei seam
   arriva con G2D-13.
+
+## G2D-01: proporzioni ricalibrate (confronto prima/dopo)
+
+Preset di guida (livello 2): `ZOOM_STEPS` [0.7, 0.85, **6.0**, 12.0, 24.0]
+(era [0.7, 0.85, 1.0, 4.0, 14.0]); `VEHICLE_VISUAL_SCALE` 1.2 (era 3.0,
+intervallo spec 1.0-1.3). Il massimo zoom (livello 4) e' un target
+separato dal preset di guida. Fix di correttezza emerso dalla
+ricalibrazione: il rebuild del tier avveniva prima dell'aggiornamento di
+`zoomLevel`, quindi il culling a far usava la scala del livello
+precedente (la guard `renderer-streaming` lo ha catturato).
+
+| Viewport | Scala px/m | Taxi misurato (L x W px) | Strada 6 m (px) | Camera bounds (m) |
+| --- | --- | --- | --- | --- |
+| 640 x 480 | 8.0 (era 1.33) | **37.1 x 17.3** (era 15.5 x 7.2) | 48 (era 8) | x -20..60, y -20..40 |
+| 1280 x 800 | 13.3 | 61.8 x 28.8 | 80 | x -28..68, y -20..40 |
+| 390 x 844 | 6.5 | 30.1 x 14.0 | 39 | x -10..50, y -55..75 |
+
+Criteri spec verificati a 640 x 480: taxi 35-55 x 16-27 px, strada 6 m
+con almeno due larghezze visive dell'auto (48 >= 34.6), >= 25 m di strada
+davanti all'auto a ogni viewport. Guard mvt-live adeguata: guida alla
+vista far per misurare la copertura dello streaming indipendentemente dal
+preset di guida ricalibrato.

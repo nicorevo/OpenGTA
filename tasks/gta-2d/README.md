@@ -1,6 +1,6 @@
 # GTA 2D: ingresso esecutore
 
-Data: 2026-09-20. Stato: G2D-00 consegnato; G2D-01..18 da fare.
+Data: 2026-09-20. Stato: G2D-00..01 consegnati; G2D-02..18 da fare.
 Baseline: `758255a`.
 
 Leggere [analisi](../../docs/analysis/GTA-2D-VISUAL-GAP-2026-09-20.md),
@@ -52,7 +52,7 @@ eseguire modifiche concorrenti sugli stessi file. Questo piano non avvia agenti.
 ## Schede
 
 - [x] [G2D-00](G2D-00.md): Quartiere di riferimento ripetibile.
-- [ ] [G2D-01](G2D-01.md): Proporzioni taxi, strada e camera.
+- [x] [G2D-01](G2D-01.md): Proporzioni taxi, strada e camera.
 - [ ] [G2D-02](G2D-02.md): Prova della profondita' prospettica.
 - [ ] [G2D-03](G2D-03.md): Asfalto con materiale continuo.
 - [ ] [G2D-04](G2D-04.md): Marciapiedi pavimentati e cordoli.

@@ -81,24 +81,34 @@ test("gta-city fixture boots offline, drives a clear path and reproduces the thr
     expect(snapshot.zoomLevel).toBe(2);
     const center = { x: (snapshot.cameraBounds.minX + snapshot.cameraBounds.maxX) / 2, y: (snapshot.cameraBounds.minY + snapshot.cameraBounds.maxY) / 2 };
     expect(Math.hypot(center.x - snapshot.pose.x, center.y - snapshot.pose.y)).toBeLessThan(0.01);
+    // AC2: un tratto percorribile resta visibile davanti all'auto (heading 0 -> +x).
+    expect(snapshot.cameraBounds.maxX - snapshot.pose.x).toBeGreaterThanOrEqual(25);
   }
+  // AC1 (G2D-01): a 640x480 il taxi misura 35-55 x 16-27 px e una strada di
+  // 6 m contiene almeno due larghezze visive dell'auto.
+  const reference = snapshots[0];
+  expect(reference.vehiclePx.length).toBeGreaterThanOrEqual(35);
+  expect(reference.vehiclePx.length).toBeLessThanOrEqual(55);
+  expect(reference.vehiclePx.width).toBeGreaterThanOrEqual(16);
+  expect(reference.vehiclePx.width).toBeLessThanOrEqual(27);
+  expect(reference.roadPx.widthPx).toBeGreaterThanOrEqual(2 * reference.vehiclePx.width);
   // AC3: dimensioni auto/strada registrate e coerenti con la scala della
-  // viewport. Il bersaglio dimensionale GTA (35-55 x 16-27 px) e' di G2D-01:
-  // qui la baseline registra la lunghezza visiva in metri (sprite taxi
-  // 4.2 x 1.8 m, VEHICLE_VISUAL_SCALE 3.0 -> ~12.6 m, piu' l'overhead dei
-  // bounds Pixi) e il suo rapporto d'aspetto, stabile tra viewport.
+  // viewport. Lo sprite conserva l'aspect ratio della texture, vincolato
+  // dalla larghezza: con VEHICLE_VISUAL_SCALE nell'intervallo 1.0-1.3 della
+  // spec la lunghezza visiva resta tra 3.5 e 6 m.
   for (const snapshot of snapshots) {
     const visualLengthMeters = snapshot.vehiclePx.length / snapshot.viewScalePxPerMeter;
-    expect(visualLengthMeters).toBeGreaterThan(10);
-    expect(visualLengthMeters).toBeLessThan(16);
+    expect(visualLengthMeters).toBeGreaterThan(3.5);
+    expect(visualLengthMeters).toBeLessThan(6);
     expect(snapshot.roadPx.widthMeters).toBe(6);
     expect(snapshot.roadPx.widthPx).toBeGreaterThan(snapshot.vehiclePx.width);
   }
   const aspectRatios = snapshots.map((snapshot) => snapshot.vehiclePx.length / snapshot.vehiclePx.width);
   for (const ratio of aspectRatios.slice(1)) expect(Math.abs(ratio - aspectRatios[0])).toBeLessThan(0.05);
-  expect(snapshots[0].viewScalePxPerMeter).toBeCloseTo(480 / 360, 5);
-  expect(snapshots[1].viewScalePxPerMeter).toBeCloseTo(800 / 360, 5);
-  expect(snapshots[2].viewScalePxPerMeter).toBeCloseTo(390 / 360, 5);
+  // Driving preset (level 2): fattore 6.0 sul divisore 360.
+  expect(snapshots[0].viewScalePxPerMeter).toBeCloseTo(480 / 360 * 6, 5);
+  expect(snapshots[1].viewScalePxPerMeter).toBeCloseTo(800 / 360 * 6, 5);
+  expect(snapshots[2].viewScalePxPerMeter).toBeCloseTo(390 / 360 * 6, 5);
   // AC3: GPU reale vs headless software registrati, non dedotti.
   expect(baseline.gpu.rendererType).toBe("webgl");
   expect(baseline.gpu.unmasked.length).toBeGreaterThan(0);

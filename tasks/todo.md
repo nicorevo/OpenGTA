@@ -8,7 +8,7 @@ Fonte: [piano](plan.md). Prima di eseguire leggere
 ## Gate A: proporzioni e proiezione
 
 - [x] [G2D-00](gta-2d/G2D-00.md): quartiere di riferimento ripetibile.
-- [ ] [G2D-01](gta-2d/G2D-01.md): proporzioni taxi, strada e camera.
+- [x] [G2D-01](gta-2d/G2D-01.md): proporzioni taxi, strada e camera.
 - [ ] [G2D-02](gta-2d/G2D-02.md): prova della profondita' prospettica.
 
 ## Gate B: incrocio completo

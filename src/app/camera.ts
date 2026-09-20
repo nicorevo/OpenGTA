@@ -1,12 +1,14 @@
 import type { Bounds2D, Vec2 } from "../world/model/types.ts";
 
 /**
- * Discrete zoom scale: five steps, default at the center. Factors are
- * experimental (ZOOM-05). Levels 0-2 keep the far/medium/default view; levels
- * 3-4 pull in to the GTA-1-like close view (~10x the default at max, close-zoom-v1).
+ * Discrete zoom scale: five steps. G2D-01 recalibrated the center as the
+ * GTA-2D driving preset: level 2 = 6.0 (8 px/m at 640x480, taxi ~40x17 px,
+ * 6 m road ~48 px) while levels 3-4 are the separate maximum/close-view
+ * targets (16 and 32 px/m at 640x480), not multipliers of the driving preset.
+ * Levels 0-1 keep the far overview.
  */
 export type ZoomLevel = 0 | 1 | 2 | 3 | 4;
-export const ZOOM_STEPS = [0.7, 0.85, 1.0, 4.0, 14.0] as const;
+export const ZOOM_STEPS = [0.7, 0.85, 6.0, 12.0, 24.0] as const;
 export type LodTier = "near" | "medium" | "far";
 
 export interface ScreenSize { readonly width: number; readonly height: number; }

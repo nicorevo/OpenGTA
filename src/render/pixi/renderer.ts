@@ -34,7 +34,10 @@ export interface PixiRenderer {
 }
 const VEHICLE_LENGTH_METERS = 4.2;
 const VEHICLE_WIDTH_METERS = 1.8;
-const VEHICLE_VISUAL_SCALE = 3.0;
+// G2D-01: visual multiplier of the real taxi size, calibrated together with
+// the driving preset (spec range 1.0-1.3): at 640x480 the sprite reads
+// ~37x17 px and a 6 m road holds more than two car widths.
+const VEHICLE_VISUAL_SCALE = 1.2;
 const LABEL_TEXT_STYLE = { fontFamily: "Arial", fontSize: 10, fontWeight: "normal", fill: 0x000000, stroke: { color: 0xffffff, width: 2 } } as const;
 const ROAD_CASING_MIN_PX = 0.75;
 const ROAD_CASING_MAX_PX = 2.5;
@@ -307,13 +310,16 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     rebuildLabels();
   };
   const changeZoom = (level: ZoomLevel): void => {
+    // The level must change BEFORE the tier rebuild: applyTier re-measures
+    // culling with viewScale(), which reads zoomLevel. With the previous
+    // order the far tier culled with the old level's scale (G2D-01).
+    zoomLevel = level;
     const tier = lodForZoom(level);
     if (tier !== currentProfileTier) {
       currentProfileTier = tier;
       currentProfile = lodProfileForTier(tier);
       if (presentations.size > 0) applyTier();
     }
-    zoomLevel = level;
     updateCamera();
   };
 

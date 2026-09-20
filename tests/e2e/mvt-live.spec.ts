@@ -29,6 +29,12 @@ test("reaches first playable and crosses 10+ distinct chunks with provider=openf
   // distinct chunks.
   await page.goto(`/?mode=open-world-live&provider=openfreemap-mvt&consent=1&lat=40.352027&lon=18.181308`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
+  // G2D-01: il preset di guida ora inquadra ~±50 m, quindi il finestrino P2
+  // della camera copre meno celle; questa guard misura la copertura dello
+  // streaming, non il preset: zoom out alla vista far (stessa finestra
+  // della vecchia default, ~±450 m) prima di guidare.
+  await page.keyboard.press("-");
+  await page.keyboard.press("-");
 
   const debug = () => page.evaluate(() => {
     const handle = (window as unknown as {

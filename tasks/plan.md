@@ -46,7 +46,7 @@ alle geometrie reali offline e MVT. Collisioni e sagome geografiche restano
 | Stato | ID e scheda | Dipendenze | Taglia | Esito verificabile |
 | --- | --- | --- | --- | --- |
 | [x] | [G2D-00 Quartiere di riferimento](gta-2d/G2D-00.md) | Nessuna | M | Fixture X/T/Y/curva/vicolo + 7 palazzi, boot offline nell'harness, baseline a 3 viewport con GPU/distinzione software (`GTA-2D-BASELINE.md`) |
-| [ ] | [G2D-01 Proporzioni taxi, strada e camera](gta-2d/G2D-01.md) | G2D-00 | M | Taxi 35-55 x 16-27 px a 640x480; strada 6 m >= 2 larghezze auto; zoom max separato |
+| [x] | [G2D-01 Proporzioni taxi, strada e camera](gta-2d/G2D-01.md) | G2D-00 | M | Taxi 37x17 px a 640x480; strada 6 m = 48 px >= 2 larghezze; preset guida 6.0, zoom max separato; fix culling a far |
 | [ ] | [G2D-02 Prova della profondita' prospettica](gta-2d/G2D-02.md) | G2D-01 | M | GO/NO-GO su pareti base-tetto, camera 4 quadranti, risultato `GTA-2D-PROJECTION-RESULT.md` |
 | [ ] | [G2D-03 Asfalto con materiale continuo](gta-2d/G2D-03.md) | G2D-02 | M | Atlas con 2 asfalti, UV metriche, fallback colore, provenienza |
 | [ ] | [G2D-04 Marciapiedi pavimentati e cordoli](gta-2d/G2D-04.md) | G2D-03 | M | Fascia pavimentata esterna alla carreggiata, cordolo, riduzione nei vicoli |

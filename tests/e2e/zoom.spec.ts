@@ -11,6 +11,7 @@ test("zoom buttons clamp at the limits and driving keeps working", async ({ page
     errors.push("Unexpected remote request"); return route.abort();
   });
   const zoomLevel = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { zoomLevel: number } } }).__opengtaV0Debug.session().zoomLevel);
+  const position = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { vehicle(): { position: { x: number } } } }).__opengtaV0Debug.vehicle().position.x);
   await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
   expect(await zoomLevel()).toBe(2);
@@ -27,10 +28,15 @@ test("zoom buttons clamp at the limits and driving keeps working", async ({ page
   await minus.click();
   await expect.poll(zoomLevel).toBe(0);
   await expect(minus).toBeDisabled();
-  // Keyboard shortcuts and driving right after a click.
+  // AC2 (G2D-01): zoom in/out non sposta la posa fisica del veicolo a riposo.
+  const atRestX = await position();
   await page.keyboard.press("=");
   await expect.poll(zoomLevel).toBe(1);
-  const position = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { vehicle(): { position: { x: number } } } }).__opengtaV0Debug.vehicle().position.x);
+  await expect.poll(position).toBe(atRestX);
+  await page.keyboard.press("=");
+  await expect.poll(zoomLevel).toBe(2);
+  await expect.poll(position).toBe(atRestX);
+  // Keyboard shortcuts and driving right after a click.
   const before = await position();
   await page.keyboard.down("w");
   await expect.poll(position).toBeGreaterThan(before + 1);

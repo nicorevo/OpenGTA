@@ -25,18 +25,30 @@ describe("camera zoom levels", () => {
   it("maps every level to an experimental factor that grows with zoom in", () => {
     const factors = ZOOM_STEPS.map((_, level) => zoomFactor(clampZoom(level)));
 
-    expect(ZOOM_STEPS).toHaveLength(5);
-    expect(zoomFactor(DEFAULT_ZOOM)).toBe(1);
+    expect([...ZOOM_STEPS]).toEqual([0.7, 0.85, 6.0, 12.0, 24.0]);
+    expect(zoomFactor(DEFAULT_ZOOM)).toBe(6);
     expect(factors.every((factor, index) => index === 0 || factor > factors[index - 1])).toBe(true);
   });
 
-  it("pulls the world in ~10x the default at the max level (GTA-1-like close)", () => {
-    // The close levels must pull the camera far beyond a single notch: at max
-    // zoom the car should read roughly 10x larger than the default view, so the
-    // top-down detail (dashes, sidewalks, facades) becomes legible.
-    expect(zoomFactor(4) / zoomFactor(DEFAULT_ZOOM)).toBeGreaterThanOrEqual(10);
-    expect(zoomFactor(3) / zoomFactor(DEFAULT_ZOOM)).toBeGreaterThan(1);
-    expect(zoomFactor(4) / zoomFactor(DEFAULT_ZOOM)).toBeLessThan(100);
+  it("keeps the driving preset separate from the maximum zoom (G2D-01)", () => {
+    // The driving preset (level 2) is calibrated for the GTA-2D proportions
+    // at 640x480: 6.0 -> 8 px/m with the 360 divisor, so the taxi reads
+    // ~40x17 px and a 6 m road ~48 px. The maximum zoom is its own target
+    // (level 4 -> 32 px/m at 640x480, close-view detail), not a multiplier
+    // of the driving preset.
+    expect(zoomFactor(3)).toBe(12);
+    expect(zoomFactor(4)).toBe(24);
+    expect(zoomFactor(4) / zoomFactor(DEFAULT_ZOOM)).toBeLessThan(10);
+  });
+
+  it("shows a drivable stretch ahead of the car at the driving preset", () => {
+    // Reference viewport 640x480 of the GTA-2D spec: with the driving factor
+    // the camera must keep at least 30 m of road ahead of the car.
+    const scale = zoomFactor(DEFAULT_ZOOM) * (480 / 360);
+    const bounds = cameraBounds(POSITION, { width: 640, height: 480 }, scale);
+
+    expect(bounds.maxX - POSITION.x).toBeGreaterThanOrEqual(30);
+    expect(bounds.minX).toBeLessThan(POSITION.x);
   });
 
   it("maps levels to the initial LOD tiers of the design", () => {
