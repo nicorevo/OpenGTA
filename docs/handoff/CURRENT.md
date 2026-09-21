@@ -33,6 +33,7 @@ Non rieseguirli come backlog corrente.
 | Nomi via leggibili (carreggiata) | Completata (commit `15c5f68`) — LB-01..03: label rasterizzate a 128px poi scalate in unità di mondo (nitide a ogni zoom), altezza = 42% della carreggiata (clamp 1.2–4 m), fit all'80% della lunghezza strada, bianco + contorno sottile; risultato in `docs/results/LEGIBLE-ROAD-LABELS-RESULT.md` |
 | Nomi via/luoghi duplicati (dedup) | Completata (commit `15c5f68`) — ND-01..03: ogni chunk compila la propria copia dei label (via spezzate in `part:N`, metà poligono MVT) → dedup nel renderer per identità di feature (`labelDedupKey`, poi sostituita da NN), vince la copia più vicina alla camera; risultato in `docs/results/NO-DUPLICATE-LABELS-RESULT.md` |
 | Nomi ripetuti su vie distinte (dedup per nome) | Completata (commit `15c5f68`) — NN-01..03: review pipeline (reperimento OK, difetto in assegnazione: un label per way OSM ma il nome è attributo della via) → dedup nel renderer per nome normalizzato (`labelTextKey`: trim+casefold), vince la copia più vicina alla camera; risultato in `docs/results/ONE-NAME-PER-ROAD-RESULT.md` |
+| Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -149,14 +150,31 @@ anche con suite verde.
     [LEGIBLE-ROAD-LABELS-RESULT](../results/LEGIBLE-ROAD-LABELS-RESULT.md),
     [NO-DUPLICATE-LABELS-RESULT](../results/NO-DUPLICATE-LABELS-RESULT.md) e
     [ONE-NAME-PER-ROAD-RESULT](../results/ONE-NAME-PER-ROAD-RESULT.md).
-  - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
-   custom tile schema ADR, riuso cache compilata, curated region package).
-  - Baseline stabile per test utente: commit `15c5f68` (nomi via leggibili +
-    dedup per nome: label a 128px scalati in mondo, un nome per via con la
-    copia più vicina alla camera; su base zoom intermedio `e2fc332`, look auto
-    "General Lee" `583e045` + fisica `28fe0ee`, look GTA `bc635c6` + label
-    acque `475dbae`; gate verde: 455 test unitari, 27 E2E + 1 canary skipped,
-    build verde);
+   - Tranche **Origine per nome del luogo (geocoding form)** completata il
+     2026-09-21 (commit `9ea0062`, PN-01..04): nel form di avvio,
+     tra Modalità e coordinate, il campo "Cerca un luogo" cerca su Nominatim
+     (OSM) pinnato — debounce 400 ms, min 2 caratteri, ≤ 5 candidati in
+     italiano, 1 richiesta in-flight con `AbortController`, cache LRU 32
+     (solo successi), validazione per-candidato (lat ±90 / lon ±180, nome
+     ≤ 256 char) con scarto dei non validi; la selezione (click, Enter,
+     frecce, Esc) valorizza i campi lat/lon che restano editabili, "Avvia"
+     invariato (contratto di avvio e consenso intatti); offline → campo
+     disabilitato e zero richieste; testo candidati solo via `textContent`.
+     Nuovo modulo puro `src/app/geocode.ts` (fetcher/timeout/budget
+     iniettabili, errori tipizzati) + 17 unit test e 7 e2e (Nominatim e tile
+     mockati via `page.route`; l'evidenza "gioco a Taranto" = il tile
+     centrale richiesto all'avvio è `latLonToTile(lat, lon, 14)` del luogo
+     scelto). Nuova riga "Richieste geocoding" in SECURITY.md. Spec
+     [place-name-origin-v1](../specs/place-name-origin-v1.md), risultato
+     [PLACE-NAME-ORIGIN-RESULT](../results/PLACE-NAME-ORIGIN-RESULT.md).
+   - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+    custom tile schema ADR, riuso cache compilata, curated region package).
+   - Baseline stabile per test utente: commit `9ea0062` (origine di gioco per
+     nome del luogo: campo "Cerca un luogo" nel form di avvio, Nominatim
+     pinnato, selezione → lat/lon; su base `15c5f68` nomi via leggibili +
+     dedup per nome, zoom intermedio `e2fc332`, look auto "General Lee"
+     `583e045` + fisica `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;
+     gate verde: 472 test unitari, 34 E2E + 1 canary skipped, build verde);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
  - Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,

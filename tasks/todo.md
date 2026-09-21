@@ -272,3 +272,7 @@ Result: `docs/results/ONE-NAME-PER-ROAD-RESULT.md`.
 - [x] NN-01: `renderer.ts` helper puro `labelTextKey` (trim + collapse whitespace + casefold) + unit test; test RED dedup per nome (stesso nome feature distinte → 1, casing varianti → 1, nomi diversi → 2).
 - [x] NN-02: `rebuildLabels` dedup per `labelTextKey(label.text)`, vince la più vicina alla camera; rimozione `labelDedupKey`; rovesciamento del test ND "feature distinte stesso nome → entrambi".
 - [x] NN-03: gate completa (unit, typecheck, build, e2e, git diff --check) + docs (result, log esecuzione, CURRENT.md).
+- [x] PN-01: `src/app/geocode.ts` client geocoding puro (Nominatim pinnato, errori tipizzati, validazione per-candidato, cache LRU, readBoundedJson) + `src/app/geocode.test.ts` (RED prima).
+- [x] PN-02: `tests/e2e/place-search.spec.ts` RED (page.route Nominatim+tile: lista, selezione→lat/lon+tile centrale, 1 char→0 richieste, 429, timeout, offline).
+- [x] PN-03: `live-controls.ts` campo "Cerca un luogo" (debounce, abort, listbox textContent, selezione tastiera/click, stato risolto, offline disabilitato) → e2e verde.
+- [x] PN-04: gate completa + docs (SECURITY.md riga geocoding, result, log esecuzione, CURRENT.md).

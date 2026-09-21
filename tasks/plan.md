@@ -803,3 +803,42 @@ testo). Provider-agnostic (MVT e OSM). `labelDedupKey` rimosso (morto).
 | Due vie davvero distinte con lo stesso nome in viewport: solo la più vicina etichettata | Scelta esplicita (comportamento mappa reale: un nome per via per viewport); è esattamente il difetto segnalato |
 | Merge tra `kind` (es. via e piazza omonime) | Accettato: stesso nome → 1 label, posizionato sul tratto/centroide più vicino alla camera |
 | `labelDedupKey` rimosso: documentazione ND | Il result doc ND resta storico; il nuovo result doc spiega la sostituzione |
+
+---
+
+## Origine di gioco per nome del luogo (geocoding)
+
+Data: 2026-09-21. Baseline: `59c17c5` (working tree pulito).
+Spec: `docs/specs/place-name-origin-v1.md` (approvata dall'utente).
+Result: `docs/results/PLACE-NAME-ORIGIN-RESULT.md`.
+
+Campo "Cerca un luogo" nel form di avvio tra Modalità e coordinate: debounce
+400 ms + min 2 caratteri, ≤ 5 candidati Nominatim (endpoint pinnato,
+`format=jsonv2`, `accept-language=it`), 1 richiesta in-flight con abort,
+cache in-memory per query, validazione rigida dei candidati, selezione
+(click/tastiera) → valorizza i campi lat/lon (restano editabili), offline →
+disabilitato. Contratto di avvio e consenso invariati.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | PN-01 | Nessuna | M | `src/app/geocode.ts`: `createGeocodeClient` (fetcher/timeout/budget iniettabili, URLParams, `readBoundedJson`, errori tipizzati network/http/rate-limited/timeout/invalid-response/aborted, validazione per-candidato con scarto, slice maxCandidates, cache LRU ≤ 32 per query normalizzata, query vuota → []) + `NOMINATIM_SEARCH_URL` + unit test completo (RED prima) |
+| [x] | PN-02 | PN-01 | M | `tests/e2e/place-search.spec.ts` (RED): page.route mock Nominatim + tile — lista candidati, selezione → lat/lon valorizzati + Avvia → tile centrale = `latLonToTile(lat, lon, 14)`, 1 carattere → 0 richieste, 429 → messaggio e lat/lon invariati, timeout → messaggio, offline → campo disabilitato |
+| [x] | PN-03 | PN-02 | M | `live-controls.ts`: campo "Cerca un luogo" (combobox/listbox, `textContent` solo), debounce 400 ms + min 2 char, abort in-flight, stato inline per codice errore, selezione click/Enter/frecce/Esc → lat/lon + stato risolto (nome, readOnly; click ri-edita), `syncCoordinates` estesa a offline; e2e PN-02 verde |
+| [x] | PN-04 | PN-03 | S | Gate completa (unit, typecheck, build, e2e, `git diff --check`) + docs: SECURITY.md (riga "Richieste geocoding"), result, log esecuzione, CURRENT.md |
+
+### Checkpoint
+
+- [x] Esempio utente: "taranto" → scelgo "Taranto, …" → lat/lon = 40,4644 / 17,2477 → Avvia richiede il tile centrale di Taranto.
+- [x] Nessun URL costruito da input utente (endpoint pinnato); testo candidato solo via `textContent`; offline = zero richieste geocoding.
+- [x] Payload difettosi → stati di errore testuali, mai valori corrotti né crash.
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| Nominatim policy (1 req/s, UA) | Debounce + 1 in-flight + cache + limit=5; e2e mocka via `page.route` (nessun carico sul servizio) |
+| E2E dipendente dalla rete | Nominatim e tile MVT intercettati con `page.route`: test deterministico; i tile restanti si abortono dopo l'assert |
+| Complessità a11y combobox | Pattern `combobox`/`listbox` minimo + test da tastiera in e2e (frecce/Enter/Esc) |
