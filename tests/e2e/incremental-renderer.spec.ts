@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { liveWorld } from "../fixtures/live-world.ts";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 test("chunk presentations grow and shrink only by the changed chunks", async ({ page, baseURL }) => {
   test.setTimeout(90000);
@@ -11,6 +12,7 @@ test("chunk presentations grow and shrink only by the changed chunks", async ({ 
     if (url.startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
+  await mockReverseGeocoding(page);
   const presentation = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { presentation(): { chunkPresentations: number; graphicsObjects: number } } }).__opengtaV0Debug.presentation());
   await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");

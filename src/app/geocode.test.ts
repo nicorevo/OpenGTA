@@ -1,5 +1,5 @@
-import { expect, it } from "vitest";
-import { createGeocodeClient, GeocodeError, NOMINATIM_SEARCH_URL, normalizeGeocodeQuery } from "./geocode.ts";
+import { describe, expect, it } from "vitest";
+import { createGeocodeClient, GeocodeError, NOMINATIM_REVERSE_URL, NOMINATIM_SEARCH_URL, normalizeGeocodeQuery } from "./geocode.ts";
 
 type RecordedRequest = { url: URL; signal?: AbortSignal };
 
@@ -152,6 +152,59 @@ it("does not cache failures", async () => {
   await expect(client.search("taranto")).rejects.toMatchObject({ code: "rate-limited" });
   await expect(client.search("taranto")).resolves.toHaveLength(1);
   expect(call).toBe(2);
+});
+
+describe("reverse geocoding", () => {
+  it("uses the pinned reverse endpoint by default", () => {
+    expect(NOMINATIM_REVERSE_URL).toBe("https://nominatim.openstreetmap.org/reverse");
+  });
+
+  it("serializes lat/lon and the pinned query fields", async () => {
+    const { fetcher, requests } = fakeFetcher(() => jsonPayload({ place_id: 1, display_name: "Lecce, Puglia, Italia" }));
+    await createGeocodeClient({ fetcher }).reverse(40.3531, 18.1726);
+    const [first] = requests;
+    expect(first?.url.origin + first?.url.pathname).toBe(NOMINATIM_REVERSE_URL);
+    expect(first?.url.searchParams.get("lat")).toBe("40.3531");
+    expect(first?.url.searchParams.get("lon")).toBe("18.1726");
+    expect(first?.url.searchParams.get("format")).toBe("jsonv2");
+    expect(first?.url.searchParams.get("zoom")).toBe("10");
+    expect(first?.url.searchParams.get("accept-language")).toBe("it");
+  });
+
+  it("maps the candidate using the requested coordinates", async () => {
+    const { fetcher } = fakeFetcher(() => jsonPayload({ place_id: 3134652, display_name: "Lecce, Puglia, Italia", lat: "90", lon: "180" }));
+    const result = await createGeocodeClient({ fetcher }).reverse(40.3531, 18.1726);
+    expect(result).toEqual({ name: "Lecce, Puglia, Italia", latitude: 40.3531, longitude: 18.1726, placeId: "3134652" });
+  });
+
+  it("resolves undefined when Nominatim reports no data for the point", async () => {
+    const { fetcher } = fakeFetcher(() => jsonPayload({ error: "Unable to reverse geocode" }));
+    await expect(createGeocodeClient({ fetcher }).reverse(40.3531, 18.1726)).resolves.toBeUndefined();
+  });
+
+  it("maps non-object or invalid payloads to invalid-response", async () => {
+    const { fetcher: array } = fakeFetcher(() => jsonPayload([{ display_name: "x" }]));
+    await expect(createGeocodeClient({ fetcher: array }).reverse(40, 18)).rejects.toMatchObject({ code: "invalid-response" });
+    const { fetcher: missing } = fakeFetcher(() => jsonPayload({ place_id: 1 }));
+    await expect(createGeocodeClient({ fetcher: missing }).reverse(40, 18)).rejects.toMatchObject({ code: "invalid-response" });
+  });
+
+  it("maps 429 to rate-limited and a slow fetcher to timeout", async () => {
+    const { fetcher: f429 } = fakeFetcher(() => jsonPayload({}, 429));
+    await expect(createGeocodeClient({ fetcher: f429 }).reverse(40, 18)).rejects.toMatchObject({ code: "rate-limited", status: 429 });
+    const slow = async (_url: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("still running")), 300);
+      init.signal?.addEventListener("abort", () => { clearTimeout(timer); reject(new Error("aborted")); }, { once: true });
+    });
+    await expect(createGeocodeClient({ fetcher: slow, timeoutMs: 20 }).reverse(40, 18)).rejects.toMatchObject({ code: "timeout" });
+  });
+
+  it("maps a caller abort to aborted", async () => {
+    const client = createGeocodeClient({ fetcher: async () => jsonPayload({ display_name: "x" }) });
+    const controller = new AbortController();
+    controller.abort();
+    await expect(client.reverse(40, 18, controller.signal)).rejects.toMatchObject({ code: "aborted" });
+  });
 });
 
 it("bounds the cache (LRU eviction refetches the oldest entry)", async () => {

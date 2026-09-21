@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { liveWorld } from "../fixtures/live-world.ts";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 test("zoom buttons clamp at the limits and driving keeps working", async ({ page, baseURL }) => {
   const errors: string[] = [];
@@ -10,6 +11,7 @@ test("zoom buttons clamp at the limits and driving keeps working", async ({ page
     if (url.startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
+  await mockReverseGeocoding(page);
   const zoomLevel = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { session(): { zoomLevel: number } } }).__opengtaV0Debug.session().zoomLevel);
   const position = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { vehicle(): { position: { x: number } } } }).__opengtaV0Debug.vehicle().position.x);
   await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import fixture from "../../src/fixtures/geo/lecce-sant-oronzo-v0.raw.json" with { type: "json" };
 import { liveWorld } from "../fixtures/live-world.ts";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 test("OSM live compiles real geometry using only the selected provider", async ({ page, baseURL }) => {
   const unexpected: string[] = [];
@@ -19,6 +20,7 @@ test("OSM live compiles real geometry using only the selected provider", async (
     calls++;
     return route.fulfill({ json: fixture });
   });
+  await mockReverseGeocoding(page);
   await page.goto("/?mode=open-world-live&provider=osm&consent=1");
   await expect(page.locator('canvas[aria-label="OpenGTA Web V0 world"]')).toBeVisible();
   await expect.poll(() => page.evaluate(() => "__opengtaV0Debug" in window), { timeout: 15000 }).toBe(true);
@@ -50,6 +52,7 @@ test("starts driving while a neighbor is delayed and recovers after an error", a
     if (url.startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
+  await mockReverseGeocoding(page);
   await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "error", { timeout: 15000 });
   fail = false;

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 test("presents the fixed MVT live form with implicit consent and offline coordinate lock", async ({ page, baseURL }) => {
   test.setTimeout(90000);
@@ -15,6 +16,7 @@ test("presents the fixed MVT live form with implicit consent and offline coordin
     if (route.request().url().includes("/planet/20260830_080001_pt/14/")) return route.fulfill({ status: 200, contentType: "application/x-protobuf", body: tileBytes });
     return route.abort();
   });
+  await mockReverseGeocoding(page);
 
   // Online is now the default: a bare load auto-starts the pinned MVT session.
   await page.goto("/");
@@ -64,6 +66,7 @@ test("starts live mode with keyboard input only", async ({ page, baseURL }) => {
     if (route.request().url().includes("/planet/20260830_080001_pt/14/")) return route.fulfill({ status: 200, contentType: "application/x-protobuf", body: tileBytes });
     return route.abort();
   });
+  await mockReverseGeocoding(page);
 
   await page.goto("/");
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready", { timeout: 30000 });

@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 test("reaches first playable and crosses 10+ distinct chunks with provider=openfreemap-mvt", async ({ page, baseURL }) => {
   test.setTimeout(300000);
@@ -20,6 +21,7 @@ test("reaches first playable and crosses 10+ distinct chunks with provider=openf
     errors.push("Unexpected tile request: " + route.request().url());
     return route.abort();
   });
+  await mockReverseGeocoding(page);
 
   // Spawn origin pinned to the longest straight drivable span of the
   // fixture tile (minor road heading east, 774 m, deviation < 4 m; probed

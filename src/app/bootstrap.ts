@@ -12,6 +12,8 @@ import { createLiveControls } from "./live-controls.ts";
 import { createPixiRenderer } from "../render/pixi/renderer.ts";
 import { createFirstPersonRenderer } from "../render/pixi/first-person-renderer.ts";
 import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapier/adapter.ts";
+import { createGeocodeClient } from "./geocode.ts";
+import { createPlaceTracker, type PlaceTracker } from "./place-status.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
 import { switchView, type ViewLoop } from "./view-toggle.ts";
 import { advanceFixedStep } from "./fixed-step.ts";
@@ -158,14 +160,23 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       }
       const session = current;
       const vehicleSnapshot = () => session ? session.vehicle() : offlineVehicle ? { position: { ...offlineVehicle.position }, velocity: { ...offlineVehicle.velocity }, heading: offlineVehicle.heading } : undefined;
+      // Current-place display: reverse-geocoded zone name (open-world only);
+      // the projector mirrors the session's origin, so world → lon/lat matches.
+      const placeProjector = openWorld && session ? createTangentProjector(config.origin) : undefined;
+      const placeTracker: PlaceTracker | undefined = placeProjector
+        ? createPlaceTracker({ reverse: createGeocodeClient().reverse, toLonLat: (x, y) => placeProjector.unproject({ x, y }) })
+        : undefined;
       const metrics = new RuntimeMetrics();
       Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });
       Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: Object.freeze({ snapshot: () => metrics.snapshot() }) });
       const updateStatus = () => {
         const snapshot = session?.snapshot(); if (!snapshot) return;
+        const pose = session?.vehicle()?.position;
+        if (placeTracker && pose) placeTracker.track(pose.x, pose.y);
         status.dataset.state = snapshot.state;
         const code = Object.values(snapshot.runtime.errors)[0];
-        message.textContent = snapshot.blocked ? "Settore davanti non disponibile" : code ? messages[snapshot.state] + ": " + (errorMessages[code] ?? "Errore dati") : messages[snapshot.state];
+        const base = snapshot.state === "ready" ? (placeTracker?.place() ?? messages.ready) : messages[snapshot.state];
+        message.textContent = snapshot.blocked ? "Settore davanti non disponibile" : code ? base + ": " + (errorMessages[code] ?? "Errore dati") : base;
         retry.hidden = !["error", "empty", "degraded"].includes(snapshot.state) && !snapshot.blocked;
       };
       const updateOverlay = () => {
@@ -225,7 +236,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         if (params.get("benchmark") === "1" && now - benchmarkStart >= 30000) { document.body.dataset.benchmarkComplete = "true"; document.body.dataset.benchmarkResult = JSON.stringify(metrics.snapshot()); }
         raf = requestAnimationFrame(frame);
       };
-      stopLoop = () => { cancelAnimationFrame(raf); listeners.abort(); keys.clear(); activeKeys = undefined; };
+      stopLoop = () => { cancelAnimationFrame(raf); listeners.abort(); keys.clear(); activeKeys = undefined; placeTracker?.dispose(); };
       raf = requestAnimationFrame(frame);
     } finally {
       if (token === epoch) { busy = false; retry.disabled = false; }

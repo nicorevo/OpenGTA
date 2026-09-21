@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { liveWorld } from "../fixtures/live-world.ts";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 for (const trial of [1, 2, 3]) test(`records cold and warm session measurements ${trial}`, async ({ page, baseURL }) => {
   // Load-tolerant: the full e2e suite runs many Chrome instances in parallel,
@@ -13,6 +14,7 @@ for (const trial of [1, 2, 3]) test(`records cold and warm session measurements 
     if (route.request().url().startsWith(baseURL!)) return route.continue();
     throw new Error("Unexpected remote request");
   });
+  await mockReverseGeocoding(page);
   const snapshot = () => page.evaluate(() => {
     const debug = window as unknown as { __opengtaV0Debug: { session(): { firstPlayableMs: number; lastChunkAppliedMs: number; runtime: { pending: string[]; active: string[]; records: number; cacheSize: number }; colliders: number } }; __opengtaV0Metrics: { snapshot(): { frames: number; p95FrameMs: number; physicsSteps: number } } };
     return { session: debug.__opengtaV0Debug.session(), metrics: debug.__opengtaV0Metrics.snapshot() };

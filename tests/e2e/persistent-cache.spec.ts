@@ -3,6 +3,7 @@ import { writeFile } from "node:fs/promises";
 import rawFixture from "../../src/fixtures/geo/lecce-sant-oronzo-v0.raw.json" with { type: "json" };
 import type { CompiledChunkV0 } from "../../src/world/compiler/compiled.ts";
 import { liveWorld } from "../fixtures/live-world.ts";
+import { mockReverseGeocoding } from "../fixtures/geocode-mock.ts";
 
 /**
  * CACHE-02: the IndexedDB backend exercised with the real browser IndexedDB.
@@ -264,6 +265,7 @@ test("reloads reuse compiled chunks from IndexedDB without new provider calls", 
     if (url.startsWith(baseURL!)) return route.continue();
     errors.push("Unexpected remote request"); return route.abort();
   });
+  await mockReverseGeocoding(page);
   const url = `/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`;
   await page.goto(url);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
