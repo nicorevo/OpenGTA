@@ -29,7 +29,10 @@ Non rieseguirli come backlog corrente.
 | Label acque (fiumi/laghi) | Completata (commit `475dbae`) — nomi di laghi/fiumi ricevuti ma prima non pubblicati, ora emessi come label; test in `src/world/compiler/compiled.test.ts` |
 | Fisica veicolo (peso, derapata, +velocità) | Completata (commit `28fe0ee`) — VP-01..03: curva motore, grip/derapata per velocità, coasting pesante, top speed 84 m/s (~302 km/h), skew scocca in curva; spec `docs/specs/vehicle-physics-v1.md`, risultato in `docs/results/VEHICLE-PHYSICS-RESULT.md` |
 | Look auto "General Lee" (berlina rossa, ombra, decal) | Completata (commit `583e045`) — GL-01..04: sprite Dodge Charger rossa, ombra a terra che appoggia la scocca, scritta "GENERAL LEE"/"01" nitide, scale 3.0; risultato in `docs/results/GENERAL-LEE-VEHICLE-RESULT.md` |
-| Zoom intermedio (overview → guida) | Completata (commit `e2fc332`) — ZI-01..03: scala zoom a 6 livelli, livello intermedio ×2.25 tra overview e preset di guida (default invariato su ×6.0, ora livello 3), LOD 0-1 far / 2-3 medium / 4-5 near; risultato in `docs/results/INTERMEDIATE-ZOOM-RESULT.md` |
+| Zoom intermedio (overview → guida) | Completata (working tree post `df5be7b`) — ZI-01..03: scala zoom a 6 livelli, livello intermedio ×2.25 tra overview e preset di guida (default invariato su ×6.0, ora livello 3), LOD 0-1 far / 2-3 medium / 4-5 near; risultato in `docs/results/INTERMEDIATE-ZOOM-RESULT.md` |
+| Nomi via leggibili (carreggiata) | Completata (commit `15c5f68`) — LB-01..03: label rasterizzate a 128px poi scalate in unità di mondo (nitide a ogni zoom), altezza = 42% della carreggiata (clamp 1.2–4 m), fit all'80% della lunghezza strada, bianco + contorno sottile; risultato in `docs/results/LEGIBLE-ROAD-LABELS-RESULT.md` |
+| Nomi via/luoghi duplicati (dedup) | Completata (commit `15c5f68`) — ND-01..03: ogni chunk compila la propria copia dei label (via spezzate in `part:N`, metà poligono MVT) → dedup nel renderer per identità di feature (`labelDedupKey`, poi sostituita da NN), vince la copia più vicina alla camera; risultato in `docs/results/NO-DUPLICATE-LABELS-RESULT.md` |
+| Nomi ripetuti su vie distinte (dedup per nome) | Completata (commit `15c5f68`) — NN-01..03: review pipeline (reperimento OK, difetto in assegnazione: un label per way OSM ma il nome è attributo della via) → dedup nel renderer per nome normalizzato (`labelTextKey`: trim+casefold), vince la copia più vicina alla camera; risultato in `docs/results/ONE-NAME-PER-ROAD-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -129,20 +132,31 @@ anche con suite verde.
    `VEHICLE_VISUAL_SCALE` 3.0. Fisica/collider invariati. Risultato
    [GENERAL-LEE-VEHICLE-RESULT](../results/GENERAL-LEE-VEHICLE-RESULT.md).
   - Tranche **Zoom intermedio (overview → guida)** completata il 2026-09-21
-    (ZI-01..03, working tree post `df5be7b`): il salto di zoom tra l'overview
+    (commit `e2fc332`, ZI-01..03): il salto di zoom tra l'overview
     (×0.85) e il preset di guida (×6.0) era 7x; aggiunta la scala a 6 livelli
     `[0.7, 0.85, 2.25, 6.0, 12.0, 24.0]` con livello intermedio ×2.25 (mediana
     geometrica, passi <3x), default invariato sul preset di guida (ora livello
     3, fattore 6.0) e LOD 0-1 far / 2-3 medium / 4-5 near. Solo presentazione:
     fisica e streaming invariati. Risultato
     [INTERMEDIATE-ZOOM-RESULT](../results/INTERMEDIATE-ZOOM-RESULT.md).
+  - Tranche **Nomi via leggibili + dedup (LB/ND/NN)** completata il 2026-09-21
+    (commit `15c5f68`): label rasterizzate a 128px poi scalate in unità di
+    mondo (altezza 42% della carreggiata, clamp 1.2–4 m, fit 80% lunghezza
+    strada, bianco + contorno sottile); review del pipeline nomi (reperimento
+    OK, difetto in assegnazione: un label per way OSM ma il nome è attributo
+    della via) → dedup nel renderer per nome normalizzato (`labelTextKey`),
+    vince la copia più vicina alla camera. Risultati
+    [LEGIBLE-ROAD-LABELS-RESULT](../results/LEGIBLE-ROAD-LABELS-RESULT.md),
+    [NO-DUPLICATE-LABELS-RESULT](../results/NO-DUPLICATE-LABELS-RESULT.md) e
+    [ONE-NAME-PER-ROAD-RESULT](../results/ONE-NAME-PER-ROAD-RESULT.md).
   - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
    custom tile schema ADR, riuso cache compilata, curated region package).
- - Baseline stabile per test utente: commit `583e045` (look auto "General Lee":
-   berlina rossa Dodge Charger + ombra a terra + decal "GENERAL LEE"/"01" nitide;
-   su base fisica veicolo `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;
-   gate verde: 438 test unitari, 24 E2E non-flaky + 1 canary skipped, `bootstrap`
-   flaky da carico come noto);
+  - Baseline stabile per test utente: commit `15c5f68` (nomi via leggibili +
+    dedup per nome: label a 128px scalati in mondo, un nome per via con la
+    copia più vicina alla camera; su base zoom intermedio `e2fc332`, look auto
+    "General Lee" `583e045` + fisica `28fe0ee`, look GTA `bc635c6` + label
+    acque `475dbae`; gate verde: 455 test unitari, 27 E2E + 1 canary skipped,
+    build verde);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
  - Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,

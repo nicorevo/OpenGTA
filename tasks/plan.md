@@ -655,3 +655,151 @@ fisica, posa veicolo, contratti chunk e streaming invariati.
 | Renumera i livelli (2→3, 3→4, 4→5): consumer esterni | Tutti i consumer sono in-repo (renderer, bootstrap, test); il default resta il preset ×6.0, quindi la resa visiva iniziale è identica |
 | Fattore 2.25 sperimentale | Parametro in `ZOOM_STEPS`: ricalibrabile senza toccare i contratti (guard unit "passi <3x" + G2D-16/18) |
 | Tier del livello intermedio | medium (facciate 0.6, casing, label >= 60): coerente con il vecchio livello 2 e monotono (mai dettaglio in meno zoomando in) |
+
+---
+
+## Piano: Nomi via leggibili (dentro la carreggiata)
+
+Data: 2026-09-21. Baseline codice: working tree post ZI (zoom intermedio, non
+ancora commitato). Result: `docs/results/LEGIBLE-ROAD-LABELS-RESULT.md`.
+
+### Obiettivo
+
+Il nome della via risultava praticamente illeggibile (screenshot MVT live al
+zoom intermedio): `Text` Pixi con `fontSize: 10` in unità di mondo (metri)
+rasterizzata a 1x e poi ingrandita ~6x dal viewScale → banda sfocata; lo
+stroke bianco da 2px copriva il fill nero; l'altezza (10 m) superava la
+carreggiata (6 m) → il nome escombeva fuori dalla strada. Richiesta utente:
+font più piccolo, caratteri chiari, testo compreso nella carreggiata. Solo
+presentazione: contratto chunk, gate LOD, fisica e streaming invariati.
+
+Scelte:
+
+- Il testo è rasterizzato una volta a `LABEL_RASTER_SIZE = 128` px (design) e
+  poi scalato in unità di mondo: downsampling → nitido a ogni viewScale
+  (stesso principio dei decal "GENERAL LEE", GL-03).
+- Altezza = 42% della larghezza della strada (clamp 1.2–4 m); label "place"
+  (parchi/acque/palazzi) fisse a 3 m.
+- Se il nome è più lungo di 80% della strada, `labelFitScale` riduce
+  ulteriormente per farlo rientrare.
+- Fill bianco + contorno scuro sottile (~5% dell'altezza): caratteri chiari,
+  leggibili sia sull'asfalto scuro sia sul suolo chiaro.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | LB-01 | Nessuna | M | `renderer.ts`: helper puri esportati `labelWorldHeightM`, `labelFitScale`, `polylineLengthMeters` + unit test (altezza % carreggiata, clamp 1.2–4 m, place 3 m, fit 80% lunghezza, lunghezza polilinea) |
+| [x] | LB-02 | LB-01 | M | `rebuildLabels`: stile 128px bianco + contorno scuro; `text.scale` da helper (road → `widthMeters`+lunghezza centerline da `chunk.roads[featureId]`); `renderer-labels.test.ts` (scale atteso road 6 m, place, strada corta) + e2e `renderer-streaming` (scale label in (0, 0.1) a tier near) |
+| [x] | LB-03 | LB-02 | S | Gate completa verde (unit, typecheck, build, e2e) + docs: result, piano/todo, log esecuzione, CURRENT.md |
+
+### Checkpoint
+
+- [x] Il nome della via è nitido (non banda sfocata) a ogni zoom con label visibili.
+- [x] L'altezza del testo sta dentro la carreggiata (strada 6 m → ~2.5 m; 3.5 m → ~1.5 m).
+- [x] Caratteri chiari (bianco con contorno sottile) leggibili su asfalto e suolo.
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| Texture 128px per label: memoria con molti nomi | Le label sono gate da LOD (MEDIUM ≥ 60, NEAR tutte) e distrutte/ricostruite al cambio di tier; dimensione texture ~caratteri×128 px (pochi MB in città) |
+| Raster 128px a risoluzione 1: leggero upscale a zoom estremo (near su 4K) | Trade-off accettato: lo zoom d'uso (overview→guida) è downsampling → nitidezza massima; il near resta leggibile |
+| Nome lungo su strada corta | `labelFitScale` riduce lo scale fino al 80% della lunghezza strada |
+| Change visiva netta (era illeggibile) | Screenshot e2e gta-city aggiornano la baseline; nessun assert di conteggio label toccato |
+
+---
+
+## Piano: Nomi via/luoghi duplicati (dedup per feature)
+
+Data: 2026-09-21. Baseline: working tree post LB (nomi leggibili, non ancora
+commitato). Result: `docs/results/NO-DUPLICATE-LABELS-RESULT.md`.
+
+### Obiettivo
+
+Verifica richiesta dall'utente: "ho l'impressione che non funzioni, che
+duplichi i nomi via". Confermato: ogni chunk compila un box ±300 m (una
+cella) e ogni chunk attraversato da una via/nei confronti di un luogo produce
+la propria copia del label (OSM: `normalizeOsm` spezza le way in `part:N`
+conservando il nome; `compileRegion` emette un label per feature;
+`partitionCompiledChunk` filtra per posizione, ma le copie hanno posizioni
+diverse) → il nome si ripete una volta per chunk (~600 m) e le way ad anello
+duplicano anche dentro lo stesso chunk. MVT: analogo (merge per chunk + metà
+poligono `#hN` che conservano il nome).
+
+Scelta: dedup nel renderer (`rebuildLabels`, unico punto che vede tutti i
+chunk attivi insieme): una sola copia per identità di feature stabile
+(featureId senza il suffisso per-chunk `:part:N` / `#pN`/`#hN`/`#aN`/`#wN`),
+vince la copia più vicina al bersaglio camera (il nome resta nello schermo).
+Nessuna modifica al contratto chunk, al normalizer o alla cache persistente.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | ND-01 | Nessuna | S | `renderer.ts`: helper puro esportato `labelDedupKey` (strip `:part:N` OSM e `#<p|h|a|w>N` MVT, id nudi invariati) + unit test (inclusi id senza suffisso e id con suffisso multi-digit) |
+| [x] | ND-02 | ND-01 | M | `rebuildLabels`: dedup per `labelDedupKey` tra i chunk attivi, vince la copia più vicina a `position` (camera target); `renderer-labels.test.ts` (2 chunk stessa feature → 1 Text, vince la più vicina; feature distinte → entrambi) + e2e `renderer-streaming` (2 chunk, stesso featureId, 1 Text totale) |
+| [x] | ND-03 | ND-02 | S | Gate completa verde (unit, typecheck, build, e2e) + docs: result, piano/todo, log esecuzione, CURRENT.md |
+
+### Checkpoint
+
+- [x] Una via che attraversa N chunk mostra il nome una sola volta (la copia più vicina alla camera).
+- [x] Nomi di luoghi (parchi/acque/edifici) condivisi tra chunk: una sola copia.
+- [x] Due feature distinte con lo stesso testo restano entrambe (dedup per identità, non per testo).
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| Falso merge: due feature distinte con lo stesso key | Impossibile per feature con sourceId (OSM/MVT: l'id include l'id OSM); gli id sintetici senza sourceId (`tile-scoped:iN`) sono feature anonime senza label |
+| Way ad anello con 2 parti nello stesso chunk: 2 copie con key diversa pre-strip, ma uguale post-strip | Il post-strip unifica le parti della stessa way → 1 copia anche intra-chunk |
+| La copia "vincente" cambia al cambio di chunk attivo | Comportamento atteso: il nome segue il tratto vicino alla camera, come nelle mappe reali per-tile |
+| Count `presentationDiagnostics().labels` | Invariato: conta il set per-chunk filtrato da LOD, non i Text creati (già documentato nel renderer) |
+
+---
+
+## Un nome per via (dedup per nome normalizzato)
+
+Data: 2026-09-21. Baseline: working tree post ND (non ancora commitato).
+Result: `docs/results/ONE-NAME-PER-ROAD-RESULT.md`.
+
+Review del pipeline nomi (reperimento→assegnazione→visualizzazione):
+- Reperimento MVT OK: join `transportation_name` per id OSM verificato su tile
+  reale (151/585 strade nominate, 0 id duplicati, 0 name mal assegnati).
+- Assegnazione difettosa: un label per **way** OSM, ma il nome è attributo
+  della **via**: una via fatta di più way (segmenti, doppia carreggiata,
+  coppie senso unico; su tile reale: `Via Merine` = 2 way, `Viale Giacomo
+  Leopardi` = 2 way, più varianti di casing `Viale venticinque luglio`)
+  produce N label con lo stesso nome su strade apparentemente distinte.
+- Visualizzazione: il dedup ND per identità di feature non mergea way
+  distinte con lo stesso nome.
+
+Scelta: dedup nel renderer (`rebuildLabels`) per **nome normalizzato**
+(trim + collapse whitespace + casefold), vince la copia più vicina al
+bersaglio camera. Subsume il dedup per identità (stessa feature ⇒ stesso
+testo). Provider-agnostic (MVT e OSM). `labelDedupKey` rimosso (morto).
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | NN-01 | Nessuna | S | `renderer.ts`: helper puro esportato `labelTextKey` (trim, collapse whitespace, casefold) + unit test; test RED: 2 feature distinte stesso nome → 1 Text (vince la più vicina); varianti di casing → 1 Text; nomi distinti → 2 Text |
+| [x] | NN-02 | NN-01 | M | `rebuildLabels`: chiave di dedup = `labelTextKey(label.text)`; rimozione `labelDedupKey`; test aggiornati (il vecchio "feature distinte stesso nome → entrambi" rovesciato) |
+| [x] | NN-03 | NN-02 | S | Gate completa verde (unit, typecheck, build, e2e, `git diff --check`) + docs: result, piano/todo, log esecuzione, CURRENT.md |
+
+### Checkpoint
+
+- [x] Stessa via composta da N way OSM (o varianti di casing del nome): 1 solo label visibile, sul tratto più vicino alla camera.
+- [x] Vie diverse con nomi diversi: tutti i label presenti (nessuna soppressione eccessiva).
+- [x] Dedup ND per chunk (stessa feature, `:part:N`/`#pN`) invariato: 1 copia.
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| Due vie davvero distinte con lo stesso nome in viewport: solo la più vicina etichettata | Scelta esplicita (comportamento mappa reale: un nome per via per viewport); è esattamente il difetto segnalato |
+| Merge tra `kind` (es. via e piazza omonime) | Accettato: stesso nome → 1 label, posizionato sul tratto/centroide più vicino alla camera |
+| `labelDedupKey` rimosso: documentazione ND | Il result doc ND resta storico; il nuovo result doc spiega la sostituzione |

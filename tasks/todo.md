@@ -240,3 +240,35 @@ Data: 2026-09-21. Baseline: working tree post `df5be7b` (G2D-01). Result:
 - [x] ZI-02: renderer/bootstrap + e2e (zoom, renderer-streaming, gta-city) e mock allineati; gate completa verde (440 unit, typecheck, build, 27 e2e + 1 canary skip).
 - [x] ZI-03: result + README (zoom 6 livelli) + log esecuzione + CURRENT.md
 
+---
+
+## Nomi via leggibili (dentro la carreggiata)
+
+Data: 2026-09-21. Baseline: working tree post ZI (non ancora commitato).
+Result: `docs/results/LEGIBLE-ROAD-LABELS-RESULT.md`.
+
+- [x] LB-01: `renderer.ts` helper puri `labelWorldHeightM` (42% carreggiata, clamp 1.2–4 m, place 3 m), `labelFitScale` (fit 80% lunghezza strada), `polylineLengthMeters` + unit test.
+- [x] LB-02: `rebuildLabels` stile 128px bianco + contorno scuro, `text.scale` per label; `renderer-labels.test.ts` (scale atteso) + e2e `renderer-streaming` (scale in (0, 0.1)).
+- [x] LB-03: gate completa (unit, typecheck, build, e2e) + docs (result, log esecuzione, CURRENT.md).
+
+---
+
+## Nomi via/luoghi duplicati (dedup per feature)
+
+Data: 2026-09-21. Baseline: working tree post LB (non ancora commitato).
+Result: `docs/results/NO-DUPLICATE-LABELS-RESULT.md`.
+
+- [x] ND-01: `renderer.ts` helper puro `labelDedupKey` (strip suffissi per-chunk `:part:N` / `#pN`/`#hN`/`#aN`/`#wN`) + unit test.
+- [x] ND-02: `rebuildLabels` dedup per chiave stabile, vince la copia più vicina alla camera; test unit (2 chunk stessa feature → 1 Text) + e2e `renderer-streaming`.
+- [x] ND-03: gate completa + docs (result, log esecuzione, CURRENT.md).
+
+---
+
+## Un nome per via (dedup per nome normalizzato)
+
+Data: 2026-09-21. Baseline: working tree post ND (non ancora commitato).
+Result: `docs/results/ONE-NAME-PER-ROAD-RESULT.md`.
+
+- [x] NN-01: `renderer.ts` helper puro `labelTextKey` (trim + collapse whitespace + casefold) + unit test; test RED dedup per nome (stesso nome feature distinte → 1, casing varianti → 1, nomi diversi → 2).
+- [x] NN-02: `rebuildLabels` dedup per `labelTextKey(label.text)`, vince la più vicina alla camera; rimozione `labelDedupKey`; rovesciamento del test ND "feature distinte stesso nome → entrambi".
+- [x] NN-03: gate completa (unit, typecheck, build, e2e, git diff --check) + docs (result, log esecuzione, CURRENT.md).
