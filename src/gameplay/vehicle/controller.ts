@@ -30,11 +30,11 @@ export interface VehicleTuning {
 // F1-style tuning seed. Kept as a single named object so the values can be
 // surfaced as user-configurable (UI) without touching the controller math.
 export const VEHICLE_TUNING: VehicleTuning = {
-  maxForwardSpeed: 84,          // super-fast -> ~302 km/h
-  maxReverseSpeed: 14,
+  maxForwardSpeed: 67.2,        // -20% trim of 84 -> ~242 km/h
+  maxReverseSpeed: 11.2,        // -20% trim of 14
   forwardAcceleration: 20,
   reverseAcceleration: 16,
-  brakeDeceleration: 48,        // strong: stoppable from ~300 km/h
+  brakeDeceleration: 48,        // strong: stoppable from top speed in ~3 s
   rollingDeceleration: 2.6,
   maxSteerRate: 2.4,
   lateralGripBase: 16,          // grounded at low speed (~9 deg slide)

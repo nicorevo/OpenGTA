@@ -43,7 +43,10 @@ export function createRuntimeSession(options: RuntimeSessionOptions) {
   const available = () => [...chunks.values()].map((entry) => entry.key);
   const values = () => [...chunks.values()].map((entry) => entry.chunk);
   const runtime = createOpenWorldRuntime({
-    baseOrigin: options.origin, grid, cache: options.cache ?? createChunkCache(9), compilerVersion: "v0-runtime",
+    // Persistent-chunk key version: bump it whenever the compiled output
+    // changes (e.g. water collision shapes) so stale cached chunks are never
+    // silently reused.
+    baseOrigin: options.origin, grid, cache: options.cache ?? createChunkCache(9), compilerVersion: "v0-runtime-water-collision",
     source: options.source, regionSource: options.regionSource, sourceIdentity: options.sourceIdentity, queryProfile: options.queryProfile, persistentStore: options.persistentStore, compile: options.compile,
     onChunkReady(chunk, key) {
       if (disposed) return;

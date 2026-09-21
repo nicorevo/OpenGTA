@@ -4,12 +4,12 @@ import { stepVehicle } from "./controller.ts";
 const fresh = (v = 0) => ({ position: { x: 0, y: 0 }, velocity: { x: v, y: 0 }, heading: 0 });
 
 describe("arcade vehicle", () => {
-  it("accelerates forward to the super-fast top speed", () => {
+  it("accelerates forward to the tuned top speed (67.2 m/s after the -20% trim)", () => {
     let state = fresh();
     for (let index = 0; index < 600; index += 1) {
       state = stepVehicle(state, { throttle: 1, steer: 0, brake: 0 });
     }
-    expect(state.velocity.x).toBeCloseTo(84, 1);
+    expect(state.velocity.x).toBeCloseTo(67.2, 1);
     expect(state.position.x).toBeGreaterThan(0);
   });
 
@@ -17,8 +17,16 @@ describe("arcade vehicle", () => {
     let state = fresh();
     for (let index = 0; index < 1200; index += 1) {
       state = stepVehicle(state, { throttle: 1, steer: 0, brake: 0 });
-      expect(state.velocity.x).toBeLessThanOrEqual(84 + 1e-6);
+      expect(state.velocity.x).toBeLessThanOrEqual(67.2 + 1e-6);
     }
+  });
+
+  it("caps reverse speed at the tuned ceiling (11.2 m/s)", () => {
+    let state = fresh();
+    for (let index = 0; index < 600; index += 1) {
+      state = stepVehicle(state, { throttle: -1, steer: 0, brake: 0 });
+    }
+    expect(state.velocity.x).toBeCloseTo(-11.2, 1);
   });
 
   it("accelerates harder at low speed than near the top (engine curve, not linear)", () => {

@@ -23,7 +23,9 @@ export function compileRegion(region: WorldRegion, options: CompileRegionOptions
   const collisions: CollisionShape2D[] = []; const featureIndex: Record<string, { kind: string }> = {}; const warnings: string[] = [];
   let featureIndex2 = 0;
   for (const area of region.landAreas) { if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted(); ground.push({ featureId: area.id, area: area.area, styleKey: `land:${area.landClass}` }); featureIndex[area.id] = { kind: area.kind }; }
-  for (const water of region.waterAreas) { if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted(); if (water.area) { ground.push({ featureId: water.id, area: water.area, styleKey: `water:${water.waterClass ?? "generic"}` }); featureIndex[water.id] = { kind: water.kind }; } }
+  // Water areas also emit a perimeter wall (like buildings): the vehicle may
+  // not enter the water. Line-only waterways have no area, so no collision.
+  for (const water of region.waterAreas) { if (featureIndex2++ % 64 === 0) options.signal?.throwIfAborted(); if (water.area) { ground.push({ featureId: water.id, area: water.area, styleKey: `water:${water.waterClass ?? "generic"}` }); collisions.push({ kind: "polygon", featureId: water.id, polygon: water.area }); featureIndex[water.id] = { kind: water.kind }; } }
   const footprints = createFootprintIndex(region.buildings.map((building) => building.footprint));
   let narrowedToMinimum = 0;
   for (const road of region.roads) {

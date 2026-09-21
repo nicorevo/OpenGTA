@@ -148,6 +148,29 @@ describe("V0 world compiler", () => {
     }]);
   });
 
+  it("compiles water areas into collision shapes so the vehicle cannot enter the water", () => {
+    const lake = { outer: [{ x: 0, y: 0 }, { x: 5, y: 0 }, { x: 5, y: 5 }, { x: 0, y: 5 }], holes: [] };
+    const region: WorldRegion = {
+      id: "water-collisions",
+      geoOrigin: { latitude: 0, longitude: 0 },
+      bounds: { minX: -20, minY: -20, maxX: 20, maxY: 20 },
+      buildings: [],
+      roads: [],
+      landAreas: [],
+      waterAreas: [
+        { id: "water:lake", kind: "water", area: lake, waterClass: "lake" },
+        { id: "water:river", kind: "water", line: { points: [{ x: -5, y: 0 }, { x: 5, y: 0 }] }, waterClass: "river" },
+      ],
+      barriers: [],
+      trees: [],
+      warnings: [],
+    };
+
+    const collisions = compileRegion(region).chunks[0].collisions;
+    expect(collisions).toContainEqual({ kind: "polygon", featureId: "water:lake", polygon: lake });
+    expect(collisions.filter((shape) => shape.featureId === "water:river")).toHaveLength(0);
+  });
+
   it("warns when unknown building collision defaults to solid", () => {
     const region: WorldRegion = {
       id: "unknown-collision",
