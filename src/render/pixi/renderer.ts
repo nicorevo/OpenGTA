@@ -3,7 +3,7 @@ import type { CompiledChunkV0, CompiledLabel } from "../../world/compiler/compil
 import type { Bounds2D, Polygon2D, Vec2 } from "../../world/model/types.ts";
 import { createPresentationState, toggleLabels, type PresentationState } from "./presentation.ts";
 import { groupRoadsByStyleAndWidth, sortBuildingsForPainter, type ClassedRoadGroup } from "./scene-order.ts";
-import { clampZoom, lodForZoom, zoomFactor, type LodTier, type ZoomLevel } from "../../app/camera.ts";
+import { DEFAULT_ZOOM_LEVEL, clampZoom, lodForZoom, zoomFactor, type LodTier, type ZoomLevel } from "../../app/camera.ts";
 import { lodProfileForTier, type LodPresentationProfile, type RoadDetailLevel } from "../lod-profile.ts";
 
 import taxiImageUrl from "./assets/taxi-gta1.png?inline";
@@ -38,7 +38,27 @@ const VEHICLE_WIDTH_METERS = 1.8;
 // the driving preset (spec range 1.0-1.3): at 640x480 the sprite reads
 // ~37x17 px and a 6 m road holds more than two car widths.
 const VEHICLE_VISUAL_SCALE = 1.2;
-const LABEL_TEXT_STYLE = { fontFamily: "Arial", fontSize: 10, fontWeight: "normal", fill: 0x000000, stroke: { color: 0xffffff, width: 2 } } as const;
+// World-space labels are rasterized once at a large design size and scaled
+// down in world units: a 1x Text stretched by the view transform reads as a
+// blurred band, while the 128px raster downsamples crisply at every zoom
+// (same principle as the vehicle decals).
+const LABEL_RASTER_SIZE = 128;
+// Carriageway fit: cap height as a fraction of the road width, clamped so
+// narrow alleys stay readable and grand avenues do not swallow the road.
+const LABEL_HEIGHT_RATIO = 0.42;
+const LABEL_MIN_HEIGHT_M = 1.2;
+const LABEL_MAX_HEIGHT_M = 4;
+const LABEL_PLACE_HEIGHT_M = 3;
+// A name longer than this fraction of its road is shrunk to stay on it.
+const LABEL_MAX_LENGTH_RATIO = 0.8;
+// Bright fill + thin dark outline: legible on dark asphalt and light ground.
+const LABEL_TEXT_STYLE = {
+  fontFamily: "Arial",
+  fontSize: LABEL_RASTER_SIZE,
+  fontWeight: "bold",
+  fill: 0xffffff,
+  stroke: { color: 0x211f26, width: LABEL_RASTER_SIZE * 0.05 },
+} as const;
 const ROAD_CASING_MIN_PX = 0.75;
 const ROAD_CASING_MAX_PX = 2.5;
 const ROAD_CASING_RATIO = 0.12;
@@ -213,6 +233,50 @@ function visibleLabels(labels: readonly CompiledLabel[], profile: LodPresentatio
   return labels.filter((label) => label.priority >= profile.labelMinPriority);
 }
 
+/** Target label height in world meters: road labels size with the carriageway. */
+export function labelWorldHeightM(label: Pick<CompiledLabel, "kind">, roadWidthMeters?: number): number {
+  if (label.kind === "road" && roadWidthMeters !== undefined) {
+    return Math.min(LABEL_MAX_HEIGHT_M, Math.max(LABEL_MIN_HEIGHT_M, roadWidthMeters * LABEL_HEIGHT_RATIO));
+  }
+  return LABEL_PLACE_HEIGHT_M;
+}
+
+/**
+ * Uniform scale for a rasterized label: fits the target world height, then
+ * shrinks further if the name would overrun the road length budget.
+ */
+export function labelFitScale(naturalWidthPx: number, naturalHeightPx: number, targetHeightM: number, roadLengthM?: number): number {
+  if (naturalHeightPx <= 0) return 0;
+  let scale = targetHeightM / naturalHeightPx;
+  if (roadLengthM !== undefined && roadLengthM > 0 && naturalWidthPx > 0) {
+    const worldWidthM = naturalWidthPx * scale;
+    const maxWidthM = roadLengthM * LABEL_MAX_LENGTH_RATIO;
+    if (worldWidthM > maxWidthM) scale *= maxWidthM / worldWidthM;
+  }
+  return scale;
+}
+
+/**
+ * Normalized street-name key: a street is compiled from several distinct OSM
+ * ways (segments, dual carriageways, one-way pairs) that all carry the name
+ * tag, and OSM itself is inconsistent about casing. Trim + collapse
+ * whitespace + casefold so the renderer can draw one label per street name.
+ * (A feature's chunk copies always share the exact text, so this subsumes
+ * the former per-identity dedup.)
+ */
+export function labelTextKey(text: string): string {
+  return text.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+/** Total centerline length in meters (0 for an empty or single-point line). */
+export function polylineLengthMeters(points: readonly Vec2[]): number {
+  let total = 0;
+  for (let index = 1; index < points.length; index += 1) {
+    total += Math.hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y);
+  }
+  return total;
+}
+
 type CompiledBuilding = CompiledChunkV0["buildings"][number];
 function buildingDepthKey(building: CompiledBuilding): number {
   const points = building.roof.outer;
@@ -292,7 +356,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   const presentations = new Map<string, ChunkPresentation>();
   let disposed = false;
   let position = { x: 0, y: 0 };
-  let zoomLevel: ZoomLevel = 2;
+  let zoomLevel: ZoomLevel = DEFAULT_ZOOM_LEVEL;
   const viewScale = () => Math.max(1, Math.min(app.screen.width, app.screen.height)) / 360 * zoomFactor(zoomLevel);
   const updateCamera = () => {
     const scale = viewScale(); world.scale.set(scale);
@@ -300,7 +364,7 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
   };
   app.ticker.add(updateCamera);
   let presentation: PresentationState = createPresentationState();
-  let currentProfileTier: LodTier = lodForZoom(2);
+  let currentProfileTier: LodTier = lodForZoom(DEFAULT_ZOOM_LEVEL);
   let currentProfile: LodPresentationProfile = lodProfileForTier(currentProfileTier);
 
   const applyTier = (): void => {
@@ -401,14 +465,33 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     for (const entry of presentations.values()) clearLabelChildren(entry);
     labelLayer.visible = presentation.labelsVisible;
     if (!presentation.labelsVisible) return;
+    // A street is compiled from several distinct OSM ways that share the name
+    // tag, and each feature is compiled into every chunk it intersects, so a
+    // name arrives many times: draw a single copy per normalized street name,
+    // the one closest to the camera target, so the label stays on the visible
+    // stretch of the road (real-map behaviour, without the repeats).
+    type OwnedLabel = { entry: ChunkPresentation; label: CompiledLabel; roadLengthM: number | undefined; heightM: number; distance: number };
+    const owned = new Map<string, OwnedLabel>();
     for (const entry of presentations.values()) {
+      const roadsByFeature = new Map<string, CompiledRoad>();
+      for (const road of entry.chunk.roads) roadsByFeature.set(road.featureId, road);
       for (const label of visibleLabels(entry.chunk.labels, currentProfile)) {
-        const text = new Text({ text: label.text, style: LABEL_TEXT_STYLE });
-        text.anchor.set(0.5);
-        text.position.set(label.position.x * worldScale, -label.position.y * worldScale);
-        text.rotation = readableLabelAngle(label.angle);
-        entry.labels.addChild(text);
+        const road = label.kind === "road" ? roadsByFeature.get(label.featureId) : undefined;
+        const key = labelTextKey(label.text);
+        const distance = Math.hypot(label.position.x - position.x, label.position.y - position.y);
+        const current = owned.get(key);
+        if (!current || distance < current.distance) {
+          owned.set(key, { entry, label, roadLengthM: road ? polylineLengthMeters(road.centerline) : undefined, heightM: labelWorldHeightM(label, road?.widthMeters), distance });
+        }
       }
+    }
+    for (const { entry, label, roadLengthM, heightM } of owned.values()) {
+      const text = new Text({ text: label.text, style: LABEL_TEXT_STYLE });
+      text.anchor.set(0.5);
+      text.scale.set(labelFitScale(text.width, text.height, heightM, roadLengthM));
+      text.position.set(label.position.x * worldScale, -label.position.y * worldScale);
+      text.rotation = readableLabelAngle(label.angle);
+      entry.labels.addChild(text);
     }
   };
 
