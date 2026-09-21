@@ -298,3 +298,14 @@ Data: 2026-09-21. Baseline: `0433da1`. Spec:
 - [x] LVP-04: renderer theme injection (`setVisualProfile`, seed `featureId`, helper puri).
 - [x] LVP-05: bootstrap auto-selection + debug + e2e.
 - [x] LVP-06: validazione visiva Paris/Rome + result + gate completa.
+- [x] LVP-07: raffino palette France/Paris dal gate visuale utente (tetti zincato con voci calde/fredde, facciate cream/limestone/taupe; Paris più fredda; screenshot prima/dopo + Rome invariato).
+- [x] LVP-08 (LVP-2): profilo `tokyo` (spec §56) + resolver JP + registry estesa (6 id); 3 test RED→GREEN (36/36 unit) + e2e registry; gate a tre famiglie rome/paris/tokyo VALIDATO su geometria reale comune.
+---
+
+## Tile Budgets Live (città dense)
+
+Data: 2026-09-21. Baseline: `cd59f65`. Result:
+`docs/results/DENSE-TILE-BUDGETS-RESULT.md`.
+
+- [x] TB-01: Misura tile z14 reali (Roma/Parigi/Lecce) → root cause "Risposta geografica troppo grande": budget decode feature/punti + `maxTileBytes` non propagato al decode.
+- [x] TB-02: Opzioni provider `maxFeaturesPerTile`/`maxPointsPerGeometry` + config live 16 MiB/30k/100k; fixture Parigi z14 + 2 regression test; gate completa + verifica live reale su Parigi.

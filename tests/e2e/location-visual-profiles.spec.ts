@@ -68,6 +68,8 @@ test("offline mode accepts every valid registry theme and rejects unknown ids", 
   const { reverseCalls } = await installRoutes(page, baseURL!);
   await page.goto("/?mode=offline&theme=rome&consent=1");
   await expect.poll(() => themeId(page)).toBe("rome");
+  await page.goto("/?mode=offline&theme=tokyo&consent=1");
+  await expect.poll(() => themeId(page)).toBe("tokyo");
   // invalid id: degrade to auto resolution (no location -> default), no crash
   await page.goto("/?mode=offline&theme=bogus&consent=1");
   await expect.poll(() => themeId(page)).toBe("default");

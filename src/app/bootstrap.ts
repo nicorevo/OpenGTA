@@ -147,7 +147,11 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       let offlineCounts = { buildings: 0, roads: 0, compiled: 0 };
       let currentChunks: readonly CompiledChunkV0[] = [];
       if (openWorld) {
-        const regionSource = mvt ? createVectorTileCanonicalRegionSource({ provider: createOpenFreeMapProvider({ maxTileBytes: 16 * 1024 * 1024 }), identity: sourceIdentity }) : undefined;
+        // Live budgets: 16 MiB per tile (fetch AND decode), 30k features and
+        // 100k points per geometry — measured dense z14 peaks are ~17k
+        // features / ~52k points (central Paris), so these keep ~2-3x headroom
+        // without weakening the decode security defaults.
+        const regionSource = mvt ? createVectorTileCanonicalRegionSource({ provider: createOpenFreeMapProvider({ maxTileBytes: 16 * 1024 * 1024, maxFeaturesPerTile: 30_000, maxPointsPerGeometry: 100_000 }), identity: sourceIdentity }) : undefined;
         const liveSession = createRuntimeSession({ source, regionSource, origin, renderer, physics, cache, sourceIdentity, queryProfile: mvt ? "mvt-z14-v1" : OSM_QUERY_PROFILE, persistentStore });
         current = liveSession;
         zoom.in = () => liveSession.zoomIn(); zoom.out = () => liveSession.zoomOut(); zoom.level = () => liveSession.snapshot().zoomLevel;

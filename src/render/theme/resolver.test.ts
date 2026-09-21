@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { LocationContext } from "../../app/location-context.ts";
 import { stableStringHash } from "./hash.ts";
-import { buildingStyle, defaultProfile, franceProfile, groundFill, italyProfile, parisProfile, roadStyle, romeProfile } from "./index.ts";
+import { buildingStyle, defaultProfile, franceProfile, groundFill, italyProfile, parisProfile, roadStyle, romeProfile, tokyoProfile } from "./index.ts";
 import { createVisualProfileResolver, knownThemeIds, normalizeLocationToken } from "./resolver.ts";
 
 const resolver = createVisualProfileResolver();
@@ -30,10 +30,15 @@ describe("VisualProfileResolver.resolve", () => {
     expect(resolver.resolve(loc({ countryCode: "IT", locality: "Rome" })).profile.id).toBe("rome");
     expect(resolver.resolve(loc({ countryCode: "FR", locality: "Paris" })).profile.id).toBe("paris");
     expect(resolver.resolve(loc({ countryCode: "FR", locality: "Parigi" })).profile.id).toBe("paris");
+    expect(resolver.resolve(loc({ countryCode: "JP", locality: "Tokyo" })).profile.id).toBe("tokyo");
+    expect(resolver.resolve(loc({ countryCode: "JP", locality: "Tokyo" })).matchedBy).toBe("locality");
   });
 
   it("does not select a city theme when the country contradicts", () => {
     expect(resolver.resolve(loc({ countryCode: "US", locality: "Paris" })).profile.id).toBe("default");
+    expect(resolver.resolve(loc({ countryCode: "US", locality: "Tokyo" })).profile.id).toBe("default");
+    // other JP cities have no country-level theme in LVP-2: default
+    expect(resolver.resolve(loc({ countryCode: "JP", locality: "Osaka" })).profile.id).toBe("default");
     // a non-matching locality falls through to the country rule
     expect(resolver.resolve(loc({ countryCode: "IT", locality: "Paris" })).profile.id).toBe("italy");
   });
@@ -72,8 +77,8 @@ describe("normalizeLocationToken", () => {
 });
 
 describe("theme registry", () => {
-  it("exposes exactly the v1 theme ids", () => {
-    expect([...knownThemeIds].sort()).toEqual(["default", "france", "italy", "paris", "rome"]);
+  it("exposes exactly the LVP theme ids (v1 + LVP-2 tokyo)", () => {
+    expect([...knownThemeIds].sort()).toEqual(["default", "france", "italy", "paris", "rome", "tokyo"]);
   });
 
   it("keeps the inheritance chain default -> italy/france -> rome/paris", () => {
@@ -87,6 +92,10 @@ describe("theme registry", () => {
     // the city profiles must actually differ from their parent
     expect(romeProfile.buildings.roofPalette).not.toEqual(italyProfile.buildings.roofPalette);
     expect(parisProfile.buildings.roofPalette).not.toEqual(franceProfile.buildings.roofPalette);
+    // tokyo (LVP-2) extends default directly and differs from it
+    expect(tokyoProfile.id).toBe("tokyo");
+    expect(tokyoProfile.buildings.roofPalette).not.toEqual(defaultProfile.buildings.roofPalette);
+    expect(tokyoProfile.buildings.facadePalette).not.toEqual(defaultProfile.buildings.facadePalette);
   });
 });
 

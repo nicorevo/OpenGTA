@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { themeOverrideFromSearch } from "./override.ts";
 
-const ids = new Set(["default", "italy", "rome", "france", "paris"]);
+const ids = new Set(["default", "italy", "rome", "france", "paris", "tokyo"]);
 
 describe("themeOverrideFromSearch", () => {
   it("returns undefined when the theme parameter is missing", () => {
@@ -14,7 +14,7 @@ describe("themeOverrideFromSearch", () => {
   });
 
   it("returns the id for every valid theme", () => {
-    for (const id of ["default", "italy", "rome", "france", "paris"]) {
+    for (const id of ["default", "italy", "rome", "france", "paris", "tokyo"]) {
       expect(themeOverrideFromSearch(`?theme=${id}`, ids)).toBe(id);
     }
   });

@@ -952,9 +952,22 @@ iniziali: default, italy, rome, france, paris; override di sviluppo
 | --- | --- | --- | --- | --- |
 | [x] | LVP-07 | LVP-06 | S | Gate utente `docs/results/LVP-VALIDATION-RESULT.md` (GO) con osservazione: France "ancora troppo cartografico". Step 1 "stabilizzare LVP": palette France (tetti ardesia→zincato con voci calde/fredde, facciate cream/limestone/taupe con più gamma tonale) e Paris (stessa direzione, più fredda), senza saturazione in più; screenshot prima/dopo + controllo Rome invariato nel result |
 
+### LVP-08 — Terzo profilo `tokyo` + gate a tre famiglie (LVP-2)
+
+| Stato | Task | Dipende da | S | Sintesi |
+| --- | --- | --- | --- | --- |
+| [x] | LVP-08 | LVP-07 | S | Spec §56: profilo `tokyo` (concreto/acciaio/carbone) che estende `default`; resolver `JP` + locality `tokyo`; registry chiusa estesa a 6 id (`?theme=tokyo`); TDD 3 test RED → GREEN (36/36 in `src/render/theme`); e2e registry esteso; **gate a tre famiglie VALIDATO** su geometria reale comune (centro Roma live, 674 edifici, zero errori): rome/paris/tokyo distinguibili a colpo d'occhio (`/tmp/family-*.png`) → "LVP architecture = validated" |
+
 ### Next (backlog post-v1, dal gate utente, in ordine)
 
-- [ ] Re-gate visuale del raffino France/Paris.
+- [x] Re-gate visuale del raffino France/Paris (GO su scena densa reale centro Roma, 4 temi, `/tmp/regate-*.png`; coppia debole france/paris documentata).
 - [ ] Validazione manuale auto-resolution end-to-end su città reali in viaggio (mock già coperta da e2e).
-- [ ] Terzo profilo molto diverso (`tokyo` o `nairobi`) + validazione 3 famiglie visuali (es. Rome/Paris/Tokyo) → "LVP architecture validated".
+- [x] Terzo profilo molto diverso + validazione 3 famiglie visuali → "LVP architecture validated" (fatto con `tokyo`, LVP-08; gate rome/paris/tokyo VALIDATO).
 - [ ] Solo dopo: Visual Profile Service (VisualEvidenceProfile → VisualCatalog → ProfileCompiler → fixtures → Mapillary → Vision → runtime service).
+
+## Tile Budgets Live (città dense) — 2026-09-21
+
+| Stato | Task | Dipende da | S | Sintesi |
+| --- | --- | --- | --- | --- |
+| [x] | TB-01 | Provider-Neutral | S | Misura tile z14 reali (Roma/Parigi/Lecce): "troppo grande" causato dai budget di decode (feature 10k / punti 50k < picchi 16,952/52,043 a Parigi) + bug `maxTileBytes` non propagato al decode |
+| [x] | TB-02 | TB-01 | S | Opzioni provider `maxFeaturesPerTile`/`maxPointsPerGeometry` + passaggi ai limiti di decode; config live 16 MiB / 30k / 100k; fixture tile Parigi z14 + 2 regression test; gate 550 unit / 42 e2e + verifica live reale su Parigi. Result: `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |

@@ -1,4 +1,4 @@
-import { decodeVectorTile, DEFAULT_MAX_TILE_BYTES, type DecodedVectorTile } from "../../../geo/mvt/decode.ts";
+import { decodeVectorTile, DEFAULT_MAX_FEATURES_PER_TILE, DEFAULT_MAX_POINTS_PER_GEOMETRY, DEFAULT_MAX_TILE_BYTES, type DecodedVectorTile } from "../../../geo/mvt/decode.ts";
 import { TileSourceError } from "../../../geo/mvt/errors.ts";
 import type { SlippyTile } from "../../../geo/mvt/math.ts";
 import { FetchLimiter } from "./fetch-limiter.ts";
@@ -16,7 +16,12 @@ export interface VectorTileProvider {
 }
 
 export interface VectorTileProviderOptions {
+  /** Byte budget of the whole tile; applied to the fetch stream AND the decode. */
   readonly maxTileBytes?: number;
+  /** Feature budget of the whole tile. Defaults to the decode security boundary. */
+  readonly maxFeaturesPerTile?: number;
+  /** Point budget of a single feature geometry. Defaults to the decode security boundary. */
+  readonly maxPointsPerGeometry?: number;
   readonly timeoutMs?: number;
   /** LRU capacity of decoded tiles (in-flight entries are not evicted). */
   readonly cacheCapacity?: number;
@@ -79,7 +84,13 @@ function parseRetryAfterMs(header: string | null): number | undefined {
   return Number.isFinite(date) ? Math.max(0, date - Date.now()) : undefined;
 }
 
-async function fetchDecodedTile(url: string, signal: AbortSignal, timeoutMs: number, maxTileBytes: number): Promise<DecodedVectorTile | null> {
+interface DecodeLimits {
+  readonly maxBytes: number;
+  readonly maxFeatures: number;
+  readonly maxPointsPerGeometry: number;
+}
+
+async function fetchDecodedTile(url: string, signal: AbortSignal, timeoutMs: number, limits: DecodeLimits): Promise<DecodedVectorTile | null> {
   const fetchOnce = async (): Promise<DecodedVectorTile | null> => {
     const timed = AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
     let response: Response;
@@ -94,8 +105,11 @@ async function fetchDecodedTile(url: string, signal: AbortSignal, timeoutMs: num
     if (!response.ok) {
       throw new TileSourceError("http", `tile fetch returned HTTP ${response.status}`, { status: response.status, retryAfterMs: parseRetryAfterMs(response.headers.get("retry-after")) });
     }
-    const bytes = await readBoundedBytes(response, signal, maxTileBytes);
-    return decodeVectorTile(bytes);
+    const bytes = await readBoundedBytes(response, signal, limits.maxBytes);
+    // The decode must honor the same byte budget as the fetch: otherwise a
+    // tile between the old default and the configured budget would pass the
+    // stream guard and still be rejected by the decoder.
+    return decodeVectorTile(bytes, { maxBytes: limits.maxBytes, maxFeatures: limits.maxFeatures, maxPointsPerGeometry: limits.maxPointsPerGeometry });
   };
   try {
     return await fetchOnce();
@@ -117,6 +131,10 @@ export const OPENFREEMAP_TILE_BASE_URL = `https://tiles.openfreemap.org/planet/$
 export function createOpenFreeMapProvider(options: VectorTileProviderOptions = {}): VectorTileProvider {
   const maxTileBytes = options.maxTileBytes ?? DEFAULT_MAX_TILE_BYTES;
   if (!Number.isSafeInteger(maxTileBytes) || maxTileBytes <= 0) throw new RangeError("Invalid tile byte budget");
+  const maxFeaturesPerTile = options.maxFeaturesPerTile ?? DEFAULT_MAX_FEATURES_PER_TILE;
+  if (!Number.isSafeInteger(maxFeaturesPerTile) || maxFeaturesPerTile <= 0) throw new RangeError("Invalid tile feature budget");
+  const maxPointsPerGeometry = options.maxPointsPerGeometry ?? DEFAULT_MAX_POINTS_PER_GEOMETRY;
+  if (!Number.isSafeInteger(maxPointsPerGeometry) || maxPointsPerGeometry <= 0) throw new RangeError("Invalid tile point budget");
   const timeoutMs = options.timeoutMs ?? DEFAULT_TILE_TIMEOUT_MS;
   const datasetVersion = OPENFREEMAP_DATASET_VERSION;
   const baseUrl = OPENFREEMAP_TILE_BASE_URL;
@@ -132,7 +150,7 @@ export function createOpenFreeMapProvider(options: VectorTileProviderOptions = {
       // Chunk compiles share tiles across chunks and sessions of the provider:
       // the cache dedups in-flight fetches and serves decoded values, the
       // limiter bounds the public endpoint concurrency.
-      return tileCache.get(`${key.z}/${key.x}/${key.y}`, signal, () => limiter.run(() => fetchDecodedTile(url, signal, timeoutMs, maxTileBytes), signal));
+      return tileCache.get(`${key.z}/${key.x}/${key.y}`, signal, () => limiter.run(() => fetchDecodedTile(url, signal, timeoutMs, { maxBytes: maxTileBytes, maxFeatures: maxFeaturesPerTile, maxPointsPerGeometry }), signal));
     },
   };
 }

@@ -16,11 +16,12 @@ Implementare un sistema **Location Visual Profiles** che:
 2. risolva tale contesto in un `VisualProfile`;
 3. applichi il profilo al renderer Pixi senza cambiare world geometry o physics;
 4. supporti inizialmente:
-   - `default`;
-   - `france`;
-   - `paris`;
-   - `italy`;
-   - `rome`;
+    - `default`;
+    - `france`;
+    - `paris`;
+    - `italy`;
+    - `rome`;
+    - `tokyo` (estensione LVP-2, vedi §56);
 5. supporti override di sviluppo:
    - `?theme=auto`
    - `?theme=default`
@@ -1059,6 +1060,7 @@ const THEME_BY_ID = new Map<string, VisualProfile>([
   ["rome", romeProfile],
   ["france", franceProfile],
   ["paris", parisProfile],
+  ["tokyo", tokyoProfile],
 ]);
 ```
 
@@ -1075,6 +1077,11 @@ const LOCALITY_RULES = [
     countryCode: "FR",
     aliases: ["paris", "parigi"],
     themeId: "paris",
+  },
+  {
+    countryCode: "JP",
+    aliases: ["tokyo"],
+    themeId: "tokyo",
   },
 ] as const;
 ```
@@ -2523,3 +2530,49 @@ Il renderer resta provider-neutral.
 La posizione reale decide automaticamente l'identità.
 
 Questa è la base di **Location Visual Profiles v1**.
+
+---
+
+# 56. Estensione LVP-2: terzo profilo (Tokyo)
+
+**Data:** 2026-09-21
+**Motivazione:** step 3 del gate visuale utente
+(`docs/results/LVP-VALIDATION-RESULT.md`): verificare che il sistema non
+funzioni solo con la differenza europea caldo/freddo aggiungendo un profilo
+di una famiglia visiva molto diversa.
+
+## Profilo
+
+`tokyo` estende `default` direttamente (nessun profilo country `japan` in
+LVP-2: Osaka e altre città JP restano su `default`; un tema country-level
+JP resta evoluzione futura).
+
+Direzione artistica — terza famiglia **concreto/acciaio/carbone**,
+più scura e a contrasto più alto dei profili europei, sempre
+desaturata:
+
+- terreno: grigio-verde concreto (base `0x87918c`), acqua blu acciaio
+  profonda (`0x48617e`);
+- strade: asfalto scuro freddo (base `0x3c4046` / casing `0x23262b`);
+- tetti: carbone e ardesia blu scura, nettamente più scuri di ogni profilo
+  esistente;
+- facciate: grigi concreti medio-chiari con voci steel-blue e un accento
+  off-white caldo (edifici storici);
+- ombre: più marcate (`shadowAlpha 0.20`).
+
+## Resolver
+
+- `JP` + locality `tokyo` → `tokyo` (matchedBy `locality`);
+- `JP` + altra città (es. Osaka) → `default`;
+- `tokyo` senza country qualificante (es. `US` + "Tokyo") → `default`;
+- `?theme=tokyo` → `tokyo` (registry chiusa estesa).
+
+## Criteri di accettazione
+
+1. `knownThemeIds` = {default, italy, rome, france, paris, tokyo}.
+2. Resolver: i tre casi JP sopra + override + registry (test unit).
+3. E2E: `?theme=tokyo` offline applica il tema senza geocoding; la registry
+   accetta tokyo e scarta gli id sconosciuti.
+4. Gate a tre famiglie (step 4 del gate utente): a parità di geometria
+   reale (centro Roma, live) **Rome, Paris e Tokyo devono apparire
+   chiaramente distinguibili**. Se sì: "LVP architecture = validated".

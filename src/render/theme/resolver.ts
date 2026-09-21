@@ -1,6 +1,6 @@
 import type { LocationContext } from "../../app/location-context.ts";
 import type { VisualProfile } from "./types.ts";
-import { defaultProfile, franceProfile, italyProfile, parisProfile, romeProfile } from "./profiles/index.ts";
+import { defaultProfile, franceProfile, italyProfile, parisProfile, romeProfile, tokyoProfile } from "./profiles/index.ts";
 
 /**
  * Closed, in-repo theme registry. Adding a theme means adding a profile +
@@ -12,6 +12,7 @@ export const THEME_BY_ID: ReadonlyMap<string, VisualProfile> = new Map<string, V
   ["rome", romeProfile],
   ["france", franceProfile],
   ["paris", parisProfile],
+  ["tokyo", tokyoProfile],
 ]);
 
 export const knownThemeIds: ReadonlySet<string> = new Set(THEME_BY_ID.keys());
@@ -41,6 +42,7 @@ interface PlaceRule {
 const LOCALITY_RULES: readonly PlaceRule[] = [
   { countryCode: "IT", aliases: ["roma", "rome"], themeId: "rome" },
   { countryCode: "FR", aliases: ["paris", "parigi"], themeId: "paris" },
+  { countryCode: "JP", aliases: ["tokyo"], themeId: "tokyo" },
 ] as const;
 
 /** Region-level registry: empty in LVP, ready for future regional themes. */

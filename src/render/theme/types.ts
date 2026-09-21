@@ -24,7 +24,7 @@ export interface BuildingTypeVisualStyle {
 export interface VisualProfile {
   readonly schemaVersion: 1;
 
-  /** Stable machine id: default, italy, rome, france, paris... */
+  /** Stable machine id: default, italy, rome, france, paris, tokyo... */
   readonly id: string;
 
   /** Human-readable diagnostics only. */

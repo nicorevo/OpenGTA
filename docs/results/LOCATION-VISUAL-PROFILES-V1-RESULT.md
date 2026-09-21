@@ -158,6 +158,44 @@ Override di debug `?theme=<id>` (registry chiusa; `auto`/invalido = auto).
     (`/tmp/opengta-lvp-paris-{before,after}.png`);
   - Rome (controllo): invariato al byte `93725931…`.
 
+- **Re-gate visuale del raffino France/Paris (GO)**: scena densa reale in live
+  (centro Roma, z14 tile 8759/6088, 674 edifici / 170 strade, endpoint
+  OpenFreeMap senza mock, 1280×720, zero pageerror, `runtime.errors = {}`
+  su tutti e 4 i temi). Stessa geometria, sola variabile il `?theme=`
+  forzato:
+  - `/tmp/regate-default.png` (sha256 `25783e0a…`) — baseline neutra;
+  - `/tmp/regate-rome.png` (`44929f09…`) — calda, terracotta/ocra;
+  - `/tmp/regate-france.png` (`84e74b65…`) — raffino visibile: non più resa
+    piatta (slate + oliva + cream con gamma tonale);
+  - `/tmp/regate-paris.png` (`fc3f43b8…`) — la più chiara, zincato
+    azzurro uniforme.
+  Esito: le 4 identità sono distinguibili a colpo d'occhio. Coppia più debole
+  france/paris (stessa famiglia cool, separate in luminosità e dalla
+  variazione oliva presente solo in france); se un'iterazione futura lo
+  richiederà, France può essere spinta verso un limestone più caldo-neutro.
+
+## Estensione LVP-2 — Terzo profilo (tokyo) e gate a tre famiglie
+
+Spec §56. `tokyo` estende `default` direttamente: terza famiglia visiva
+**concreto/acciaio/carbone** — tetti carbone/ardesia scura (i più scuri di
+tutti i profili), facciate grigi concreti con voci steel-blue e accento
+off-white, asfalto scuro freddo, acqua blu profondo, ombre più marcate
+(`shadowAlpha 0.20`). Resolver: `JP` + locality `tokyo` → `tokyo`; altre
+città JP (es. Osaka) → `default`; `Tokyo` senza country qualificante →
+`default`; `?theme=tokyo` sulla registry chiusa estesa (6 id).
+
+- TDD: 3 test RED (JP+Tokyo, registry, catena di eredità) → GREEN
+  (36/36 in `src/render/theme`); e2e registry esteso (`?theme=tokyo`
+  offline applica il tema senza geocoding).
+- **Gate a tre famiglie (step 4 del gate utente): VALIDATO** — stessa
+  geometria reale (centro Roma, live, 674 edifici / 170 strade, zero
+  errori, zero pageerror):
+  - `/tmp/family-rome.png` (sha256 `44929f09…`) — calda, terracotta;
+  - `/tmp/family-paris.png` (`fc3f43b8…`) — chiara, zincato azzurro;
+  - `/tmp/family-tokyo.png` (`3e5c4d7d…`) — scura, carbone/acciaio.
+  Le tre famiglie sono distinguibili a colpo d'occhio: il sistema non
+  funziona solo con la coppia calda/fredda europea.
+
 ## Limiti noti / follow-up (non incluso)
 
 - **featureId MVT non stabile tra window**: l'id del building
@@ -175,13 +213,11 @@ Override di debug `?theme=<id>` (registry chiusa; `auto`/invalido = auto).
   copre solo la vista top-down, come la spec).
 - Backlog raccomandato dal gate utente
   (`docs/results/LVP-VALIDATION-RESULT.md`), in ordine:
-  1. re-gate visuale del raffino France/Paris appena eseguito;
+  1. re-gate visuale del raffino France/Paris — **fatto (GO, qui sopra)**;
   2. validazione auto-resolution end-to-end (già coperta da e2e con mock;
      manca il gate visuale manuale su città reali in viaggio);
-  3. un terzo profilo molto diverso (`tokyo` o `nairobi`) per provare che il
-     sistema non funzioni solo con la coppia calda/fredda europea;
-  4. validazione di tre famiglie visuali (es. Rome/Paris/Tokyo) →
-     "LVP architecture validated";
+  3. un terzo profilo molto diverso — **fatto (`tokyo`, LVP-2)**;
+  4. validazione di tre famiglie visuali — **fatta (VALIDATO, qui sopra)**;
   5. solo dopo, avvio del `Visual Profile Service` (VisualEvidenceProfile →
      VisualCatalog → ProfileCompiler → fixtures → Mapillary → Vision →
-     runtime service).
+     runtime service) — **prossimo**.

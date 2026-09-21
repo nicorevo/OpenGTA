@@ -37,7 +37,8 @@ Non rieseguirli come backlog corrente.
 | Veicolo: velocità -20% + divieto acqua | Completata (commit `4e687b9`) — WS-01..02: top speed 84 → 67.2 m/s (~242 km/h), inversa 11.2 m/s (solo i soffitti, feel invariato); water areas emesse dal compilatore come collision shape (muro perimetrale Rapier, come edifici), `compilerVersion` bumpato per invalidare i chunk persistenti senza muri; risultato in `docs/results/VEHICLE-WATER-SPEED-RESULT.md` |
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
- | Location Visual Profiles (LVP) | Completato (baseline `0433da1`, working tree da commitare) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..07 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`) |
+ | Location Visual Profiles (LVP) | Completato (base `cd59f65`, esteso con LVP-08) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..08 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`), 3 famiglie visuali rome/paris/tokyo validate |
+ | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, working tree da commitare) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
  | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -228,8 +229,8 @@ anche con suite verde.
         solo-presentazione (rebuild chunk caricati; niente refetch/fisica/
         camera/rete); `CompiledChunkV0` senza themeId; override di sviluppo
         `?theme=auto|default|italy|rome|france|paris`; fallback offline/errore
-        = default o ultimo profilo valido. LVP-00..07 fatti; gate: 548 unit,
-         42 E2E + canary skipped, typecheck/build verdi; finding `featureId`
+        = default o ultimo profilo valido. LVP-00..08 fatti (base commit
+         `cd59f65`; LVP-08 nel commit del 2026-09-21); finding `featureId`
          MVT non stabile tra window documentato nel result (follow-up stable
          visual identity). **Gate visuale utente: GO**
          ([LVP-VALIDATION-RESULT](../results/LVP-VALIDATION-RESULT.md),
@@ -237,11 +238,27 @@ anche con suite verde.
          raffino palette France/Paris sulle osservazioni del gate (tetti
          piu vari, facciate cream/limestone/taupe, separazione roof/facade
          senza saturazione in piu; screenshot prima/dopo + controllo Rome
-         invariato nel result). Next (dal gate): re-gate del raffino,
-         validazione manuale auto-resolution in viaggio, terzo profilo molto
-         diverso (tokyo/nairobi) -> 3 famiglie visuali, poi solo il Visual
-         Profile Service. Working tree da commitare (feat LVP + docs).
-     - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+         invariato nel result); re-gate post-raffino GO su scena densa
+         reale (4 temi, zero errori). LVP-08 (LVP-2, spec §56) = profilo
+         `tokyo` (concreto/acciaio/carbone) che estende `default`, regola
+         resolver JP + registry chiusa estesa a 6 id, TDD 3 RED → GREEN e
+         **gate a tre famiglie rome/paris/tokyo VALIDATO** su geometria
+         reale comune (distinguibili a colpo d'occhio) → "LVP architecture
+         = validated". Next (dal gate): validazione manuale
+         auto-resolution in viaggio, poi solo il Visual Profile Service.
+       - Tranche **Tile Budgets Live (città dense)** completata il 2026-09-21
+         (baseline `cd59f65`, TB-01..02): in live, guidando su città dense
+         compariva "Risposta geografica troppo grande" — la causa non era il
+         budget byte (tile reali < 1.1 MiB) ma i budget di decode
+         (feature 10,000 / punti 50,000 contro i picchi misurati a Parigi
+         centro 16,952 / 52,043) più un bug latente: `maxTileBytes` (16 MiB)
+         non veniva applicato al decode. Opzioni provider
+         `maxFeaturesPerTile`/`maxPointsPerGeometry` + un'unica sorgente di
+         verità fetch/decode; config live 16 MiB / 30k / 100k; fixture del
+         tile reale Parigi z14 + 2 regression test; verifica live reale su
+         Parigi centro (ready, zero errori). Risultato
+         [DENSE-TILE-BUDGETS-RESULT](../results/DENSE-TILE-BUDGETS-RESULT.md).
+         Committed (commit del 2026-09-21).     - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
     - Commits del 2026-09-21 (in ordine): `4e687b9` (feat WS), `0433da1`
       (feat ZP), `e2ccb41` (docs: result/log/spec/SECURITY delle due tranche),

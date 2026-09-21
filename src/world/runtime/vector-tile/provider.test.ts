@@ -2,6 +2,11 @@ import { readFileSync } from "node:fs";
 import { afterEach, expect, it, vi } from "vitest";
 import { createOpenFreeMapProvider } from "./provider.ts";
 const fixtureBytes = new Uint8Array(readFileSync(new URL("../../../fixtures/geo/lecce-z14-openfreemap.pbf", import.meta.url)));
+// Real pinned z14 tile over dense central Paris: 16,952 features and
+// 52,043 points in the largest geometry — above the default decode budgets
+// (10,000 features / 50,000 points per geometry), which is exactly what used
+// to surface as "Risposta geografica troppo grande" while driving.
+const denseFixtureBytes = new Uint8Array(readFileSync(new URL("../../../fixtures/geo/paris-center-z14-8299-5636.pbf", import.meta.url)));
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -32,6 +37,19 @@ it("classifies network, timeout and oversized payloads distinctly", async () => 
 
   vi.stubGlobal("fetch", vi.fn(async () => new Response(fixtureBytes, { status: 200 })));
   await expect(createOpenFreeMapProvider({ maxTileBytes: 100 }).getTile({ z: 14, x: 9019, y: 6181 }, new AbortController().signal)).rejects.toMatchObject({ code: "response-too-large" });
+});
+
+it("keeps the default decode budgets as the security boundary for dense tiles", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(denseFixtureBytes, { status: 200 })));
+  await expect(createOpenFreeMapProvider().getTile({ z: 14, x: 8299, y: 5636 }, new AbortController().signal)).rejects.toMatchObject({ code: "response-too-large" });
+});
+
+it("decodes dense real tiles with the live budgets", async () => {
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(denseFixtureBytes, { status: 200 })));
+  const provider = createOpenFreeMapProvider({ maxFeaturesPerTile: 30_000, maxPointsPerGeometry: 100_000 });
+  const tile = await provider.getTile({ z: 14, x: 8299, y: 5636 }, new AbortController().signal);
+  expect(tile?.featureCount).toBe(16_952);
+  expect(tile?.layerCount).toBe(13);
 });
 
 it("retries once honoring Retry-After, then serves the tile", async () => {
