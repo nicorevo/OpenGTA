@@ -78,7 +78,7 @@ test("gta-city fixture boots offline, drives a clear path and reproduces the thr
   // AC2: posa fissa e camera centrata sulla posa a ogni viewport -> confronto ripetibile.
   for (const snapshot of snapshots) {
     expect(snapshot.pose).toEqual({ x: 20, y: 10, heading: 0 });
-    expect(snapshot.zoomLevel).toBe(2);
+    expect(snapshot.zoomLevel).toBe(3);
     const center = { x: (snapshot.cameraBounds.minX + snapshot.cameraBounds.maxX) / 2, y: (snapshot.cameraBounds.minY + snapshot.cameraBounds.maxY) / 2 };
     expect(Math.hypot(center.x - snapshot.pose.x, center.y - snapshot.pose.y)).toBeLessThan(0.01);
     // AC2: un tratto percorribile resta visibile davanti all'auto (heading 0 -> +x).
@@ -105,7 +105,7 @@ test("gta-city fixture boots offline, drives a clear path and reproduces the thr
   }
   const aspectRatios = snapshots.map((snapshot) => snapshot.vehiclePx.length / snapshot.vehiclePx.width);
   for (const ratio of aspectRatios.slice(1)) expect(Math.abs(ratio - aspectRatios[0])).toBeLessThan(0.05);
-  // Driving preset (level 2): fattore 6.0 sul divisore 360.
+  // Driving preset (level 3): fattore 6.0 sul divisore 360.
   expect(snapshots[0].viewScalePxPerMeter).toBeCloseTo(480 / 360 * 6, 5);
   expect(snapshots[1].viewScalePxPerMeter).toBeCloseTo(800 / 360 * 6, 5);
   expect(snapshots[2].viewScalePxPerMeter).toBeCloseTo(390 / 360 * 6, 5);

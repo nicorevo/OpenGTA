@@ -9,7 +9,7 @@ const screen = { width: 1280, height: 720 };
 const grid = createChunkGrid(300);
 
 it("reports camera demand per zoom level", () => {
-  for (const level of [0, 1, 2, 3, 4] as ZoomLevel[]) {
+  for (const level of [0, 1, 2, 3, 4, 5] as ZoomLevel[]) {
     const scale = zoomFactor(level) * (Math.max(1, Math.min(screen.width, screen.height)) / 360);
     const bounds = cameraBounds({ x: 0, y: 0 }, screen, scale);
     const demand = selectActiveChunks(grid, { position: { x: 0, y: 0 }, velocity: { x: 0, y: 0 }, cameraBounds: bounds });

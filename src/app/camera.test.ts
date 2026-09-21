@@ -4,15 +4,15 @@ import { ZOOM_STEPS, cameraBounds, clampZoom, lodForZoom, zoomFactor, type LodTi
 
 const SCREEN = { width: 1280, height: 720 };
 const POSITION = { x: 120, y: -45 };
-const DEFAULT_ZOOM = 2;
-const LEVELS: readonly ZoomLevel[] = [0, 1, 2, 3, 4];
+const DEFAULT_ZOOM = 3;
+const LEVELS: readonly ZoomLevel[] = [0, 1, 2, 3, 4, 5];
 
 describe("camera zoom levels", () => {
-  it("clamps levels outside 0..4 to the discrete range", () => {
+  it("clamps levels outside 0..5 to the discrete range", () => {
     expect(clampZoom(-3)).toBe(0);
     expect(clampZoom(0)).toBe(0);
-    expect(clampZoom(4)).toBe(4);
-    expect(clampZoom(9)).toBe(4);
+    expect(clampZoom(5)).toBe(5);
+    expect(clampZoom(9)).toBe(5);
   });
 
   it("rounds fractional levels and falls back to the default on non-finite input", () => {
@@ -25,20 +25,28 @@ describe("camera zoom levels", () => {
   it("maps every level to an experimental factor that grows with zoom in", () => {
     const factors = ZOOM_STEPS.map((_, level) => zoomFactor(clampZoom(level)));
 
-    expect([...ZOOM_STEPS]).toEqual([0.7, 0.85, 6.0, 12.0, 24.0]);
+    expect([...ZOOM_STEPS]).toEqual([0.7, 0.85, 2.25, 6.0, 12.0, 24.0]);
     expect(zoomFactor(DEFAULT_ZOOM)).toBe(6);
     expect(factors.every((factor, index) => index === 0 || factor > factors[index - 1])).toBe(true);
   });
 
+  it("keeps every zoom step between far and driving under 3x (ZI)", () => {
+    // The overview->driving gap used to jump 0.85 -> 6.0 (7x); the level 2
+    // intermediate (~2.25, geometric middle) splits it into two even steps.
+    const ratios = ZOOM_STEPS.map((factor, index) => (index === 0 ? 0 : factor / ZOOM_STEPS[index - 1]!));
+    expect(ratios.slice(1)).toEqual([0.85 / 0.7, 2.25 / 0.85, 6 / 2.25, 12 / 6, 24 / 12]);
+    expect(ratios.every((ratio) => ratio < 3)).toBe(true);
+  });
+
   it("keeps the driving preset separate from the maximum zoom (G2D-01)", () => {
-    // The driving preset (level 2) is calibrated for the GTA-2D proportions
+    // The driving preset (level 3) is calibrated for the GTA-2D proportions
     // at 640x480: 6.0 -> 8 px/m with the 360 divisor, so the taxi reads
     // ~40x17 px and a 6 m road ~48 px. The maximum zoom is its own target
-    // (level 4 -> 32 px/m at 640x480, close-view detail), not a multiplier
+    // (level 5 -> 32 px/m at 640x480, close-view detail), not a multiplier
     // of the driving preset.
-    expect(zoomFactor(3)).toBe(12);
-    expect(zoomFactor(4)).toBe(24);
-    expect(zoomFactor(4) / zoomFactor(DEFAULT_ZOOM)).toBeLessThan(10);
+    expect(zoomFactor(4)).toBe(12);
+    expect(zoomFactor(5)).toBe(24);
+    expect(zoomFactor(5) / zoomFactor(DEFAULT_ZOOM)).toBeLessThan(10);
   });
 
   it("shows a drivable stretch ahead of the car at the driving preset", () => {
@@ -52,7 +60,7 @@ describe("camera zoom levels", () => {
   });
 
   it("maps levels to the initial LOD tiers of the design", () => {
-    expect([0, 1, 2, 3, 4].map((level) => lodForZoom(clampZoom(level)))).toEqual(["far", "far", "medium", "near", "near"]);
+    expect([0, 1, 2, 3, 4, 5].map((level) => lodForZoom(clampZoom(level)))).toEqual(["far", "far", "medium", "medium", "near", "near"]);
   });
 });
 
@@ -61,8 +69,9 @@ describe("camera zoom to LOD policy", () => {
     [0, "far"],
     [1, "far"],
     [2, "medium"],
-    [3, "near"],
+    [3, "medium"],
     [4, "near"],
+    [5, "near"],
   ];
   const TIER_RANK: Readonly<Record<LodTier, number>> = { far: 0, medium: 1, near: 2 };
 
@@ -79,7 +88,7 @@ describe("camera zoom to LOD policy", () => {
 
   it("clamps out-of-range levels before mapping them", () => {
     expect(lodForZoom(-1 as ZoomLevel)).toBe("far");
-    expect(lodForZoom(5 as ZoomLevel)).toBe("near");
+    expect(lodForZoom(6 as ZoomLevel)).toBe("near");
     expect(lodForZoom(42 as ZoomLevel)).toBe("near");
     expect(lodForZoom(1.6 as ZoomLevel)).toBe("medium");
   });
@@ -90,9 +99,9 @@ describe("camera zoom to LOD policy", () => {
     expect(lodForZoom(2)).toBe(lodForZoom(2));
     expect(ranks.every((rank, index) => index === 0 || rank >= ranks[index - 1])).toBe(true);
     expect(lodForZoom(0)).toBe(lodForZoom(1));
-    expect(lodForZoom(3)).toBe(lodForZoom(4));
-    expect(TIER_RANK[lodForZoom(0)]).toBeLessThan(TIER_RANK[lodForZoom(2)]);
-    expect(TIER_RANK[lodForZoom(2)]).toBeLessThan(TIER_RANK[lodForZoom(4)]);
+    expect(lodForZoom(4)).toBe(lodForZoom(5));
+    expect(TIER_RANK[lodForZoom(0)]).toBeLessThan(TIER_RANK[lodForZoom(3)]);
+    expect(TIER_RANK[lodForZoom(3)]).toBeLessThan(TIER_RANK[lodForZoom(5)]);
   });
 });
 
@@ -113,8 +122,8 @@ describe("camera bounds", () => {
   });
 
   it("shrinks on zoom in and widens on zoom out", () => {
-    const near = cameraBounds(POSITION, SCREEN, zoomFactor(4));
-    const medium = cameraBounds(POSITION, SCREEN, zoomFactor(2));
+    const near = cameraBounds(POSITION, SCREEN, zoomFactor(5));
+    const medium = cameraBounds(POSITION, SCREEN, zoomFactor(3));
     const far = cameraBounds(POSITION, SCREEN, zoomFactor(0));
 
     expect(near.maxX - near.minX).toBeLessThan(medium.maxX - medium.minX);

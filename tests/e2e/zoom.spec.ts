@@ -14,14 +14,15 @@ test("zoom buttons clamp at the limits and driving keeps working", async ({ page
   const position = () => page.evaluate(() => (window as unknown as { __opengtaV0Debug: { vehicle(): { position: { x: number } } } }).__opengtaV0Debug.vehicle().position.x);
   await page.goto(`/?mode=open-world-live&provider=http&endpoint=${encodeURIComponent(baseURL + "/__test-geo")}&consent=1`);
   await expect(page.locator("#session-status")).toHaveAttribute("data-state", "ready");
-  expect(await zoomLevel()).toBe(2);
+  expect(await zoomLevel()).toBe(3);
   const plus = page.getByRole("button", { name: "Aumenta zoom" });
   const minus = page.getByRole("button", { name: "Riduci zoom" });
   await plus.click();
-  await expect.poll(zoomLevel).toBe(3);
-  await plus.click();
   await expect.poll(zoomLevel).toBe(4);
+  await plus.click();
+  await expect.poll(zoomLevel).toBe(5);
   await expect(plus).toBeDisabled();
+  await minus.click();
   await minus.click();
   await minus.click();
   await minus.click();

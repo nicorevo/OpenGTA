@@ -5,7 +5,7 @@ import { LOD_PROFILES, LOD_TIERS, lodProfileForTier, lodProfileForZoom } from ".
 
 /** Detail ladder of the road presentation, from the least to the most detailed stage. */
 const ROAD_DETAIL_ORDER: Readonly<Record<string, number>> = { body: 0, casing: 1, marking: 2 };
-const ALL_LEVELS: readonly ZoomLevel[] = [0, 1, 2, 3, 4];
+const ALL_LEVELS: readonly ZoomLevel[] = [0, 1, 2, 3, 4, 5];
 
 describe("LOD presentation profile", () => {
   it("defines one frozen profile per tier with the four presentation parameters", () => {
@@ -88,19 +88,21 @@ describe("LOD profile resolution", () => {
 
     expect(lodProfileForZoom(0)).toBe(lodProfileForZoom(1));
     expect(lodProfileForZoom(1)).not.toBe(lodProfileForZoom(2));
-    expect(lodProfileForZoom(3)).toBe(lodProfileForZoom(4));
+    expect(lodProfileForZoom(2)).toBe(lodProfileForZoom(3));
+    expect(lodProfileForZoom(4)).toBe(lodProfileForZoom(5));
   });
 
   it("shares one immutable profile instance per tier", () => {
     expect(lodProfileForZoom(0)).toBe(LOD_PROFILES.far);
     expect(lodProfileForZoom(1)).toBe(LOD_PROFILES.far);
     expect(lodProfileForZoom(2)).toBe(LOD_PROFILES.medium);
-    expect(lodProfileForZoom(3)).toBe(LOD_PROFILES.near);
+    expect(lodProfileForZoom(3)).toBe(LOD_PROFILES.medium);
     expect(lodProfileForZoom(4)).toBe(LOD_PROFILES.near);
+    expect(lodProfileForZoom(5)).toBe(LOD_PROFILES.near);
     expect(Object.isFrozen(LOD_PROFILES)).toBe(true);
   });
 
-  it("clamps levels outside 0..4 before resolving the profile", () => {
+  it("clamps levels outside 0..5 before resolving the profile", () => {
     expect(lodProfileForZoom(-1 as ZoomLevel)).toBe(LOD_PROFILES.far);
     expect(lodProfileForZoom(9 as ZoomLevel)).toBe(LOD_PROFILES.near);
     expect(lodProfileForZoom(Number.NaN as ZoomLevel)).toBe(LOD_PROFILES.medium);

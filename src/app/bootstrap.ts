@@ -41,7 +41,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   const retry = document.createElement("button"); retry.textContent = "Riprova"; retry.hidden = true;
   const stop = document.createElement("button"); stop.textContent = "Interrompi";
   status.append(message, retry, stop);
-  const zoom = { in: () => {}, out: () => {}, level: () => 2 as 0 | 1 | 2 | 3 | 4 };
+  const zoom = { in: () => {}, out: () => {}, level: () => 3 as 0 | 1 | 2 | 3 | 4 | 5 };
   // Labels toggle is shared by the "L" key and the on-screen "Vie" button; the
   // concrete implementation is bound to the active renderer inside start().
   const labels = { toggle: () => false };
@@ -61,7 +61,7 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   zoomBar.style.cssText = isTouch ? "position:fixed;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:3;background:#202225dd;padding:6px;border-radius:10px" : "position:fixed;top:8px;right:8px;display:flex;gap:4px;z-index:3;background:#202225dd;padding:4px;border-radius:4px";
   if (isTouch) zoomBar.append(zoomOutButton, zoomInButton, vieButton);
   else zoomBar.append(zoomOutButton, zoomInButton);
-  const updateZoomState = () => { zoomOutButton.disabled = zoom.level() <= 0; zoomInButton.disabled = zoom.level() >= 4; };
+  const updateZoomState = () => { zoomOutButton.disabled = zoom.level() <= 0; zoomInButton.disabled = zoom.level() >= 5; };
   zoomInButton.onclick = () => { zoom.in(); zoomInButton.blur(); updateZoomState(); };
   zoomOutButton.onclick = () => { zoom.out(); zoomOutButton.blur(); updateZoomState(); };
   vieButton.onclick = () => { const visible = labels.toggle(); vieButton.style.background = visible ? "#1f9d55" : "#2b2f33"; updateLabelHint(visible); vieButton.blur(); };

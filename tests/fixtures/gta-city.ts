@@ -16,7 +16,7 @@ import type { WorldRegion } from "../../src/world/model/types.ts";
  * attraversa il confine di partizione a x=60 (variante chunk-boundary).
  *
  * Camera, taxi e seed sono fissati: la posa e' GTA_CITY_CAMERA_POSE, la scala
- * visiva deriva dal preset di zoom 2 del renderer, il seed e' il positionSeed
+ * visiva deriva dal preset di guida (zoom 3, fattore 6.0) del renderer, il seed e' il positionSeed
  * deterministico dei vertici interi (nessuna casualita' a runtime).
  */
 

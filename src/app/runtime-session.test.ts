@@ -4,11 +4,12 @@ import { createPhysicsAdapter } from "../physics/rapier/adapter.ts";
 import { createGeoDataSource } from "../world/runtime/source.ts";
 import { liveWorld, liveOrigin } from "../../tests/fixtures/live-world.ts";
 import type { CompiledChunkV0 } from "../world/compiler/compiled.ts";
+import type { ZoomLevel } from "./camera.ts";
 
 function renderer() {
   const byId = new Map<string, CompiledChunkV0>();
-  let zoom = 2 as 0 | 1 | 2 | 3 | 4;
-  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, setZoom(level: 0 | 1 | 2 | 3 | 4) { zoom = level; }, zoomIn(): 0 | 1 | 2 | 3 | 4 { zoom = Math.min(4, zoom + 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, zoomOut(): 0 | 1 | 2 | 3 | 4 { zoom = Math.max(0, zoom - 1) as 0 | 1 | 2 | 3 | 4; return zoom; }, cameraState() { return { zoomLevel: zoom }; }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
+  let zoom = 2 as ZoomLevel;
+  return { setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); }, removeChunk(id: string) { byId.delete(id); }, setZoom(level: ZoomLevel) { zoom = level; }, zoomIn(): ZoomLevel { zoom = Math.min(5, zoom + 1) as ZoomLevel; return zoom; }, zoomOut(): ZoomLevel { zoom = Math.max(0, zoom - 1) as ZoomLevel; return zoom; }, cameraState() { return { zoomLevel: zoom }; }, cameraBounds: () => ({ minX: -200, maxX: 200, minY: -100, maxY: 100 }), updateVehicle() {}, dispose() { byId.clear(); }, chunks: () => [...byId.values()] };
 }
 
 it("starts before the window finishes and disposes a pending source", async () => {
@@ -140,10 +141,10 @@ it("updates the streaming demand when zooming out at a cell boundary", async () 
     setChunk(chunk: CompiledChunkV0) { byId.set(chunk.id, chunk); },
     removeChunk(id: string) { byId.delete(id); },
     setZoom(level: number) { zoom = level; },
-    zoomIn(): 0 | 1 | 2 | 3 | 4 { zoom = Math.min(4, zoom + 1); return zoom as 0 | 1 | 2 | 3 | 4; },
-    zoomOut(): 0 | 1 | 2 | 3 | 4 { zoom = Math.max(0, zoom - 1); return zoom as 0 | 1 | 2 | 3 | 4; },
-    cameraState() { return { zoomLevel: zoom as 0 | 1 | 2 | 3 | 4 }; },
-    cameraBounds() { const scale = [0.7, 0.85, 1.0, 1.2, 1.45][zoom]!; return { minX: position.x - 200 / scale, maxX: position.x + 200 / scale, minY: position.y - 100 / scale, maxY: position.y + 100 / scale }; },
+    zoomIn(): ZoomLevel { zoom = Math.min(5, zoom + 1); return zoom as ZoomLevel; },
+    zoomOut(): ZoomLevel { zoom = Math.max(0, zoom - 1); return zoom as ZoomLevel; },
+    cameraState() { return { zoomLevel: zoom as ZoomLevel }; },
+    cameraBounds() { const scale = [0.7, 0.85, 1.0, 1.2, 1.45, 1.7][zoom]!; return { minX: position.x - 200 / scale, maxX: position.x + 200 / scale, minY: position.y - 100 / scale, maxY: position.y + 100 / scale }; },
     updateVehicle(next?: { x: number; y: number }) { if (next) position = next; },
     dispose() { byId.clear(); },
   };
