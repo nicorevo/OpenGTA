@@ -240,10 +240,12 @@ Limiti noti della baseline (dettagli in `docs/results/ONLINE-RUNTIME-RESULT.md`)
   servizio occupato producono `empty`/`error` espliciti, non un mondo finto;
 - le misure di prestazione sono headless con GPU software: non promettono
   FPS dell'hardware dell'utente;
-- lo zoom `+/−` (pulsanti in alto a destra o tasti `+`/`-`) ha 5 livelli
-  (fino a ×14, vista "auto grande" tipo GTA 1) con LOD near/medium/far; da
-  vicino compaiono i marciapiedi e la striscia centrale bianca sulle strade; il
-  dettaglio si riduce allontanandosi e la domanda di streaming segue la camera;
+- lo zoom `+/−` (pulsanti in alto a destra o tasti `+`/`-`) ha 6 livelli,
+  dall'overview (×0.7) alla vista "auto grande" tipo GTA 1 (×24), con livello
+  intermedio ×2.25 tra overview e guida e default sul preset di guida (×6);
+  LOD near/medium/far; da vicino compaiono i marciapiedi e la striscia
+  centrale bianca sulle strade; il dettaglio si riduce allontanandosi e la
+  domanda di streaming segue la camera;
 - un reload della pagina riusa i chunk compilati dalla cache persistente
   (IndexedDB) senza nuove richieste al provider;
 - la porta E2E è configurabile con `OPENGTA_E2E_PORT` (default 5180);

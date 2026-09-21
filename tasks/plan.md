@@ -615,3 +615,43 @@ niente cambio di fisica (già in `controller.ts`), niente collider/spawn.
 | Testo nel mondo sfocato allo zoom (texture 1x ingrandita ~26×) | `makeWorldText`: rasterizza a 128px poi scala in basso → nitido a ogni zoom |
 | Conteggio label nei test contaminate dalle decal dell'auto | `renderer-labels.test.ts` usa una baseline (decal create all'iniz) e asserisce sui delta |
 | Scocca più grande (scale 3.0) | Solo visiva (il collider resta in `shape.ts`); auto più presente, tipo GTA |
+
+---
+
+## Piano: Zoom intermedio (overview → guida)
+
+Data: 2026-09-21. Baseline codice: working tree post `df5be7b` (G2D-01).
+Result: `docs/results/INTERMEDIATE-ZOOM-RESULT.md`.
+
+### Obiettivo
+
+Il salto di zoom tra l'overview (×0.85) e il preset di guida (×6.0) era 7x:
+un clic `+` passava da "quartiere" a "strada" senza vista intermedia.
+Richiesta utente (screenshot MVT live): uno zoom intermedio tra i due.
+Scala a 6 livelli `[0.7, 0.85, 2.25, 6.0, 12.0, 24.0]`: il livello 2 (×2.25,
+mediana geometrica di 0.85 e 6.0) divide il salto in due passi ~2.6x; ogni
+passo resta sotto 3x. Default invariato sul preset di guida (ora livello 3,
+fattore 6.0): la resa visiva di partenza non cambia. Solo presentazione:
+fisica, posa veicolo, contratti chunk e streaming invariati.
+
+### Task
+
+| Stato | ID | Esito verificabile |
+| --- | --- | --- |
+| [x] | ZI-01 | `camera.ts`: `ZoomLevel 0..5`, `ZOOM_STEPS` con intermedio 2.25, `DEFAULT_ZOOM_LEVEL 3` exportato, `lodForZoom` 0-1 far / 2-3 medium / 4-5 near; unit test (passi <3x, preset separato, tier) |
+| [x] | ZI-02 | `renderer.ts`/`bootstrap.ts` default 3 + clamp 5; e2e zoom/streaming/gta-city e mock allineati; gate completa verde (440 unit, typecheck, build, 27 e2e + 1 canary skip) |
+| [x] | ZI-03 | Docs: result, README (zoom 6 livelli), piano/todo, log esecuzione, CURRENT.md |
+
+### Checkpoint
+
+- [x] Vista intermedia raggiungibile con un `+` dall'overview (×2.25).
+- [x] Default visivo invariato (preset di guida ×6.0, ora livello 3); misure pixel gta-city stabili.
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| Renumera i livelli (2→3, 3→4, 4→5): consumer esterni | Tutti i consumer sono in-repo (renderer, bootstrap, test); il default resta il preset ×6.0, quindi la resa visiva iniziale è identica |
+| Fattore 2.25 sperimentale | Parametro in `ZOOM_STEPS`: ricalibrabile senza toccare i contratti (guard unit "passi <3x" + G2D-16/18) |
+| Tier del livello intermedio | medium (facciate 0.6, casing, label >= 60): coerente con il vecchio livello 2 e monotono (mai dettaglio in meno zoomando in) |

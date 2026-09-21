@@ -1,6 +1,6 @@
 # Punto di ingresso corrente
 
-Data: 2026-09-18
+Data: 2026-09-21
 
 Questo file sostituisce `CODEX-START-HERE.md` come avvio di sessione.
 
@@ -29,6 +29,7 @@ Non rieseguirli come backlog corrente.
 | Label acque (fiumi/laghi) | Completata (commit `475dbae`) — nomi di laghi/fiumi ricevuti ma prima non pubblicati, ora emessi come label; test in `src/world/compiler/compiled.test.ts` |
 | Fisica veicolo (peso, derapata, +velocità) | Completata (commit `28fe0ee`) — VP-01..03: curva motore, grip/derapata per velocità, coasting pesante, top speed 84 m/s (~302 km/h), skew scocca in curva; spec `docs/specs/vehicle-physics-v1.md`, risultato in `docs/results/VEHICLE-PHYSICS-RESULT.md` |
 | Look auto "General Lee" (berlina rossa, ombra, decal) | Completata (commit `583e045`) — GL-01..04: sprite Dodge Charger rossa, ombra a terra che appoggia la scocca, scritta "GENERAL LEE"/"01" nitide, scale 3.0; risultato in `docs/results/GENERAL-LEE-VEHICLE-RESULT.md` |
+| Zoom intermedio (overview → guida) | Completata (commit `e2fc332`) — ZI-01..03: scala zoom a 6 livelli, livello intermedio ×2.25 tra overview e preset di guida (default invariato su ×6.0, ora livello 3), LOD 0-1 far / 2-3 medium / 4-5 near; risultato in `docs/results/INTERMEDIATE-ZOOM-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -127,8 +128,16 @@ anche con suite verde.
    "01" sulle porte nitide (rasterizzate a 128px via `makeWorldText`),
    `VEHICLE_VISUAL_SCALE` 3.0. Fisica/collider invariati. Risultato
    [GENERAL-LEE-VEHICLE-RESULT](../results/GENERAL-LEE-VEHICLE-RESULT.md).
- - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
-  custom tile schema ADR, riuso cache compilata, curated region package).
+  - Tranche **Zoom intermedio (overview → guida)** completata il 2026-09-21
+    (ZI-01..03, working tree post `df5be7b`): il salto di zoom tra l'overview
+    (×0.85) e il preset di guida (×6.0) era 7x; aggiunta la scala a 6 livelli
+    `[0.7, 0.85, 2.25, 6.0, 12.0, 24.0]` con livello intermedio ×2.25 (mediana
+    geometrica, passi <3x), default invariato sul preset di guida (ora livello
+    3, fattore 6.0) e LOD 0-1 far / 2-3 medium / 4-5 near. Solo presentazione:
+    fisica e streaming invariati. Risultato
+    [INTERMEDIATE-ZOOM-RESULT](../results/INTERMEDIATE-ZOOM-RESULT.md).
+  - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+   custom tile schema ADR, riuso cache compilata, curated region package).
  - Baseline stabile per test utente: commit `583e045` (look auto "General Lee":
    berlina rossa Dodge Charger + ombra a terra + decal "GENERAL LEE"/"01" nitide;
    su base fisica veicolo `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;

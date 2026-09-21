@@ -228,3 +228,15 @@ Data: 2026-09-18. Baseline: `28fe0ee`. Result: `docs/results/GENERAL-LEE-VEHICLE
 - [x] GL-02: ombra a terra (Container ombra + scocca), scivola con la piega; `VEHICLE_VISUAL_SCALE` 2.6 → 3.0.
 - [x] GL-03: decal nitide "GENERAL LEE" (tetto) + "01" (porte) via `makeWorldText` (rasterizza 128px poi scala).
 - [x] GL-04: gate verde (typecheck, 438/438 unit, build, e2e non-flaky 8) + screenshot nitido; fix `renderer-labels.test.ts` (baseline decal).
+
+---
+
+## Zoom intermedio (overview → guida)
+
+Data: 2026-09-21. Baseline: working tree post `df5be7b` (G2D-01). Result:
+`docs/results/INTERMEDIATE-ZOOM-RESULT.md`.
+
+- [x] ZI-01: `camera.ts` scala a 6 livelli (intermedio ×2.25 tra overview e guida), default 3, LOD 0-1 far / 2-3 medium / 4-5 near.
+- [x] ZI-02: renderer/bootstrap + e2e (zoom, renderer-streaming, gta-city) e mock allineati; gate completa verde (440 unit, typecheck, build, 27 e2e + 1 canary skip).
+- [x] ZI-03: result + README (zoom 6 livelli) + log esecuzione + CURRENT.md
+
