@@ -65,6 +65,15 @@ GO VISUAL ONLY, flag `provider=openfreemap-mvt` sperimentale):
 `docs/analysis/MVT-LECCE-PARITY.md` · `docs/OpenGTA-DATA-SOURCE-MIGRATION.md` ·
 `tasks/plan.md` · `tasks/data/README.md`
 
+Tranche Location Visual Profiles (identità visiva locale automatica:
+reverse geocoding strutturato → resolver → profili default/italy/rome/
+france/paris applicati al renderer come solo-presentazione; override di
+sviluppo `?theme=...`; ADR-014):
+
+`docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md` ·
+`docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md` ·
+`docs/adr/ADR-014-location-visual-profiles.md`
+
 Avvio di sessione per agenti:
 
 `docs/handoff/CURRENT.md`

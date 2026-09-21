@@ -205,6 +205,75 @@ describe("reverse geocoding", () => {
     controller.abort();
     await expect(client.reverse(40, 18, controller.signal)).rejects.toMatchObject({ code: "aborted" });
   });
+
+  it("requests the structured address (addressdetails=1)", async () => {
+    const { fetcher, requests } = fakeFetcher(() => jsonPayload({ display_name: "Roma, Lazio, Italia" }));
+    await createGeocodeClient({ fetcher }).reverse(41.9, 12.5);
+    expect(requests[0]?.url.searchParams.get("addressdetails")).toBe("1");
+  });
+
+  it("parses the structured address into countryCode/country/region/locality/district", async () => {
+    const { fetcher } = fakeFetcher(() => jsonPayload({
+      place_id: 3177,
+      display_name: "Roma, Lazio, Italia",
+      address: {
+        country_code: "it",
+        country: "Italy",
+        state: "Lazio",
+        city: "Roma",
+        city_district: "Centro",
+      },
+    }));
+    const result = await createGeocodeClient({ fetcher }).reverse(41.9028, 12.4964);
+    expect(result).toMatchObject({
+      name: "Roma, Lazio, Italia",
+      latitude: 41.9028,
+      longitude: 12.4964,
+      countryCode: "IT",
+      country: "Italy",
+      region: "Lazio",
+      locality: "Roma",
+      district: "Centro",
+    });
+  });
+
+  it("resolves locality with the priority city > town > village > municipality", async () => {
+    const variants: Record<string, unknown> = { town: "Taranto", village: "Altamura", municipality: "Pula" };
+    for (const [key, value] of Object.entries(variants)) {
+      const { fetcher } = fakeFetcher(() => jsonPayload({ display_name: "x", address: { [key]: value } }));
+      const result = await createGeocodeClient({ fetcher }).reverse(40.5, 17.2);
+      expect(result?.locality).toBe(String(value));
+    }
+    const { fetcher: all } = fakeFetcher(() => jsonPayload({ display_name: "x", address: { city: "Città", town: "T", village: "V", municipality: "M" } }));
+    expect((await createGeocodeClient({ fetcher: all }).reverse(40.5, 17.2))?.locality).toBe("Città");
+  });
+
+  it("resolves district with the priority city_district > borough > suburb > neighbourhood", async () => {
+    const variants: Record<string, unknown> = { borough: "Montmartre", suburb: "Ivry", neighbourhood: "Quartier Latin" };
+    for (const [key, value] of Object.entries(variants)) {
+      const { fetcher } = fakeFetcher(() => jsonPayload({ display_name: "x", address: { [key]: value } }));
+      const result = await createGeocodeClient({ fetcher }).reverse(48.85, 2.35);
+      expect(result?.district).toBe(String(value));
+    }
+    const { fetcher: all } = fakeFetcher(() => jsonPayload({ display_name: "x", address: { city_district: "CD", borough: "B", suburb: "S", neighbourhood: "N" } }));
+    expect((await createGeocodeClient({ fetcher: all }).reverse(48.85, 2.35))?.district).toBe("CD");
+  });
+
+  it("uses state before region and drops an invalid country_code", async () => {
+    const { fetcher } = fakeFetcher(() => jsonPayload({
+      display_name: "x",
+      address: { country_code: "ita", state: "Piemonte", region: "Regione X", city: "Torino" },
+    }));
+    const result = await createGeocodeClient({ fetcher }).reverse(45.07, 7.69);
+    expect(result?.countryCode).toBeUndefined();
+    expect(result?.region).toBe("Piemonte");
+  });
+
+  it("keeps the candidate usable when the response has no address", async () => {
+    const { fetcher } = fakeFetcher(() => jsonPayload({ place_id: 1, display_name: "Lecce, Puglia, Italia" }));
+    const result = await createGeocodeClient({ fetcher }).reverse(40.3531, 18.1726);
+    expect(result).toEqual({ name: "Lecce, Puglia, Italia", latitude: 40.3531, longitude: 18.1726, placeId: "1" });
+  });
 });
 
 it("bounds the cache (LRU eviction refetches the oldest entry)", async () => {

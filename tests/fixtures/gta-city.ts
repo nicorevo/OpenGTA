@@ -16,14 +16,15 @@ import type { WorldRegion } from "../../src/world/model/types.ts";
  * attraversa il confine di partizione a x=60 (variante chunk-boundary).
  *
  * Camera, taxi e seed sono fissati: la posa e' GTA_CITY_CAMERA_POSE, la scala
- * visiva deriva dal preset di guida (zoom 3, fattore 6.0) del renderer, il seed e' il positionSeed
- * deterministico dei vertici interi (nessuna casualita' a runtime).
+ * visiva deriva dal preset di guida (zoom 3, fattore 6.0) del renderer, il seed e' il
+ * stableStringHash(featureId:profileId) deterministico del renderer (nessuna
+ * casualita' a runtime).
  */
 
 export const gtaCityOrigin = Object.freeze({ latitude: 40.35, longitude: 18.17 });
 export const GTA_CITY_GRID_CELL_METERS = 60;
 export const GTA_CITY_CAMERA_POSE = Object.freeze({ x: 20, y: 10, heading: 0 });
-export const GTA_CITY_SEED_POLICY = "deterministico: positionSeed dai vertici interi della sagoma; nessuna casualita' a runtime";
+export const GTA_CITY_SEED_POLICY = "deterministico: stableStringHash(featureId:profileId) del renderer; nessuna casualita' a runtime";
 export const GTA_CITY_LIGHTING = "flat: nessuna sorgente luminosa dinamica; colori piatti del preset GTA";
 export const GTA_CITY_TAXI_SPAWN = Object.freeze({ x: -80, y: 0, heading: 0 });
 

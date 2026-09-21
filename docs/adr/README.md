@@ -23,5 +23,7 @@ Status meanings:
 - ADR-010 — Discrete zoom levels with 2D LOD — **Accepted**
 - ADR-011 — Provider-neutral source with Vector Tiles (MVT) — **Accepted**
 - ADR-012 — Live online by default, pinned MVT source, implicit consent — **Accepted**
+- ADR-013 — GTA top-down presentation with PixiJS and visual depth — **Proposed** (G2D-02 PoC pending)
+- ADR-014 — Location Visual Profiles: runtime-resolved local visual identity — **Accepted for prototype**
 
 Prototype ADRs are intentionally reversible after measured evidence.

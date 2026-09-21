@@ -5,13 +5,27 @@ import { createPresentationState, toggleLabels, type PresentationState } from ".
 import { groupRoadsByStyleAndWidth, sortBuildingsForPainter, type ClassedRoadGroup } from "./scene-order.ts";
 import { DEFAULT_ZOOM_LEVEL, clampZoom, lodForZoom, zoomFactor, type LodTier, type ZoomLevel } from "../../app/camera.ts";
 import { lodProfileForTier, type LodPresentationProfile, type RoadDetailLevel } from "../lod-profile.ts";
+import { buildingStyle, defaultProfile, groundFill, roadStyle, stableStringHash, type VisualProfile } from "../theme/index.ts";
 
 import taxiImageUrl from "./assets/taxi-gta1.png?inline";
 import { createTaxiSprite } from "./taxi.ts";
 
 export interface CameraState { readonly zoomLevel: ZoomLevel; readonly zoomFactor: number; readonly bounds: Bounds2D }
+export interface PixiRendererOptions {
+  /** Profile applied at creation; defaults to the default profile. */
+  readonly visualProfile?: VisualProfile;
+}
 export interface PixiRenderer {
   readonly app: Application;
+  /**
+   * Presentation-only theme switch: re-tints the already-loaded chunk
+   * presentations and the viewport tone. Never re-fetches data, rebuilds
+   * physics/collisions or touches the camera and the vehicle pose.
+   * A no-op when the profile id is unchanged.
+   */
+  setVisualProfile(profile: VisualProfile): void;
+  /** Id of the profile currently driving the presentation (HUD/debug). */
+  visualProfileId(): string;
   /** Full-set rebuild: V0 offline entry point and explicit refresh. */
   render(chunk: CompiledChunkV0 | readonly CompiledChunkV0[]): void;
   /** Incremental upsert of one chunk presentation (add or content revision). */
@@ -69,11 +83,9 @@ function roadCasingPx(roadPx: number): number { return Math.min(ROAD_CASING_MAX_
 // Close-zoom (GTA-1 look) street detail: derived from the road centerline +
 // width already in the compiled chunk, so no new data source is needed.
 const SIDEWALK_WIDTH_METERS = 1.8;
-const SIDEWALK_FILL = 0x9a9a92;
 const MARKING_DASH_METERS = 2.5;
 const MARKING_GAP_METERS = 2.5;
 const MARKING_WIDTH_METERS = 0.18;
-const MARKING_FILL = 0xffffff;
 const MIN_MARKING_PX = 1.5;
 
 /** Per-side pavement band width in screen px for a given view scale. */
@@ -83,67 +95,21 @@ export function sidewalkEnabled(roadDetail: RoadDetailLevel): boolean { return r
 /** Tier gate: dashed lane markings are a near-tier-only detail. */
 export function roadMarkingsEnabled(roadDetail: RoadDetailLevel): boolean { return roadDetail !== "body"; }
 
-// --- GTA world palette: map the class/styleKey already present in the chunk to a
-// color. Muted, earthy tones that read as a stylised game map (not a light web
-// map). Keeping them as pure functions makes the theme swappable and testable. ---
-const GROUND_FILL: Record<string, number> = {
-  park: 0x6f9a4e, grass: 0x7f9d5c, forest: 0x4f7a3a, residential: 0x8a9a6a,
-  commercial: 0x8f8f86, industrial: 0x8a8a84, pedestrian: 0x9a958a, parking: 0x7d7d78,
-  sand: 0xd8c48a, bare: 0xa8895f, generic: 0x8b9d70, unknown: 0x8b9d70,
-};
-const GROUND_WATER = 0x5b86a6;
-const GROUND_BASE = 0x8b9d70;
-
-export function groundFill(kind: "water" | "land", cls: string): number {
-  if (kind === "water") return GROUND_WATER;
-  return GROUND_FILL[cls] ?? GROUND_BASE;
-}
-
 /** The class portion of a "<kind>:<class>" styleKey (e.g. "road:primary" -> "primary"). */
 export function styleClass(styleKey: string): string {
   const at = styleKey.indexOf(":");
   return at >= 0 ? styleKey.slice(at + 1) : styleKey;
 }
 
-const ROAD_STYLE: Record<string, { fill: number; casing: number }> = {
-  motorway: { fill: 0x3a3840, casing: 0x242228 },
-  trunk: { fill: 0x3a3840, casing: 0x242228 },
-  primary: { fill: 0x45424b, casing: 0x2c2a31 },
-  secondary: { fill: 0x514f58, casing: 0x302e38 },
-  tertiary: { fill: 0x514f58, casing: 0x302e38 },
-  residential: { fill: 0x56545d, casing: 0x33313a },
-  service: { fill: 0x56545d, casing: 0x33313a },
-};
-const ROAD_BASE = { fill: 0x53515a, casing: 0x302e38 };
-export function roadStyle(cls: string): { fill: number; casing: number } {
-  return ROAD_STYLE[cls] ?? ROAD_BASE;
-}
-
-const ROOF_PALETTE = [0xb18d77, 0xa86f5d, 0x9c8468, 0x8f7f8a, 0x9a7a5a, 0x7d7a86, 0xc2a074, 0x96714f];
-const FACADE_PALETTE = [0x806c61, 0x6f5d52, 0x756a63, 0x6a5f6b, 0x7a6a58, 0x64616c, 0x94795a, 0x7a5a42];
-const TYPE_STYLE: Record<string, { roof: number; facade: number }> = {
-  historic: { roof: 0xa86f5d, facade: 0x8a5f52 },
-  religious: { roof: 0xb8a86e, facade: 0x94865c },
-  civic: { roof: 0x93a0ad, facade: 0x6f7a86 },
-  industrial: { roof: 0x8d8d94, facade: 0x6e6e74 },
-  commercial: { roof: 0x9d9188, facade: 0x7d726a },
-};
-export function buildingStyle(cls: string, seed: number): { roof: number; facade: number } {
-  const pinned = TYPE_STYLE[cls];
-  if (pinned) return pinned;
-  const i = Math.abs(seed) % ROOF_PALETTE.length;
-  return { roof: ROOF_PALETTE[i], facade: FACADE_PALETTE[i] };
-}
-
-/** FNV-1a 32-bit of the whole-meter position: stable per building, tile-independent. */
+/**
+ * FNV-1a 32-bit of the whole-meter position: stable per building,
+ * tile-independent. Kept for the synthetic gta-city fixture; themed
+ * presentations seed buildings with stableStringHash(featureId:profileId)
+ * so the same building keeps its variant across chunks while still varying
+ * with the active visual profile.
+ */
 export function positionSeed(x: number, y: number): number {
-  const key = `${Math.round(x)}:${Math.round(y)}`;
-  let h = 2166136261;
-  for (let i = 0; i < key.length; i += 1) {
-    h ^= key.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
+  return stableStringHash(`${Math.round(x)}:${Math.round(y)}`);
 }
 
 /** Point at an arc length (world meters) along a polyline, by linear interp. */
@@ -178,7 +144,7 @@ export function dashSegments(points: readonly Vec2[], dashMeters: number, gapMet
   return segments;
 }
 
-export function drawPolygon(graphics: Graphics, polygon: Polygon2D, scale: number, height: number, color: number): void {
+export function drawPolygon(graphics: Graphics, polygon: Polygon2D, scale: number, height: number, color: number, outlineColor: number = 0x27232c): void {
   if (polygon.outer.length < 3) return;
   const screenRing = (ring: readonly { x: number; y: number }[]) => ring.map((point) => ({
     x: point.x * scale,
@@ -189,7 +155,7 @@ export function drawPolygon(graphics: Graphics, polygon: Polygon2D, scale: numbe
     for (const hole of polygon.holes) graphics.poly(screenRing(hole));
     graphics.cut();
   }
-  if (height > 0) graphics.poly(screenRing(polygon.outer)).stroke({ color: 0x27232c, width: 1 });
+  if (height > 0) graphics.poly(screenRing(polygon.outer)).stroke({ color: outlineColor, width: 1 });
 }
 
 type CompiledRoad = CompiledChunkV0["roads"][number];
@@ -209,7 +175,7 @@ function strokeRoadNetwork(graphics: Graphics, groups: readonly ClassedRoadGroup
   }
 }
 /** Strokes a thin dashed center line along every road (near-tier detail). */
-function drawCenterDashes(graphics: Graphics, groups: readonly ClassedRoadGroup<CompiledRoad>[], scale: number, viewPxPerMeter: number): void {
+function drawCenterDashes(graphics: Graphics, groups: readonly ClassedRoadGroup<CompiledRoad>[], scale: number, viewPxPerMeter: number, markingColor: number): void {
   let queued = 0;
   for (const group of groups) {
     for (const road of group.roads) {
@@ -225,7 +191,7 @@ function drawCenterDashes(graphics: Graphics, groups: readonly ClassedRoadGroup<
   // ~1.5 px on screen, so it reads at the medium (normal-play) tier, not only at near.
   if (queued > 0) {
     const width = Math.max(MARKING_WIDTH_METERS * scale, MIN_MARKING_PX / viewPxPerMeter);
-    graphics.stroke({ color: MARKING_FILL, width, cap: "round", join: "round" });
+    graphics.stroke({ color: markingColor, width, cap: "round", join: "round" });
   }
 }
 function readableLabelAngle(angle: number): number { let result = -angle; if (result > Math.PI / 2) result -= Math.PI; if (result < -Math.PI / 2) result += Math.PI; return result; }
@@ -315,9 +281,12 @@ interface ChunkPresentation {
   hasRoadMarkings: boolean;
 }
 
-export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<PixiRenderer> {
+export async function createPixiRenderer(canvas: HTMLCanvasElement, options: PixiRendererOptions = {}): Promise<PixiRenderer> {
+  let visualProfile: VisualProfile = options.visualProfile ?? defaultProfile;
   const app = new Application();
-  await app.init({ canvas, background: 0x91a477, antialias: true, preference: "webgl", resizeTo: canvas.parentElement ?? window });
+  // The viewport tone is part of the visual profile (ground.base doubles as
+  // the background), so it is set here and re-applied on every theme switch.
+  await app.init({ canvas, background: visualProfile.ground.base, antialias: true, preference: "webgl", resizeTo: canvas.parentElement ?? window });
   const world = new Container(); app.stage.addChild(world);
   const staticLayer = new Container(); world.addChild(staticLayer);
   // Layer containers preserve the global order ground < sidewalk < road casing
@@ -394,26 +363,30 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
     const ground = new Graphics();
     for (const area of chunk.ground) {
       if (profile.cullMinAreaPx2 > 0 && screenAreaPx2(area.area.outer) < profile.cullMinAreaPx2) { culledFeatures += 1; continue; }
-      drawPolygon(ground, area.area, worldScale, 0, groundFill(area.styleKey.startsWith("water:") ? "water" : "land", styleClass(area.styleKey)));
+      drawPolygon(ground, area.area, worldScale, 0, groundFill(visualProfile, area.styleKey.startsWith("water:") ? "water" : "land", styleClass(area.styleKey)));
     }
     const roadGroups = groupRoadsByStyleAndWidth(chunk.roads);
     const sidewalk = new Graphics();
-    if (sidewalkEnabled(profile.roadDetail)) strokeRoadNetwork(sidewalk, roadGroups, worldScale, SIDEWALK_FILL, () => sidewalkPadPx(worldScale));
+    if (sidewalkEnabled(profile.roadDetail)) strokeRoadNetwork(sidewalk, roadGroups, worldScale, visualProfile.roads.sidewalk.fill, () => sidewalkPadPx(worldScale));
     const roadCasing = new Graphics();
     const roadSurface = new Graphics();
-    if (profile.roadDetail !== "body") strokeRoadNetwork(roadCasing, roadGroups, worldScale, (group) => roadStyle(styleClass(group.styleKey)).casing, roadCasingPx);
-    strokeRoadNetwork(roadSurface, roadGroups, worldScale, (group) => roadStyle(styleClass(group.styleKey)).fill, () => 0);
+    if (profile.roadDetail !== "body") strokeRoadNetwork(roadCasing, roadGroups, worldScale, (group) => roadStyle(visualProfile, styleClass(group.styleKey)).casing, roadCasingPx);
+    strokeRoadNetwork(roadSurface, roadGroups, worldScale, (group) => roadStyle(visualProfile, styleClass(group.styleKey)).fill, () => 0);
     const corridor = new Graphics();
     strokeRoadNetwork(corridor, roadGroups, worldScale, 0xffffff, roadCasingPx);
     const roadMarking = new Graphics();
-    if (roadMarkingsEnabled(profile.roadDetail)) drawCenterDashes(roadMarking, roadGroups, worldScale, viewScale());
+    if (roadMarkingsEnabled(profile.roadDetail)) drawCenterDashes(roadMarking, roadGroups, worldScale, viewScale(), visualProfile.roads.markings.fill);
     const buildings = new Graphics();
     for (const building of sortBuildingsForPainter(chunk.buildings)) {
       if (profile.cullMinAreaPx2 > 0 && screenAreaPx2(building.roof.outer) < profile.cullMinAreaPx2) { culledFeatures += 1; continue; }
       const outer = building.roof.outer;
       let bMinX = Infinity, bMinY = Infinity, bMaxX = -Infinity, bMaxY = -Infinity;
       for (const point of outer) { bMinX = Math.min(bMinX, point.x); bMinY = Math.min(bMinY, point.y); bMaxX = Math.max(bMaxX, point.x); bMaxY = Math.max(bMaxY, point.y); }
-      const bstyle = buildingStyle(styleClass(building.styleKey), positionSeed((bMinX + bMaxX) / 2, (bMinY + bMaxY) / 2));
+      // The seed binds the feature identity to the active profile: the same
+      // building keeps one variant inside a profile and may shift when the
+      // profile changes, without ever using runtime randomness.
+      const bseed = stableStringHash(`${building.featureId}:${visualProfile.id}`);
+      const bstyle = buildingStyle(visualProfile, styleClass(building.styleKey), bseed);
       const depth = Math.min(24, Math.max(3, building.visualHeightMeters * worldScale * 0.6)) * profile.facadeStrength;
       if (depth > 0) facades += 1;
       if (depth > 0) {
@@ -422,9 +395,9 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
           outer: outer.map((point) => ({ x: point.x + offset.x / worldScale, y: point.y + offset.y / worldScale })),
           holes: building.roof.holes.map((hole) => hole.map((point) => ({ x: point.x + offset.x / worldScale, y: point.y + offset.y / worldScale }))),
         };
-        drawPolygon(buildings, facade, worldScale, depth, bstyle.facade);
+        drawPolygon(buildings, facade, worldScale, depth, bstyle.facade, visualProfile.buildings.outline);
       }
-      drawPolygon(buildings, building.roof, worldScale, 0, bstyle.roof);
+      drawPolygon(buildings, building.roof, worldScale, 0, bstyle.roof, visualProfile.buildings.outline);
     }
     const labels = new Container();
     const roadOrder = chunk.roads.reduce((max, road) => Math.max(max, road.widthMeters), 0);
@@ -518,6 +491,16 @@ export async function createPixiRenderer(canvas: HTMLCanvasElement): Promise<Pix
       updateCamera();
     },
     setChunk,
+    setVisualProfile(profile: VisualProfile) {
+      if (disposed) return;
+      if (profile.id === visualProfile.id) return; // same id: nothing to redraw
+      visualProfile = profile;
+      app.renderer.background.color.setValue(profile.ground.base);
+      // Presentation-only rebuild from the already-compiled chunks: same
+      // data, same camera, same vehicle pose — only the colors change.
+      if (presentations.size > 0) applyTier();
+    },
+    visualProfileId() { return visualProfile.id; },
     removeChunk(chunkId) { if (!disposed) setChunkRemoval(chunkId); },
     presentationCounts() {
       return { chunkPresentations: presentations.size, graphicsObjects: presentations.size * 7 };

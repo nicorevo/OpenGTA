@@ -1,5 +1,6 @@
 import { readBoundedJson } from "../world/runtime/response-reader.ts";
 import { GeoDataSourceError } from "../world/runtime/source-error.ts";
+import { normalizeCountryCode } from "./location-context.ts";
 
 /** Pinned, trusted geocoding endpoints (never taken from user input). */
 export const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
@@ -11,6 +12,23 @@ export interface GeocodeCandidate {
   readonly latitude: number;
   readonly longitude: number;
   readonly placeId: string;
+}
+
+/**
+ * Reverse result enriched with the structured Nominatim address
+ * (`addressdetails=1`). All address fields are optional: the result stays
+ * usable (as a plain candidate) when the geocoder returns no address.
+ */
+export interface ReverseGeocodeResult extends GeocodeCandidate {
+  /** ISO 3166-1 alpha-2 uppercase, e.g. IT, FR. */
+  readonly countryCode?: string;
+  readonly country?: string;
+  /** State / region / first-order administrative area. */
+  readonly region?: string;
+  /** City/town/village/municipality normalized into one field. */
+  readonly locality?: string;
+  /** Borough / suburb / district / neighbourhood where available. */
+  readonly district?: string;
 }
 
 export type GeocodeErrorCode = "network" | "http" | "rate-limited" | "timeout" | "invalid-response" | "aborted";
@@ -44,7 +62,7 @@ export interface GeocodeClientOptions {
 export interface GeocodeClient {
   search(query: string, signal?: AbortSignal): Promise<GeocodeCandidate[]>;
   /** Resolves undefined when Nominatim has no data for the point. */
-  reverse(latitude: number, longitude: number, signal?: AbortSignal): Promise<GeocodeCandidate | undefined>;
+  reverse(latitude: number, longitude: number, signal?: AbortSignal): Promise<ReverseGeocodeResult | undefined>;
 }
 
 /** Trim, collapse whitespace and casefold a query (cache key + blank check). */
@@ -66,6 +84,29 @@ function parseCandidate(raw: unknown): GeocodeCandidate | undefined {
   if (latitude === undefined || longitude === undefined || name.length === 0 || name.length > MAX_NAME_LENGTH) return undefined;
   const placeId = typeof entry.place_id === "string" ? entry.place_id : typeof entry.place_id === "number" ? String(entry.place_id) : "";
   return { name, latitude, longitude, placeId };
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim().length > 0) return value.trim();
+  }
+  return undefined;
+}
+
+/**
+ * Extract the structured address from a Nominatim reverse response. Provider
+ * data is untrusted: unknown shapes degrade to no address, never to a throw.
+ */
+export function parseAddress(raw: unknown): Omit<ReverseGeocodeResult, keyof GeocodeCandidate> {
+  if (typeof raw !== "object" || raw === null) return {};
+  const address = raw as Record<string, unknown>;
+  return {
+    countryCode: normalizeCountryCode(firstString(address.country_code)),
+    country: firstString(address.country),
+    region: firstString(address.state, address.region),
+    locality: firstString(address.city, address.town, address.village, address.municipality),
+    district: firstString(address.city_district, address.borough, address.suburb, address.neighbourhood),
+  };
 }
 
 /**
@@ -160,6 +201,7 @@ export function createGeocodeClient(options: GeocodeClientOptions = {}): Geocode
       url.searchParams.set("format", "jsonv2");
       url.searchParams.set("zoom", "10");
       url.searchParams.set("accept-language", "it");
+      url.searchParams.set("addressdetails", "1");
       const value = await fetchJson(url.toString(), callerSignal);
       if (typeof value !== "object" || value === null || Array.isArray(value)) {
         throw new GeocodeError("invalid-response", "geocode reverse response is not an object");
@@ -171,7 +213,7 @@ export function createGeocodeClient(options: GeocodeClientOptions = {}): Geocode
         throw new GeocodeError("invalid-response", "geocode reverse response has no usable name");
       }
       const placeId = typeof entry.place_id === "string" ? entry.place_id : typeof entry.place_id === "number" ? String(entry.place_id) : "";
-      return { name, latitude, longitude, placeId };
+      return { name, latitude, longitude, placeId, ...parseAddress(entry.address) };
     },
   };
 }

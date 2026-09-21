@@ -1,4 +1,5 @@
-import type { GeocodeCandidate } from "./geocode.ts";
+import type { ReverseGeocodeResult } from "./geocode.ts";
+import { toLocationContext, type LocationContext } from "./location-context.ts";
 
 /** World-space size (meters) of the square zone that triggers a reverse lookup. */
 export const PLACE_ZONE_METERS = 1000;
@@ -16,7 +17,7 @@ export function zoneKeyForPose(x: number, y: number, cellSizeMeters: number = PL
 }
 
 export interface PlaceTrackerOptions {
-  readonly reverse: (latitude: number, longitude: number, signal?: AbortSignal) => Promise<GeocodeCandidate | undefined>;
+  readonly reverse: (latitude: number, longitude: number, signal?: AbortSignal) => Promise<ReverseGeocodeResult | undefined>;
   /** World-space pose to geographic coordinates for the reverse lookup. */
   readonly toLonLat: (x: number, y: number) => { readonly latitude: number; readonly longitude: number };
   /** Minimum milliseconds between two reverse requests (default 5000). */
@@ -32,6 +33,11 @@ export interface PlaceTracker {
   track(x: number, y: number): void;
   /** Last resolved place name, undefined until the first success. */
   place(): string | undefined;
+  /**
+   * Last resolved structured context (LVP input). Kept until a new success:
+   * failures and no-data answers must not clear it or cause theme flicker.
+   */
+  location(): LocationContext | undefined;
   /** Abort any in-flight request and stop tracking. */
   dispose(): void;
 }
@@ -47,6 +53,7 @@ export function createPlaceTracker(options: PlaceTrackerOptions): PlaceTracker {
   let pendingZone: PendingZone | undefined;
   let lastRequestAt = -Infinity;
   let placeName: string | undefined;
+  let locationCtx: LocationContext | undefined;
   let controller: AbortController | undefined;
   let disposed = false;
 
@@ -63,7 +70,10 @@ export function createPlaceTracker(options: PlaceTrackerOptions): PlaceTracker {
         if (disposed || signal.aborted) return;
         activeKey = undefined;
         servedZone = key;
-        if (candidate) placeName = candidate.name;
+        if (candidate) {
+          placeName = candidate.name;
+          locationCtx = toLocationContext(candidate);
+        }
         tryPending();
       },
       () => {
@@ -108,6 +118,7 @@ export function createPlaceTracker(options: PlaceTrackerOptions): PlaceTracker {
   return {
     track,
     place: () => placeName,
+    location: () => locationCtx,
     dispose,
   };
 }

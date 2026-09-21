@@ -282,3 +282,19 @@ Result: `docs/results/ONE-NAME-PER-ROAD-RESULT.md`.
 - [x] ZP-02: `src/app/place-status.ts` (zoneKeyForPose + createPlaceTracker: zona 1000 m, intervallo 5 s, 1 in-flight, retry pendente, errore silenzioso) + unit (RED prima).
 - [x] ZP-03: `bootstrap.ts` wiring (ready → luogo, dispose) + e2e `place-status.spec.ts` (RED prima).
 - [x] ZP-04: gate completa + docs (SECURITY.md, result, log, CURRENT.md).
+
+---
+
+## Location Visual Profiles (identità visiva locale)
+
+Data: 2026-09-21. Baseline: `0433da1`. Spec:
+`docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`. ADR-014. Result:
+`docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`.
+
+- [x] LVP-00: ADR-014 + righe plan/todo/handoff.
+- [x] LVP-01: `LocationContext` + reverse geocoding strutturato + `PlaceTracker.location()`.
+- [x] LVP-02: contratto theme (types/hash/merge) + default profile = baseline corrente.
+- [x] LVP-03: profili italy/rome/france/paris + resolver + override `?theme=`.
+- [x] LVP-04: renderer theme injection (`setVisualProfile`, seed `featureId`, helper puri).
+- [x] LVP-05: bootstrap auto-selection + debug + e2e.
+- [x] LVP-06: validazione visiva Paris/Rome + result + gate completa.

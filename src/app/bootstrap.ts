@@ -14,6 +14,7 @@ import { createFirstPersonRenderer } from "../render/pixi/first-person-renderer.
 import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapier/adapter.ts";
 import { createGeocodeClient } from "./geocode.ts";
 import { createPlaceTracker, type PlaceTracker } from "./place-status.ts";
+import { createVisualProfileResolver, knownThemeIds, themeOverrideFromSearch } from "../render/theme/index.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
 import { switchView, type ViewLoop } from "./view-toggle.ts";
 import { advanceFixedStep } from "./fixed-step.ts";
@@ -96,8 +97,13 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       tpCanvas.replaceWith(nextCanvas); tpCanvas = nextCanvas;
       status.dataset.state = "loading"; message.textContent = messages.loading; retry.hidden = true; stop.hidden = false;
       const physics = await createPhysicsAdapter([]);
+      // Visual identity: one resolver per session; the ?theme= override is
+      // read once (closed registry, invalid/auto fall back to resolution).
+      const themeResolver = createVisualProfileResolver();
+      const forcedThemeId = themeOverrideFromSearch(window.location.search, knownThemeIds);
+      const initialTheme = themeResolver.resolve(undefined, forcedThemeId).profile;
       let renderer;
-      try { renderer = await createPixiRenderer(nextCanvas); }
+      try { renderer = await createPixiRenderer(nextCanvas, { visualProfile: initialTheme }); }
       catch (error) { physics.dispose(); throw error; }
       if (token !== epoch) { physics.dispose(); renderer.dispose(); return; }
       labels.toggle = () => renderer.toggleLabels();
@@ -166,13 +172,21 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const placeTracker: PlaceTracker | undefined = placeProjector
         ? createPlaceTracker({ reverse: createGeocodeClient().reverse, toLonLat: (x, y) => placeProjector.unproject({ x, y }) })
         : undefined;
+      // Automatic theme: the resolved profile follows the last valid location.
+      // Same profile id is a renderer no-op, so this is safe to run on every
+      // status tick and never refetches data.
+      const syncVisualTheme = () => {
+        const resolution = themeResolver.resolve(placeTracker?.location(), forcedThemeId);
+        if (resolution.profile.id !== renderer.visualProfileId()) renderer.setVisualProfile(resolution.profile);
+      };
       const metrics = new RuntimeMetrics();
-      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });
+      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), theme: () => ({ id: renderer.visualProfileId(), location: placeTracker?.location() ?? null }), firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });
       Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: Object.freeze({ snapshot: () => metrics.snapshot() }) });
       const updateStatus = () => {
         const snapshot = session?.snapshot(); if (!snapshot) return;
         const pose = session?.vehicle()?.position;
         if (placeTracker && pose) placeTracker.track(pose.x, pose.y);
+        syncVisualTheme();
         status.dataset.state = snapshot.state;
         const code = Object.values(snapshot.runtime.errors)[0];
         const base = snapshot.state === "ready" ? (placeTracker?.place() ?? messages.ready) : messages[snapshot.state];

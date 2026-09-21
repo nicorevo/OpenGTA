@@ -37,7 +37,8 @@ Non rieseguirli come backlog corrente.
 | Veicolo: velocità -20% + divieto acqua | Completata (commit `4e687b9`) — WS-01..02: top speed 84 → 67.2 m/s (~242 km/h), inversa 11.2 m/s (solo i soffitti, feel invariato); water areas emesse dal compilatore come collision shape (muro perimetrale Rapier, come edifici), `compilerVersion` bumpato per invalidare i chunk persistenti senza muri; risultato in `docs/results/VEHICLE-WATER-SPEED-RESULT.md` |
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
-| 3 Packager, AI, multiplayer | Non aperte |
+ | Location Visual Profiles (LVP) | Completato (baseline `0433da1`, working tree da commitare) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..07 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`) |
+ | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
 
@@ -211,7 +212,36 @@ anche con suite verde.
       "nessuna chiamata esterna inattesa". Spec
       [current-place-name-v1](../specs/current-place-name-v1.md), risultato
       [CURRENT-PLACE-NAME-RESULT](../results/CURRENT-PLACE-NAME-RESULT.md).
-    - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+      - Tranche **Location Visual Profiles (LVP)** completata il 2026-09-21
+        (baseline `0433da1`; spec
+        [OPEN-GTA-LOCATION-VISUAL-PROFILES-V1](../specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md),
+        ADR-014, risultato
+        [LOCATION-VISUAL-PROFILES-V1-RESULT](../results/LOCATION-VISUAL-PROFILES-V1-RESULT.md)):
+        la stessa pipeline assume identità visiva locale in base alla
+        posizione — reverse geocoding strutturato (`addressdetails=1`) →
+        `LocationContext` provider-neutral (`src/app/location-context.ts`,
+        `PlaceTracker.location()`) → `VisualProfileResolver` (registry chiusa:
+        default, italy, rome, france, paris; regole locality/country, città
+        qualificate dal paese) → `VisualProfile` completo consegnato al
+        renderer (`src/render/theme/`, helper puri, merge esplicito, seed
+        deterministico FNV-1a su `featureId:profile.id`). Cambio tema =
+        solo-presentazione (rebuild chunk caricati; niente refetch/fisica/
+        camera/rete); `CompiledChunkV0` senza themeId; override di sviluppo
+        `?theme=auto|default|italy|rome|france|paris`; fallback offline/errore
+        = default o ultimo profilo valido. LVP-00..07 fatti; gate: 548 unit,
+         42 E2E + canary skipped, typecheck/build verdi; finding `featureId`
+         MVT non stabile tra window documentato nel result (follow-up stable
+         visual identity). **Gate visuale utente: GO**
+         ([LVP-VALIDATION-RESULT](../results/LVP-VALIDATION-RESULT.md),
+         confronto manuale `?theme=france` vs `?theme=rome`); LVP-07 =
+         raffino palette France/Paris sulle osservazioni del gate (tetti
+         piu vari, facciate cream/limestone/taupe, separazione roof/facade
+         senza saturazione in piu; screenshot prima/dopo + controllo Rome
+         invariato nel result). Next (dal gate): re-gate del raffino,
+         validazione manuale auto-resolution in viaggio, terzo profilo molto
+         diverso (tokyo/nairobi) -> 3 famiglie visuali, poi solo il Visual
+         Profile Service. Working tree da commitare (feat LVP + docs).
+     - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
     - Commits del 2026-09-21 (in ordine): `4e687b9` (feat WS), `0433da1`
       (feat ZP), `e2ccb41` (docs: result/log/spec/SECURITY delle due tranche),

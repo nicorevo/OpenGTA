@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { GeocodeCandidate } from "./geocode.ts";
+import type { GeocodeCandidate, ReverseGeocodeResult } from "./geocode.ts";
 import { createPlaceTracker, PLACE_ZONE_METERS, zoneKeyForPose } from "./place-status.ts";
 
 const NAME = "Lecce, Puglia, Italia";
 const candidate: GeocodeCandidate = { name: NAME, latitude: 40.3531, longitude: 18.1726, placeId: "1" };
+const romeCandidate: ReverseGeocodeResult = {
+  name: "Roma, Lazio, Italia", latitude: 41.9028, longitude: 12.4964, placeId: "3177",
+  countryCode: "IT", country: "Italy", region: "Lazio", locality: "Roma",
+};
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 interface Call { readonly latitude: number; readonly longitude: number; readonly signal?: AbortSignal }
@@ -144,6 +148,56 @@ describe("createPlaceTracker", () => {
     expect(calls).toHaveLength(1);
     expect(tracker.place()).toBeUndefined();
     tracker.dispose();
+  });
+
+  describe("location() (structured context for LVP)", () => {
+    it("is undefined until the first successful lookup", async () => {
+      const { reverse } = makeReverse(async () => romeCandidate);
+      const tracker = createPlaceTracker({ reverse, toLonLat: () => ({ latitude: 41.9028, longitude: 12.4964 }), clock: () => 0, minIntervalMs: 0 });
+      expect(tracker.location()).toBeUndefined();
+      tracker.track(0, 0);
+      await flush();
+      expect(tracker.location()).toMatchObject({
+        latitude: 41.9028, longitude: 12.4964, source: "nominatim",
+        countryCode: "IT", locality: "Roma", displayName: "Roma, Lazio, Italia",
+      });
+      tracker.dispose();
+    });
+
+    it("keeps the last valid context when a later lookup fails or finds no data", async () => {
+      let mode: "ok" | "fail" | "nodata" = "ok";
+      const { reverse } = makeReverse(async () => {
+        if (mode === "fail") throw new Error("network down");
+        return mode === "nodata" ? undefined : romeCandidate;
+      });
+      let now = 0;
+      const tracker = createPlaceTracker({ reverse, toLonLat: () => ({ latitude: 41.9028, longitude: 12.4964 }), clock: () => now, minIntervalMs: 0 });
+      tracker.track(0, 0);
+      await flush();
+      expect(tracker.location()?.locality).toBe("Roma");
+      now += 1000; mode = "fail";
+      tracker.track(2000, 0);
+      await flush();
+      expect(tracker.location()?.locality).toBe("Roma"); // failure must not clear it
+      now += 1000; mode = "nodata";
+      tracker.track(4000, 0);
+      await flush();
+      expect(tracker.location()?.locality).toBe("Roma"); // no data must not clear it
+      tracker.dispose();
+    });
+
+    it("exposes a context without address fields when the reverse result has none", async () => {
+      const { reverse } = makeReverse(async () => candidate);
+      const tracker = createPlaceTracker({ reverse, toLonLat: () => ({ latitude: 40.3531, longitude: 18.1726 }), clock: () => 0, minIntervalMs: 0 });
+      tracker.track(0, 0);
+      await flush();
+      expect(tracker.location()).toEqual({
+        latitude: 40.3531, longitude: 18.1726, source: "nominatim",
+        placeId: "1", displayName: NAME,
+      });
+      expect(tracker.place()).toBe(NAME);
+      tracker.dispose();
+    });
   });
 
   it("stops tracking after dispose and aborts the in-flight request", async () => {

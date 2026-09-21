@@ -902,3 +902,59 @@ mantiene l'ultimo nome), offline = zero richieste.
 | Nominatim policy (1 req/s) | Trigger a zona 1000 m + intervallo 5 s + 1 in-flight; a riposo zero richieste |
 | E2E "cambio zona" durante la guida non deterministico (il controller non segue le strade) | Logica del tracker coperta dai unit (clock/reverse iniettati); l'e2e verifica l'integrazione ready+luogo e gli error path |
 | Tile mockati in e2e con geometria duplicata per le chiavi vicine | Solo il tile centrale serve la geometria corretta all'origine (necessaria per `ready`); i vicini non sono raggiungibili nel tempo del test |
+---
+
+## Location Visual Profiles (LVP)
+
+Data: 2026-09-21. Baseline: `0433da1` (working tree pulito).
+Spec: `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`. ADR: ADR-014.
+Result: `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`.
+
+La stessa pipeline OpenGTA assume una forte identita' locale in base alla
+posizione: reverse geocoding strutturato → `LocationContext`
+provider-neutral → `VisualProfileResolver` → `VisualProfile` applicato dal
+renderer (solo-presentazione: niente geometria, fisica o refetch). Profili
+iniziali: default, italy, rome, france, paris; override di sviluppo
+`?theme=auto|default|italy|rome|france|paris`.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | LVP-00 | Nessuna | S | ADR-014 + righe plan/todo/handoff; nessun production code |
+| [x] | LVP-01 | Nessuna | M | `src/app/location-context.ts` (`LocationContext` provider-neutral + `toLocationContext` + `normalizeCountryCode`); `geocode.ts` `ReverseGeocodeResult` (`addressdetails=1`, parsing `country_code`/`state`/`city|town|village|municipality`/`city_district|borough|suburb|neighbourhood`, validazione `^[A-Z]{2}$`); `place-status.ts` `location()` (ultimo contesto valido mantenuto sul fallimento); unit in `geocode.test.ts` + `location-context.test.ts` + `place-status.test.ts` (RED prima) |
+| [x] | LVP-02 | Nessuna | M | `src/render/theme/{types,hash,merge}.ts` + `profiles/default.ts` + `index.ts`: contratto `VisualProfile` completo (schemaVersion 1, ground/roads/buildings/identity), `stableStringHash` FNV-1a 32-bit, `mergeVisualProfile` esplicito (parent immutabile, map merge per chiave, palette sostituite, guard palette non vuote), default = valori correnti del renderer + unit (RED prima) |
+| [x] | LVP-03 | LVP-02 | M | `profiles/{italy,rome,france,paris}.ts` (gerarchia default→italy→rome, default→france→paris) + `resolver.ts` (registry chiusa, regole locality/region/country, `normalizeLocationToken`, forzato ha precedenza assoluta, forzato non valido → auto, citta' qualificata dal paese) + `override.ts` (`?theme=` solo id della registry) + unit (RED prima) |
+| [x] | LVP-04 | LVP-02 | L | `renderer.ts`: `createPixiRenderer(canvas, { visualProfile })` (default interno), `setVisualProfile`/`visualProfileId` (stesso id = no-op; id diverso = rebuild solo-presentazione dei chunk caricati, niente refetch/fisica/camera/rete), helper puri spostati in `theme/index.ts` (`groundFill`/`roadStyle`/`buildingStyle` con profilo), seed edificio = `stableStringHash(featureId:profile.id)`, background dal profilo; unit (RED prima) |
+| [x] | LVP-05 | LVP-03, 04 | M | `bootstrap.ts`: resolver una volta per sessione, `?theme=` letto una volta, profilo iniziale alla creazione del renderer, `syncVisualTheme` al cambio di riferimento di `location()` nel loop 200 ms, debug snapshot `theme`/`location`; e2e `tests/e2e/location-visual-profiles.spec.ts` (forzato paris/rome, id non valido → default, auto con addressdetails mockato → locality, fallimento geocoder → profilo mantenuto, offline invariato) (RED prima) |
+| [x] | LVP-06 | LVP-05 | M | Validazione visiva paris/rome a parita' di scena (screenshot, invarianza chunk/camera/zoom, nessun leak di presentazioni su paris→rome→paris→rome), verifica live Paris/Rome se la rete lo consente (altrimenti documentata), `LOCATION-VISUAL-PROFILES-V1-RESULT.md` + gate completa + CURRENT.md/README/plan/todo |
+
+### Checkpoint
+
+- [x] A parita' di geometria Paris e Rome appaiono chiaramente diverse (palette edifici/tetti, strade, marciapiedi, terreno, acqua) — screenshot nel result.
+- [x] Cambio tema: zero refetch, zero ricompilazione, fisica/pose/camera/zoom invariati, numero di presentazioni stabile dopo piu' switch — unit fake-Pixi (7 Graphics/chunk al cambio, conteggi e camera invariati, A-B-A stabile) + e2e.
+- [x] Offline/geocoder fallito: gioco continua, default o ultimo profilo valido, nessun errore nel loop, zero richieste se offline — e2e `location-visual-profiles.spec.ts`.
+- [x] Il renderer non conosce Nominatim e non contiene `if rome/paris`; `CompiledChunkV0` non contiene themeId — il renderer consuma solo `VisualProfile` dal `theme/`.
+- [x] Suite unit (548), typecheck, build, E2E (42 + canary skipped) verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| `featureId` MVT non stabile tra streaming (indice per-assemblea) | Spec 15.2: si usa `featureId` in v1, finding documentato nel result + follow-up per stable visual identity provider-neutral |
+| Cambio tema = rebuild completo delle presentazioni (evento raro) | Accettabile in v1 (spec 40); guard no-op sullo stesso id; mai nel RAF |
+| Il default non deve regredire il look corrente | Default profile = valori correnti del renderer letterali; guard unit + e2e |
+| Fake facades = campo transitorio | `facadePalette`/`typeStyles[].facade` restano nel contratto (spec 25), da deprecare con 2D+ |
+
+### LVP-07 — Raffino profili France/Paris (gate visuale utente)
+
+| Stato | Task | Dipende da | S | Sintesi |
+| --- | --- | --- | --- | --- |
+| [x] | LVP-07 | LVP-06 | S | Gate utente `docs/results/LVP-VALIDATION-RESULT.md` (GO) con osservazione: France "ancora troppo cartografico". Step 1 "stabilizzare LVP": palette France (tetti ardesia→zincato con voci calde/fredde, facciate cream/limestone/taupe con più gamma tonale) e Paris (stessa direzione, più fredda), senza saturazione in più; screenshot prima/dopo + controllo Rome invariato nel result |
+
+### Next (backlog post-v1, dal gate utente, in ordine)
+
+- [ ] Re-gate visuale del raffino France/Paris.
+- [ ] Validazione manuale auto-resolution end-to-end su città reali in viaggio (mock già coperta da e2e).
+- [ ] Terzo profilo molto diverso (`tokyo` o `nairobi`) + validazione 3 famiglie visuali (es. Rome/Paris/Tokyo) → "LVP architecture validated".
+- [ ] Solo dopo: Visual Profile Service (VisualEvidenceProfile → VisualCatalog → ProfileCompiler → fixtures → Mapillary → Vision → runtime service).

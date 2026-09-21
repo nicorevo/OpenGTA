@@ -1,6 +1,7 @@
 import { Graphics, Point } from "pixi.js";
 import { describe, expect, it } from "vitest";
-import { buildingStyle, dashSegments, drawPolygon, groundFill, positionSeed, roadMarkingsEnabled, roadStyle, sidewalkEnabled, sidewalkPadPx } from "./renderer.ts";
+import { buildingStyle, defaultProfile, groundFill, roadStyle } from "../theme/index.ts";
+import { dashSegments, drawPolygon, positionSeed, roadMarkingsEnabled, sidewalkEnabled, sidewalkPadPx } from "./renderer.ts";
 
 describe("Pixi polygon rendering", () => {
   it("keeps canonical holes transparent", () => {
@@ -61,36 +62,36 @@ describe("close-zoom street detail helpers", () => {
   });
 });
 
-describe("GTA world palette (class/styleKey -> color)", () => {
+describe("GTA world palette (default profile: class/styleKey -> color)", () => {
   it("colors ground by land class with distinct GTA-muted tones", () => {
-    expect(groundFill("land", "park")).not.toBe(groundFill("land", "sand"));
-    expect(groundFill("land", "forest")).not.toBe(groundFill("land", "parking"));
-    expect(groundFill("land", "parking")).not.toBe(groundFill("land", "residential"));
-    expect(groundFill("land", "industrial")).not.toBe(groundFill("land", "grass"));
+    expect(groundFill(defaultProfile, "land", "park")).not.toBe(groundFill(defaultProfile, "land", "sand"));
+    expect(groundFill(defaultProfile, "land", "forest")).not.toBe(groundFill(defaultProfile, "land", "parking"));
+    expect(groundFill(defaultProfile, "land", "parking")).not.toBe(groundFill(defaultProfile, "land", "residential"));
+    expect(groundFill(defaultProfile, "land", "industrial")).not.toBe(groundFill(defaultProfile, "land", "grass"));
   });
 
   it("keeps water distinct from land and defaults unknown land to the base tone", () => {
-    expect(groundFill("water", "lake")).not.toBe(groundFill("land", "park"));
-    expect(groundFill("land", "unknown")).toBe(groundFill("land", "generic"));
+    expect(groundFill(defaultProfile, "water", "lake")).not.toBe(groundFill(defaultProfile, "land", "park"));
+    expect(groundFill(defaultProfile, "land", "unknown")).toBe(groundFill(defaultProfile, "land", "generic"));
   });
 
   it("styles roads by class band: arterials differ from local streets", () => {
-    expect(roadStyle("motorway").fill).not.toBe(roadStyle("residential").fill);
-    expect(roadStyle("primary").fill).not.toBe(roadStyle("service").fill);
+    expect(roadStyle(defaultProfile, "motorway").fill).not.toBe(roadStyle(defaultProfile, "residential").fill);
+    expect(roadStyle(defaultProfile, "primary").fill).not.toBe(roadStyle(defaultProfile, "service").fill);
     // unmapped classes fall back to the stable base asphalt
-    expect(roadStyle("path")).toEqual(roadStyle("not-a-class"));
+    expect(roadStyle(defaultProfile, "path")).toEqual(roadStyle(defaultProfile, "not-a-class"));
   });
 
   it("buildingStyle is deterministic per seed and varies across seeds", () => {
-    expect(buildingStyle("unknown", 12345)).toEqual(buildingStyle("unknown", 12345));
-    const a = buildingStyle("unknown", 1);
-    const b = buildingStyle("unknown", 2);
+    expect(buildingStyle(defaultProfile, "unknown", 12345)).toEqual(buildingStyle(defaultProfile, "unknown", 12345));
+    const a = buildingStyle(defaultProfile, "unknown", 1);
+    const b = buildingStyle(defaultProfile, "unknown", 2);
     expect(a.roof !== b.roof || a.facade !== b.facade).toBe(true);
   });
 
   it("buildingStyle pins characteristic types regardless of the seed", () => {
-    expect(buildingStyle("historic", 0).roof).toBe(buildingStyle("historic", 999).roof);
-    expect(buildingStyle("industrial", 1).facade).toBe(buildingStyle("industrial", 42).facade);
+    expect(buildingStyle(defaultProfile, "historic", 0).roof).toBe(buildingStyle(defaultProfile, "historic", 999).roof);
+    expect(buildingStyle(defaultProfile, "industrial", 1).facade).toBe(buildingStyle(defaultProfile, "industrial", 42).facade);
   });
 
   it("positionSeed is stable per world position, jitter-tolerant and spread out", () => {
