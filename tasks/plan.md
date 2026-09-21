@@ -20,7 +20,8 @@ Provenienza: `src/render/pixi/assets/taxi.PROVENANCE.md`.
 
 # Piano: GTA 2D — citta' dall'alto (strade e palazzi)
 
-Data: 2026-09-20. Stato: G2D-00 consegnato, G2D-01..18 da fare.
+Data: 2026-09-20 (aggiornato 2026-09-21). Stato: G2D-00..01 consegnati
+(commits `758255a` + `df5be7b`, docs `723deb7`), G2D-02..18 da fare.
 Baseline codice: `758255a`. Analisi:
 `docs/analysis/GTA-2D-VISUAL-GAP-2026-09-20.md`; spec:
 `docs/specs/gta-2d-city-v1.md`; ADR proposta:
@@ -842,3 +843,62 @@ disabilitato. Contratto di avvio e consenso invariati.
 | Nominatim policy (1 req/s, UA) | Debounce + 1 in-flight + cache + limit=5; e2e mocka via `page.route` (nessun carico sul servizio) |
 | E2E dipendente dalla rete | Nominatim e tile MVT intercettati con `page.route`: test deterministico; i tile restanti si abortono dopo l'assert |
 | Complessità a11y combobox | Pattern `combobox`/`listbox` minimo + test da tastiera in e2e (frecce/Enter/Esc) |
+
+---
+
+## Veicolo: velocità -20% e divieto d'ingresso in acqua
+
+Data: 2026-09-21. Baseline: `04d2b64` (working tree pulito).
+Richiesta utente: "diminuisci un pochino la velocità (20%) e non consentire
+l'ingresso in acqua".
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | WS-01 | Nessuna | S | `VEHICLE_TUNING`: `maxForwardSpeed` 84 → 67.2, `maxReverseSpeed` 14 → 11.2 (top speed -20%, accelerazioni e grip invariati); asserzioni top speed in `controller.test.ts` aggiornate (RED prima) |
+| [x] | WS-02 | Nessuna | M | `compileRegion`: ogni water **area** emette anche una collision shape poligonale (muro perimetrale, come gli edifici; i corsi d'acqua solo-a-linea non generano collisione); test in `compiled.test.ts` (RED prima); il blocco dell'attraversamento è garantito dai muri poligonali già testati nell'adapter Rapier |
+
+### Checkpoint
+
+- [x] Top speed ≈ 67.2 m/s (~242 km/h), inversa 11.2 m/s; feel invariato (accel/grip/steer intatti).
+- [x] Il veicolo non attraversa mai il perimetro di una water area (compilatore + adapter).
+- [x] Suite completa, typecheck, build, E2E verdi.
+
+---
+
+## Nome del luogo corrente nello stato di sessione
+
+Data: 2026-09-21. Baseline: `04d2b64` + working tree con la tranche WS
+(velocità/acqua) ancora da commitare — i commit WS e ZP restano separati.
+Spec: `docs/specs/current-place-name-v1.md` (approvata con "procedi").
+Result: `docs/results/CURRENT-PLACE-NAME-RESULT.md`.
+
+Nello stato `ready` la barra `#session-status` mostra il luogo corrente
+(reverse geocoding Nominatim al cambio di zona 1000 m, intervallo min 5 s,
+1 in-flight con abort) al posto di "Area pronta"; errori silenziosi (si
+mantiene l'ultimo nome), offline = zero richieste.
+
+### Task
+
+| Stato | ID | Dipendenze | Taglia | Esito verificabile |
+| --- | --- | --- | --- | --- |
+| [x] | ZP-01 | Nessuna | M | `geocode.ts`: `NOMINATIM_REVERSE_URL` pinnato + `reverse(lat, lon, signal?)` → `GeocodeCandidate | undefined` (`{error}` → undefined; stesso impianto errori/timeout/budget di search; lat/lon del candidato = valori richiesti; nessuna cache) + unit (RED prima) |
+| [x] | ZP-02 | ZP-01 | M | `src/app/place-status.ts`: `PLACE_ZONE_METERS=1000`, `zoneKeyForPose` (pure), `createPlaceTracker({reverse, toLonLat, minIntervalMs=5000, cellSizeMeters, clock})` → `track/place/dispose` (1 richiesta per zona, intervallo con retry pendente, abort precedente, errore mantiene il nome, `place()` undefined finché non c'è un successo) + unit (RED prima) |
+| [x] | ZP-03 | ZP-02 | M | `bootstrap.ts`: tracker solo per open-world (proiettore una volta, `toLonLat` da `unproject`), `updateStatus` chiama `track` e per `ready` mostra `place() ?? "Area pronta"`, `dispose` nel teardown; e2e `tests/e2e/place-status.spec.ts` (RED prima: ready+luogo mock, 500 → "Area pronta", `{error}` → "Area pronta", offline → 0 richieste) |
+| [x] | ZP-04 | ZP-03 | S | Gate completa + docs: SECURITY.md (riga geocoding estesa al reverse), result, log esecuzione, CURRENT.md |
+
+### Checkpoint
+
+- [ ] "ready" → la barra mostra il luogo (mock "Lecce, Puglia, Italia") al posto di "Area pronta".
+- [ ] A veicolo fermo al più 1 richiesta; cambio zona → 1 richiesta (max 1 ogni 5 s).
+- [ ] Fallimento reverse → testo precedente mantenuto, zero pageerror; offline → zero richieste.
+- [ ] Suite completa, typecheck, build, E2E verdi.
+
+### Rischi e scelte esplicite
+
+| Rischio | Gestione |
+| --- | --- |
+| Nominatim policy (1 req/s) | Trigger a zona 1000 m + intervallo 5 s + 1 in-flight; a riposo zero richieste |
+| E2E "cambio zona" durante la guida non deterministico (il controller non segue le strade) | Logica del tracker coperta dai unit (clock/reverse iniettati); l'e2e verifica l'integrazione ready+luogo e gli error path |
+| Tile mockati in e2e con geometria duplicata per le chiavi vicine | Solo il tile centrale serve la geometria corretta all'origine (necessaria per `ready`); i vicini non sono raggiungibili nel tempo del test |

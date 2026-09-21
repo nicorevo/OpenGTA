@@ -1,6 +1,6 @@
 # Checklist: GTA 2D (citta' dall'alto, strade e palazzi)
 
-Data: 2026-09-20. Stato: G2D-00 consegnato; G2D-01..18 da fare.
+Data: 2026-09-20 (aggiornato 2026-09-21). Stato: G2D-00..01 consegnati; G2D-02..18 da fare.
 
 Fonte: [piano](plan.md). Prima di eseguire leggere
 [istruzioni e contratti comuni](gta-2d/README.md).
@@ -276,3 +276,9 @@ Result: `docs/results/ONE-NAME-PER-ROAD-RESULT.md`.
 - [x] PN-02: `tests/e2e/place-search.spec.ts` RED (page.route Nominatim+tile: lista, selezione→lat/lon+tile centrale, 1 char→0 richieste, 429, timeout, offline).
 - [x] PN-03: `live-controls.ts` campo "Cerca un luogo" (debounce, abort, listbox textContent, selezione tastiera/click, stato risolto, offline disabilitato) → e2e verde.
 - [x] PN-04: gate completa + docs (SECURITY.md riga geocoding, result, log esecuzione, CURRENT.md).
+- [x] WS-01: `VEHICLE_TUNING` top speed -20% (84→67.2, 14→11.2) + test controller aggiornati (RED prima).
+- [x] WS-02: `compileRegion` emette collision shape per le water areas (line-only escluse) + test (RED prima).
+- [x] ZP-01: `geocode.ts` `reverse()` (endpoint pinnato, `{error}` → undefined, stesso impianto errori) + unit (RED prima).
+- [x] ZP-02: `src/app/place-status.ts` (zoneKeyForPose + createPlaceTracker: zona 1000 m, intervallo 5 s, 1 in-flight, retry pendente, errore silenzioso) + unit (RED prima).
+- [x] ZP-03: `bootstrap.ts` wiring (ready → luogo, dispose) + e2e `place-status.spec.ts` (RED prima).
+- [x] ZP-04: gate completa + docs (SECURITY.md, result, log, CURRENT.md).

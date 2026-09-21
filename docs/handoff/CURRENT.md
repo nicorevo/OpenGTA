@@ -28,12 +28,15 @@ Non rieseguirli come backlog corrente.
 | Dettaglio mondo GTA (classi nel chunk) | Completata (commit `bc635c6`) — WD-01..04: terreno/strada/edificio per `styleKey` di classe in preset GTA (helper puri + raggruppamento strade per classe); spec `docs/specs/gta-world-detail-v1.md`, risultato in `docs/results/GTA-WORLD-DETAIL-RESULT.md` |
 | Label acque (fiumi/laghi) | Completata (commit `475dbae`) — nomi di laghi/fiumi ricevuti ma prima non pubblicati, ora emessi come label; test in `src/world/compiler/compiled.test.ts` |
 | Fisica veicolo (peso, derapata, +velocità) | Completata (commit `28fe0ee`) — VP-01..03: curva motore, grip/derapata per velocità, coasting pesante, top speed 84 m/s (~302 km/h), skew scocca in curva; spec `docs/specs/vehicle-physics-v1.md`, risultato in `docs/results/VEHICLE-PHYSICS-RESULT.md` |
-| Look auto "General Lee" (berlina rossa, ombra, decal) | Completata (commit `583e045`) — GL-01..04: sprite Dodge Charger rossa, ombra a terra che appoggia la scocca, scritta "GENERAL LEE"/"01" nitide, scale 3.0; risultato in `docs/results/GENERAL-LEE-VEHICLE-RESULT.md` |
+| Look auto "General Lee" (berlina rossa, ombra, decal) | Completata (commit `583e045`) — GL-01..04: sprite Dodge Charger rossa, ombra a terra che appoggia la scocca, scritta "GENERAL LEE"/"01" nitide, scale 3.0; look poi sostituito dal taxi GTA (G2D-00/01); risultato in `docs/results/GENERAL-LEE-VEHICLE-RESULT.md` |
+| GTA 2D City (G2D-00..01) | Completata (commits `758255a` + `df5be7b`, docs `723deb7`) — G2D-00: quartiere di riferimento (fixture X/T/Y/curva/vicolo + 7 palazzi, boot offline nell'harness, baseline 3 viewport GPU/distinzione software) in `docs/results/GTA-2D-BASELINE.md`; G2D-01: sprite taxi GTA (37x17 px a 640x480, `VEHICLE_VISUAL_SCALE` 1.2, asset con provenienza), strada 6 m = 48 px (2 corsie ~23 px), preset guida ×6.0 con zoom max separato, fix culling a far in `changeZoom`; spec `docs/specs/gta-2d-city-v1.md`, ADR-013, risultato in `docs/results/GTA-2D-TAXI-PROPORTIONS-RESULT.md` |
 | Zoom intermedio (overview → guida) | Completata (working tree post `df5be7b`) — ZI-01..03: scala zoom a 6 livelli, livello intermedio ×2.25 tra overview e preset di guida (default invariato su ×6.0, ora livello 3), LOD 0-1 far / 2-3 medium / 4-5 near; risultato in `docs/results/INTERMEDIATE-ZOOM-RESULT.md` |
 | Nomi via leggibili (carreggiata) | Completata (commit `15c5f68`) — LB-01..03: label rasterizzate a 128px poi scalate in unità di mondo (nitide a ogni zoom), altezza = 42% della carreggiata (clamp 1.2–4 m), fit all'80% della lunghezza strada, bianco + contorno sottile; risultato in `docs/results/LEGIBLE-ROAD-LABELS-RESULT.md` |
 | Nomi via/luoghi duplicati (dedup) | Completata (commit `15c5f68`) — ND-01..03: ogni chunk compila la propria copia dei label (via spezzate in `part:N`, metà poligono MVT) → dedup nel renderer per identità di feature (`labelDedupKey`, poi sostituita da NN), vince la copia più vicina alla camera; risultato in `docs/results/NO-DUPLICATE-LABELS-RESULT.md` |
 | Nomi ripetuti su vie distinte (dedup per nome) | Completata (commit `15c5f68`) — NN-01..03: review pipeline (reperimento OK, difetto in assegnazione: un label per way OSM ma il nome è attributo della via) → dedup nel renderer per nome normalizzato (`labelTextKey`: trim+casefold), vince la copia più vicina alla camera; risultato in `docs/results/ONE-NAME-PER-ROAD-RESULT.md` |
-| Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
+| Veicolo: velocità -20% + divieto acqua | Completata (working tree post `04d2b64`) — WS-01..02: top speed 84 → 67.2 m/s (~242 km/h), inversa 11.2 m/s (solo i soffitti, feel invariato); water areas emesse dal compilatore come collision shape (muro perimetrale Rapier, come edifici), `compilerVersion` bumpato per invalidare i chunk persistenti senza muri; risultato in `docs/results/VEHICLE-WATER-SPEED-RESULT.md` |
+ | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
+ | Luogo corrente nella barra di stato | Completata (working tree, da commitare con WS) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -132,6 +135,22 @@ anche con suite verde.
    "01" sulle porte nitide (rasterizzate a 128px via `makeWorldText`),
    `VEHICLE_VISUAL_SCALE` 3.0. Fisica/collider invariati. Risultato
    [GENERAL-LEE-VEHICLE-RESULT](../results/GENERAL-LEE-VEHICLE-RESULT.md).
+   **Look poi sostituito** dal taxi GTA nella tranche G2D che segue.
+ - Tranche **GTA 2D City (G2D-00..01)** completata il 2026-09-20 (commits
+   `758255a` + `df5be7b`, docs `723deb7`; spec
+   [gta-2d-city-v1](../specs/gta-2d-city-v1.md), ADR-013, ingresso esecutore
+   `tasks/gta-2d/`): G2D-00 = quartiere di riferimento ripetibile (fixture
+   X/T/Y/curva/vicolo + 7 palazzi, boot offline nell'harness, baseline a 3
+   viewport con distinzione GPU/software —
+   [GTA-2D-BASELINE](../results/GTA-2D-BASELINE.md)); G2D-01 = proporzioni
+   taxi/strada/camera: sprite taxi GTA-style (asset con provenienza, 37x17 px
+   a 640x480, `VEHICLE_VISUAL_SCALE` 3.0 → 1.2, sostituisce il look General
+   Lee), strada 6 m = 48 px (≥ 2 larghezze auto), preset di guida ×6.0 come
+   livello separato dallo zoom massimo, fix `changeZoom` (culling a far
+   misurava con la scala del livello precedente). Risultato
+   [GTA-2D-TAXI-PROPORTIONS-RESULT](../results/GTA-2D-TAXI-PROPORTIONS-RESULT.md).
+   Prossima scheda: G2D-02 (prova della profondità prospettica degli edifici,
+   GO/NO-GO).
   - Tranche **Zoom intermedio (overview → guida)** completata il 2026-09-21
     (commit `e2fc332`, ZI-01..03): il salto di zoom tra l'overview
     (×0.85) e il preset di guida (×6.0) era 7x; aggiunta la scala a 6 livelli
@@ -150,6 +169,16 @@ anche con suite verde.
     [LEGIBLE-ROAD-LABELS-RESULT](../results/LEGIBLE-ROAD-LABELS-RESULT.md),
     [NO-DUPLICATE-LABELS-RESULT](../results/NO-DUPLICATE-LABELS-RESULT.md) e
     [ONE-NAME-PER-ROAD-RESULT](../results/ONE-NAME-PER-ROAD-RESULT.md).
+   - Tranche **Veicolo: velocità -20% + divieto acqua** completata il
+     2026-09-21 (working tree post `04d2b64`, WS-01..02): `VEHICLE_TUNING`
+     top speed 84 → 67.2 m/s (~242 km/h) e inversa 14 → 11.2 m/s (solo i
+     soffitti; accel/freno/grip/steer invariati); `compileRegion` emette ogni
+     water **area** anche come collision shape poligonale → muro perimetrale
+     Rapier (stesso meccanismo degli edifici): il veicolo non entra in mare,
+     laghi o bacini; corsi d'acqua solo-a-linea esclusi (nessuna superficie
+     compilata); `compilerVersion` bumpato a `v0-runtime-water-collision`
+     per invalidare i chunk persistenti compilati senza i muri. Risultato
+     [VEHICLE-WATER-SPEED-RESULT](../results/VEHICLE-WATER-SPEED-RESULT.md).
    - Tranche **Origine per nome del luogo (geocoding form)** completata il
      2026-09-21 (commit `9ea0062`, PN-01..04): nel form di avvio,
      tra Modalità e coordinate, il campo "Cerca un luogo" cerca su Nominatim
@@ -165,16 +194,37 @@ anche con suite verde.
      mockati via `page.route`; l'evidenza "gioco a Taranto" = il tile
      centrale richiesto all'avvio è `latLonToTile(lat, lon, 14)` del luogo
      scelto). Nuova riga "Richieste geocoding" in SECURITY.md. Spec
-     [place-name-origin-v1](../specs/place-name-origin-v1.md), risultato
-     [PLACE-NAME-ORIGIN-RESULT](../results/PLACE-NAME-ORIGIN-RESULT.md).
-   - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+      [place-name-origin-v1](../specs/place-name-origin-v1.md), risultato
+      [PLACE-NAME-ORIGIN-RESULT](../results/PLACE-NAME-ORIGIN-RESULT.md).
+    - Tranche **Luogo corrente nella barra di stato** completata il 2026-09-21
+      (working tree, ZP-01..04): nello stato `ready` la barra di stato mostra
+      il luogo corrente al posto di "Area pronta": reverse geocoding Nominatim
+      (`/reverse` pinnato, stesso impianto errori/timeout/budget di `search`)
+      innescato al cambio di zona (cella 1000 m in coordinate di mondo,
+      intervallo minimo 5 s tra richieste, mai 2 in-flight, a riposo zero
+      richieste; modulo puro `src/app/place-status.ts` con clock iniettabile);
+      errore o "nessun dato" → si mantiene "Area pronta"/nome precedente
+      (retry entro l'intervallo solo sui fallimenti), offline invariato,
+      dispose nel teardown; e2e `tests/e2e/place-status.spec.ts` (tile MVT =
+      byte del fixture Lecce, reverse mockato) + fixture condivisa
+      `tests/fixtures/geocode-mock.ts` per gli 8 spec preesistenti col guard
+      "nessuna chiamata esterna inattesa". Spec
+      [current-place-name-v1](../specs/current-place-name-v1.md), risultato
+      [CURRENT-PLACE-NAME-RESULT](../results/CURRENT-PLACE-NAME-RESULT.md).
+    - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
-   - Baseline stabile per test utente: commit `9ea0062` (origine di gioco per
-     nome del luogo: campo "Cerca un luogo" nel form di avvio, Nominatim
-     pinnato, selezione → lat/lon; su base `15c5f68` nomi via leggibili +
-     dedup per nome, zoom intermedio `e2fc332`, look auto "General Lee"
-     `583e045` + fisica `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;
-     gate verde: 472 test unitari, 34 E2E + 1 canary skipped, build verde);
+    - Working tree: la tranche WS (velocità -20% + muri acqua) e la tranche ZP
+      (luogo corrente) sono completate e verificate ma NON ancora commitate;
+      i due commit (coppie feat: + docs:) restano separati e vanno fatti su
+      richiesta esplicita.
+    - Baseline stabile per test utente: commit `9ea0062` (origine di gioco per
+      nome del luogo: campo "Cerca un luogo" nel form di avvio, Nominatim
+      pinnato, selezione → lat/lon; su base `15c5f68` nomi via leggibili +
+      dedup per nome, zoom intermedio `e2fc332`, taxi GTA G2D-00/01
+      `758255a`/`df5be7b`, look auto "General Lee" `583e045` (sostituito dal
+      taxi) + fisica `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;
+      gate verde: 472 test unitari, 34 E2E + 1 canary skipped, build verde;
+      con WS+ZP nel working tree: 491 unitari, 38 E2E + 1 canary skipped);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
  - Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,
