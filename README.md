@@ -29,14 +29,14 @@ Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
 
 `docs/results/ONLINE-RUNTIME-RESULT.md`
 
-**Baseline stabile per test utente:** commit `04d2b64` sul ramo `opcl3D`
-(2026-09-21, geocoding del luogo nel form di avvio; auto = taxi GTA-style con
-proporzioni calibrate in G2D-01 `df5be7b`; su base nomi via leggibili + dedup
-`15c5f68`, zoom intermedio `e2fc332`, look GTA `bc635c6` + label acque `475dbae`,
-fisica veicolo `28fe0ee`). Verificata con 472 test unitari (58 file), 34 E2E
-non-flaky (+ 1 canary live esclusa dalla suite), typecheck e build. Nel working
-tree, da commitare: velocità veicolo -20% + muri acqua (WS) e luogo corrente
-nella barra di stato (ZP). Vedi
+**Baseline stabile per test utente:** commit `0433da1` sul ramo `opcl3D`
+(2026-09-21, geocoding del luogo nel form di avvio + luogo corrente nella
+barra di stato; auto = taxi GTA-style con proporzioni calibrate in G2D-01
+`df5be7b`; su base velocità -20% + muri acqua `4e687b9`, nomi via leggibili +
+dedup `15c5f68`, zoom intermedio `e2fc332`, look GTA `bc635c6` + label acque
+`475dbae`, fisica veicolo `28fe0ee`). Verificata con 491 test unitari (59
+file), 38 E2E non-flaky (+ 1 canary live esclusa dalla suite), typecheck e
+build. Vedi
 [Prova della baseline](#prova-della-baseline).
 
 Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle

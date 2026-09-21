@@ -34,9 +34,9 @@ Non rieseguirli come backlog corrente.
 | Nomi via leggibili (carreggiata) | Completata (commit `15c5f68`) — LB-01..03: label rasterizzate a 128px poi scalate in unità di mondo (nitide a ogni zoom), altezza = 42% della carreggiata (clamp 1.2–4 m), fit all'80% della lunghezza strada, bianco + contorno sottile; risultato in `docs/results/LEGIBLE-ROAD-LABELS-RESULT.md` |
 | Nomi via/luoghi duplicati (dedup) | Completata (commit `15c5f68`) — ND-01..03: ogni chunk compila la propria copia dei label (via spezzate in `part:N`, metà poligono MVT) → dedup nel renderer per identità di feature (`labelDedupKey`, poi sostituita da NN), vince la copia più vicina alla camera; risultato in `docs/results/NO-DUPLICATE-LABELS-RESULT.md` |
 | Nomi ripetuti su vie distinte (dedup per nome) | Completata (commit `15c5f68`) — NN-01..03: review pipeline (reperimento OK, difetto in assegnazione: un label per way OSM ma il nome è attributo della via) → dedup nel renderer per nome normalizzato (`labelTextKey`: trim+casefold), vince la copia più vicina alla camera; risultato in `docs/results/ONE-NAME-PER-ROAD-RESULT.md` |
-| Veicolo: velocità -20% + divieto acqua | Completata (working tree post `04d2b64`) — WS-01..02: top speed 84 → 67.2 m/s (~242 km/h), inversa 11.2 m/s (solo i soffitti, feel invariato); water areas emesse dal compilatore come collision shape (muro perimetrale Rapier, come edifici), `compilerVersion` bumpato per invalidare i chunk persistenti senza muri; risultato in `docs/results/VEHICLE-WATER-SPEED-RESULT.md` |
+| Veicolo: velocità -20% + divieto acqua | Completata (commit `4e687b9`) — WS-01..02: top speed 84 → 67.2 m/s (~242 km/h), inversa 11.2 m/s (solo i soffitti, feel invariato); water areas emesse dal compilatore come collision shape (muro perimetrale Rapier, come edifici), `compilerVersion` bumpato per invalidare i chunk persistenti senza muri; risultato in `docs/results/VEHICLE-WATER-SPEED-RESULT.md` |
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
- | Luogo corrente nella barra di stato | Completata (working tree, da commitare con WS) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
+ | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
 | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -170,7 +170,7 @@ anche con suite verde.
     [NO-DUPLICATE-LABELS-RESULT](../results/NO-DUPLICATE-LABELS-RESULT.md) e
     [ONE-NAME-PER-ROAD-RESULT](../results/ONE-NAME-PER-ROAD-RESULT.md).
    - Tranche **Veicolo: velocità -20% + divieto acqua** completata il
-     2026-09-21 (working tree post `04d2b64`, WS-01..02): `VEHICLE_TUNING`
+     2026-09-21 (commit `4e687b9`, WS-01..02): `VEHICLE_TUNING`
      top speed 84 → 67.2 m/s (~242 km/h) e inversa 14 → 11.2 m/s (solo i
      soffitti; accel/freno/grip/steer invariati); `compileRegion` emette ogni
      water **area** anche come collision shape poligonale → muro perimetrale
@@ -197,7 +197,7 @@ anche con suite verde.
       [place-name-origin-v1](../specs/place-name-origin-v1.md), risultato
       [PLACE-NAME-ORIGIN-RESULT](../results/PLACE-NAME-ORIGIN-RESULT.md).
     - Tranche **Luogo corrente nella barra di stato** completata il 2026-09-21
-      (working tree, ZP-01..04): nello stato `ready` la barra di stato mostra
+      (commit `0433da1`, ZP-01..04): nello stato `ready` la barra di stato mostra
       il luogo corrente al posto di "Area pronta": reverse geocoding Nominatim
       (`/reverse` pinnato, stesso impianto errori/timeout/budget di `search`)
       innescato al cambio di zona (cella 1000 m in coordinate di mondo,
@@ -213,18 +213,17 @@ anche con suite verde.
       [CURRENT-PLACE-NAME-RESULT](../results/CURRENT-PLACE-NAME-RESULT.md).
     - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
-    - Working tree: la tranche WS (velocità -20% + muri acqua) e la tranche ZP
-      (luogo corrente) sono completate e verificate ma NON ancora commitate;
-      i due commit (coppie feat: + docs:) restano separati e vanno fatti su
-      richiesta esplicita.
-    - Baseline stabile per test utente: commit `9ea0062` (origine di gioco per
-      nome del luogo: campo "Cerca un luogo" nel form di avvio, Nominatim
-      pinnato, selezione → lat/lon; su base `15c5f68` nomi via leggibili +
-      dedup per nome, zoom intermedio `e2fc332`, taxi GTA G2D-00/01
-      `758255a`/`df5be7b`, look auto "General Lee" `583e045` (sostituito dal
-      taxi) + fisica `28fe0ee`, look GTA `bc635c6` + label acque `475dbae`;
-      gate verde: 472 test unitari, 34 E2E + 1 canary skipped, build verde;
-      con WS+ZP nel working tree: 491 unitari, 38 E2E + 1 canary skipped);
+    - Commits del 2026-09-21 (in ordine): `4e687b9` (feat WS), `0433da1`
+      (feat ZP), `e2ccb41` (docs: result/log/spec/SECURITY delle due tranche),
+      `4ea7d92` (docs: allineamento plan/todo/handoff/README allo stato G2D
+      taxi + result doc G2D-01).
+    - Baseline stabile per test utente: commit `0433da1` (geocoding del form
+      di avvio + luogo corrente nella barra di stato; su base `9ea0062`
+      origine per nome del luogo, `15c5f68` nomi via leggibili + dedup,
+      `e2fc332` zoom intermedio, `758255a`/`df5be7b` taxi GTA G2D-00/01,
+      `4e687b9` velocità -20% + muri acqua, fisica `28fe0ee`, look GTA
+      `bc635c6` + label acque `475dbae`; gate verde: 491 test unitari, 38 E2E
+      + 1 canary skipped, typecheck e build verdi);
   istruzioni di prova, stati attesi e limiti noti nella sezione "Prova della
   baseline" del [README](../../README.md).
  - Worktree pulito su `opcl3D` (2026-09-18): tutte le tranche recenti (CZ, WD,
