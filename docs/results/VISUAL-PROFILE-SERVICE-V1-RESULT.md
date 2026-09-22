@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + VPS-11 modello vision + gate (2026-09-21/22)
+# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + VPS-11 modello vision + VPS-12 coverage QA + gate (2026-09-21/22)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -71,6 +71,10 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   (DeepSeek `deepseek-flash`) dietro il contratto `VisualAnalyzer` +
   misurazione costo/latenza in response (spec §107). Dettaglio nella
   sezione VPS-11 qui sotto.
+- **VPS-12** — coverage QA live (spec §108): 5 tipi di area + matrice
+  fallback verificate; finding copertura patchy a granularità di cella;
+  `VisionStats.errors` in `service/vision/`. Dettaglio nella sezione
+  VPS-12 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -501,6 +505,59 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   - i 2/13 fallback del Colosseo = risposte del modello rifiutate dal
     validatore stretto: comportamento by design (§30), mai accettate.
 
+## VPS-12 — Coverage QA (spec §108) + matrice fallback (2026-09-22)
+
+- **Metodo**: 7 generazioni live dal servizio (Roma, DeepSeek attivo) sui 5
+  tipi di area della spec + 1 scenario "model down". Per le celle a 0
+  immagini è stata verificata contro l'API Mapillary la copertura sul bbox
+  **esatto della cella h3** (non sul km circostante), per distinguere
+  "copertura assente" da "copertura altrove".
+- **Risultati per categoria**:
+  | Categoria | Cella | Source | Vision | Evidenza chiave | Costo |
+  | :--- | :--- | :--- | :--- | :--- | :--- |
+  | Centro città | Piazza Navona `h3:891e805052fffff` | generated | 4 req / 3 ok / 1 fb | `historic-dense`; 23 img in cella → 4 selezionate (cap di diversità §14: mai 20 shot della stessa sequence) | $0.00155 |
+  | Periferia | Tor Bella Monaca +1 `h3:891e80570bbffff` | generated | 5/5 | `urbanCharacter` **suburban** ✓, road asphalt, img conf 0.43 | $0.00142 |
+  | Industriale | Valle Tiburtina +1 `h3:891e8052847ffff` | generated | 6/4 / 2 fb | `historic-dense` — la cella è sull'edge del tessuto antico e le 4 foto valide mostrano edilizia residenziale: accettabile (§113: nessun errore grosso), non industriale perché i capannoni stanno nella cella adiacente senza copertura | $0.00227 |
+  | Suburbano/planned | EUR `h3:891e8051d7bffff` | generated | 7/7 | **suburban** ✓; `osm: failed` → roads ereditate dal parent (degrado §80 corretto) | $0.00199 |
+  | Scarsa imagery (terra) | verso Mentana `h3:891e8056633ffff` | generated | 0/0 | 0 img nella cella esatta (verificato all'API); `osm: failed`; profilo dominato dal parent | $0 |
+  | Scarsa imagery (estremo, mare) | Tirreno `h3:891e80590a3ffff` | generated | 0/0 | 0 img (mare); profilo generato **identico al parent** su tutti i colori (sky/ground/road/building/accent/ambient): nessun break visivo senza dati | $0 |
+- **Finding chiave (rischio §110)**: la copertura Mapillary a granularità di
+  cella (h3 res 9 ≈ 500 m) è **patchy**: 4 delle 6 celle iniziali avevano 0
+  immagini nella cella esatta pur avendo 27-29 immagini nel km circostante
+  (verificato con bbox esatti). La copertura è polarizzata su centro e
+  zone turistiche. Mitigazione by design: il parent/LVP mantiene un profilo
+  valido ovunque (VPS enhances, LVP guarantees) — il NO-GO "imagery
+  insufficiente in gran parte delle aree" va ripreso al gate §109 con una
+  campionatura statistica, non con 6 celle.
+- **Matrice fallback (tutte verificate live, mai un 5xx)**:
+  - OSM down (EUR, rurale): 200 generated, imagery + parent;
+  - imagery assente (mare, rurale, periferia/industriale originali): 200
+    generated, OSM + parent, `imageryConfidence 0`;
+  - **vision model down** (seconda istanza del servizio con chiave DeepSeek
+    invalida): 200 generated, `vision {requests 8, analyzed 0, fallbacks 0,
+    errors 8, tokens 0, cost $0}`, roads da OSM (cobblestone), img conf 0 —
+    "modello morto = no vision, mai wrong vision" (§80) ora misurabile;
+  - tutto assente (mare): profilo ≈ parent (verificato per campo);
+  - coordinate invalide: 400 (test offline VPS-10).
+- **Gate §109 — validazione parziale live**: (1) città distinte:
+  historic-dense (centro) vs suburban (periferia/EUR) ✓; (2) utile > country
+  theme: il centro aggiunge cobblestone + historic-dense + palette dalle
+  foto ✓; (3) determinismo: pipeline deterministica a parità di input
+  (VPS-09); il provider live può restituire set di immagini diversi tra
+  chiamate (13/8/10 sullo stesso Colosseo) → revisioni diverse,
+  comportamento documentato e atteso; (4) costi: $0.0014-0.0045/cella con
+  vision, $0 senza immagini ✓; (5) cache: hit ~19 ms, zero scritture, corpo
+  identico (verificato periferia) ✓; (6) provider failure: tutte le righe
+  sopra → 200 ✓; (7) coerenza stile OpenGTA: palette nel vocabolario theme,
+  parent come base ✓ (la QA visuale §112 in-browser resta al gate).
+- **Cambio di codice**: `VisionStats.errors` (deepseek-analyzer): i
+  fallimenti di servizio (download immagine, rete, 4xx/5xx, corpo non-JSON,
+  envelope malformato) ora incrementano `errors`; `fallbacks` resta per le
+  risposte del modello rifiutate dal validatore. Invariante: `requests =
+  analyzed + fallbacks + (chiamate finite in errore)`. 7 asserzioni sui 15
+  test esistenti (nessun nuovo test: il contatore entra nei casi già
+  coperti). Unit 725/725, typecheck, build ok.
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -587,6 +644,11 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   skipped** — invariato (l'analyzer vive solo in `service/`, fuori dal
   bundle browser; l'unica modifica core è l'export addittivo di
   `AXIS_VOCABULARIES` da `validate.ts`).
+- Gate completa (dopo VPS-12, 2026-09-22): `typecheck` pulito; unit
+  **725/725** (stesso conteggio: `VisionStats.errors` entra nei 15 test
+  analyzer già esistenti, 7 asserzioni aggiunte); `build` ok; e2e non
+  rieseguita (nessuna modifica core: solo `service/vision/`, fuori dal
+  bundle browser — l'ultima e2e verde 42+1 è del commit VPS-11).
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
   nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
@@ -617,8 +679,9 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..09), la **runtime API (VPS-10)** e il
-**modello vision server-side (VPS-11)** sono completati: evidence,
+**GO** — la slice offline (VPS-00..09), la **runtime API (VPS-10)**, il
+**modello vision server-side (VPS-11)** e la **coverage QA (VPS-12)** sono
+completati: evidence,
 catalogo, compiler, celle spaziali, le due cache, il collettore OSM, il
 layer street-imagery (contratto + selezione + provider di test + adapter
 Mapillary), il layer di analisi (contratto + validatore stretto + test
@@ -638,8 +701,11 @@ documentazione ufficiale (spec §31-32: mai assumere classi); l'egress
 DeepSeek non raggiunge la CDN Mapillary → thumbnail in base64 scaricate
 dal servizio (guardie 8 MiB/content-type/30 s, memo in-memory); il
 thinking mode è disabilitato (bruciava il budget di completion).
-Prossima tranche (roadmap spec): **VPS-12** — coverage QA (centro
-città/periferia/industriale/suburbano/imagery scarsa, spec §108) +
-ri-verifica delle classi detection Mapillary quando esce la doc ufficiale.
-Se un gate futuro fallisse: degrado a recommender paese/città
-(§110-111), mai blocco del client.
+Prossima tranche (roadmap spec): **Gate VPS v1 (spec §109)** —
+validazione formale dei 7 punti + QA visuale §112 in-browser; resta
+aperto il re-verify delle classi detection Mapillary quando esce la doc
+ufficiale della nuova API. **Attenzione al gate**: la copertura Mapillary
+è patchy a granularità di cella (VPS-12) — il punto §110 "imagery
+insufficiente in gran parte delle aree" va misurato con una campionatura
+statistica prima di dichiarare GO. Se un gate fallisse: degrado a
+recommender paese/città (§110-111), mai blocco del client.
