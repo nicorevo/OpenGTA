@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@dimforge/rapier2d-compat": "^0.14.0",
+    "h3-js": "^4.5.0",
     "pixi.js": "^8.19.0"
   }
 }

@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..03 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..04 + gate (2026-09-21)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -35,23 +35,63 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
     della superficie stradale non determina la tint OpenGTA, quella è
     art direction LVP; le `roadFamilies` del catalogo restano versionate per
     una revisione compiler successiva;
-  - hook dev `?vps=rome|paris|tokyo` in `src/app/bootstrap.ts` (registro
-    chiuso, ignora silenzioso di id sconosciuti, stessa disciplina di
-    `?theme=`): compila la fixture sul parent risolto da LVP, quindi la
-    gerarchia di fallback generated → LVP → default è preservata e il
-    renderer non blocca mai il client.
+   - hook dev `?vps=rome|paris|tokyo` in `src/app/bootstrap.ts` (registro
+     chiuso, ignora silenzioso di id sconosciuti, stessa disciplina di
+     `?theme=`): compila la fixture sul parent risolto da LVP, quindi la
+     gerarchia di fallback generated → LVP → default è preservata e il
+     renderer non blocca mai il client.
+- **VPS-04** — `src/vps/cell/` + `src/vps/cache/`: `cellForCoordinates`
+  (h3-js, res 9) e le due cache separate §56 (`EvidenceCache`,
+  `ProfileCache`) con chiavi §55. Dettaglio nella sezione VPS-04 qui sotto.
+
+## VPS-04 — celle spaziali + cache
+
+- **Dipendenza**: `h3-js` (binding ufficiali H3). Nota: il pacchetto npm
+  `h3` è la lib HTTP di Hono, **non** Uber H3 — il nome corretto è `h3-js`.
+  Il contratto pubblico resta `SpatialCell` (§10): l'id è una stringa opaca
+  `h3:<index>` e il codice non espone l'indice H3 altrove.
+- **Risoluzione**: res 9. Misurato con il build h3-js in uso: bounding box
+  ~413 m N-S / ~374 m E-W a 42°N → dentro la banda MVP 300-700 m (§12).
+  (Res 8 misurerebbe ~1060 m: fuori banda; res 10 ~150 m: troppo fine.)
+- **Celle**: deterministiche (stesse coordinate → stessa cella, sempre),
+  punto ∈ bounds, ~50 m di offset restano nella stessa cella, le 3 città
+  delle fixture + Lecce su celle distinte, validazione `RangeError` per
+  lat/lon fuori range o non finiti. Limitazione MVP documentata: le bounds
+  sono la scatola assiale dell'esagono, celle che attraversano l'antimeridiano
+  (±180°) non supportate.
+- **Cache** (in-memory pure, spec §54): `EvidenceCache` chiave
+  `cell:<id>|schema:<v>|evidence:<rev>` (l'evidence non dipende da
+  compiler/catalogo — §56: ricompilare non invalida l'analisi) e
+  `ProfileCache` chiave `cell:<id>|schema:<v>|compiler:<c>|catalog:<k>`
+  (esempio spec §55): nuovo catalogo o compiler → miss → ricompilazione,
+  evidence intatta. Nuova revisione evidence non shadowing la precedente
+  (§57). Persistenza/TTL sono concern del service (VPS-10), non del core.
+- **Pipeline** (flusso §11): test end-to-end lat/lon → cell id → evidence
+  cache → compiler → profile cache; la seconda richiesta alla stessa
+  cella è servita interamente dalle cache (stessi riferimenti d'oggetto).
+- Niente cambio bootstrap/hook: `?vps=` resta fixture-based; le celle
+  servono il service (VPS-10) quando arriverà l'evidence reale per cella.
 
 ## Test
 
-- Nuovi: **19/19** in `src/vps` (evidence 6, catalog 4, compiler 9):
-  validità fixture, minimi catalogo + seed deep-equal da LVP + risolvibilità
-  dei dominanti delle fixture, palette per città, distinzione 3 famiglie,
-  determinismo (deep-equal + JSON), low-confidence → parent, completezza del
+- VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
+  minimi catalogo + seed deep-equal da LVP + risolvibilità dei dominanti
+  delle fixture, palette per città, distinzione 3 famiglie, determinismo
+  (deep-equal + JSON), low-confidence → parent, completezza del
   `GeneratedVisualProfile` (id/versioni/confidenza, nessun `undefined`),
   ereditarietà campi non coperti, override `?vps=` (closed registry).
-- Gate completa: `typecheck` pulito; unit **569/569** (baseline 550 + 19);
-  `build` ok (warning chunk size preesistente); e2e **42 passed + 1 skipped**
-  (canary) — identico alla baseline.
+- VPS-04: **17** (cell 8, cache+pipeline 9): contratto `SpatialCell`,
+  determinismo cella, stabilità a ~50 m, 3 città distinte, punto ∈ bounds,
+  banda 300-700 m, altre risoluzioni, validazione coordinate; formato chiavi
+  §55, round-trip cache, miss su nuovo compiler/catalogo (recompile senza
+  reanalyze), no-shadowing revisioni evidence, pipeline lat/lon→cell→cache.
+- Gate completa (dopo VPS-04): `typecheck` pulito; unit **586/586**
+  (baseline 550 + 19 + 17); `build` ok (warning chunk size preesistente);
+  e2e **42 passed + 1 skipped** (canary) — identico alla baseline.
+  Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
+  preesistente sotto carico della suite piena (test di timing ~5,7 s):
+  nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
+  completa (stesso pattern del flake 549/550 già documentato).
 
 ## Gate della slice (spec §140)
 
@@ -78,9 +118,11 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — le condizioni della slice offline sono soddisfatte. Prossime tranche
-(secondo la roadmap spec): cell spaziale + contratto service
-(`GET /v1/profile?lat&lon`, cache evidenza/profilo separate, credenziali
-server-side) e poi primo provider reale (Mapillary, §152: mai prima di questo
-gate). E2E del flow VPS in VPS-10. Se il gate futuro fallisse: degrado a
-recommender paese/città (§110-111), mai blocco del client.
+**GO** — la slice offline (VPS-00..04) è completa: evidence, catalogo,
+compiler, celle spaziali e le due cache sono pronti e testati. Prossime
+tranche (roadmap spec): VPS-05 OSM evidence collector (statistiche materiali
+tetti/superfici/land-use "quando disponibili"), poi VPS-06 Mapillary provider
+(area → sample batch, rate limits, provenance) e VPS-10 runtime API
+(`GET /v1/profile?lat&lon` sopra le cache qui definite, credenziali
+server-side, e2e del flow). E2E del flow VPS in VPS-10. Se un gate futuro
+fallisse: degrado a recommender paese/città (§110-111), mai blocco del client.

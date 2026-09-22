@@ -4,6 +4,9 @@
  * the service layer (API/providers/cache) builds on top of this (ADR-015).
  */
 export { defaultCatalog } from "./catalog/catalog.ts";
+export { cellForCoordinates, URBAN_CELL_RESOLUTION } from "./cell/cell.ts";
+export { evidenceCacheKey, createEvidenceCache, type EvidenceCache } from "./cache/evidence-cache.ts";
+export { profileCacheKey, createProfileCache, type ProfileCache } from "./cache/profile-cache.ts";
 export type {
   VisualCatalog,
   FacadePaletteDefinition,

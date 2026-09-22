@@ -320,3 +320,4 @@ Data: 2026-09-21. Spec:
 - [x] VPS-02: VisualCatalog minimum semiato dai 6 profili LVP (TDD).
 - [x] VPS-03: ProfileCompiler puro + test (determinismo, low-confidence→parent, completezza) + hook dev `?vps=` (TDD).
 - [x] VPS-GATE: gate completa + screenshot 3 profili generati vs LVP su stessa geometria; result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md` — **GO** (2026-09-21).
+- [x] VPS-04: `cellForCoordinates` (h3-js res 9) + `EvidenceCache`/`ProfileCache` separate con chiavi spec §55 + test pipeline (TDD).
