@@ -963,7 +963,7 @@ iniziali: default, italy, rome, france, paris; override di sviluppo
 - [x] Re-gate visuale del raffino France/Paris (GO su scena densa reale centro Roma, 4 temi, `/tmp/regate-*.png`; coppia debole france/paris documentata).
 - [ ] Validazione manuale auto-resolution end-to-end su città reali in viaggio (mock già coperta da e2e).
 - [x] Terzo profilo molto diverso + validazione 3 famiglie visuali → "LVP architecture validated" (fatto con `tokyo`, LVP-08; gate rome/paris/tokyo VALIDATO).
-- [ ] Solo dopo: Visual Profile Service (VisualEvidenceProfile → VisualCatalog → ProfileCompiler → fixtures → Mapillary → Vision → runtime service).
+- [ ] Solo dopo: Visual Profile Service (VisualEvidenceProfile → VisualCatalog → ProfileCompiler → fixtures → Mapillary → Vision → runtime service). **Slice offline VPS-00..03 completata (gate §140 GO, 2026-09-21; result doc dedicato)** — sezione sotto; Mapillary/Vision/runtime service da VPS-04 in poi, solo dopo il gate offline (fatto).
 
 ## Tile Budgets Live (città dense) — 2026-09-21
 
@@ -971,3 +971,16 @@ iniziali: default, italy, rome, france, paris; override di sviluppo
 | --- | --- | --- | --- | --- |
 | [x] | TB-01 | Provider-Neutral | S | Misura tile z14 reali (Roma/Parigi/Lecce): "troppo grande" causato dai budget di decode (feature 10k / punti 50k < picchi 16,952/52,043 a Parigi) + bug `maxTileBytes` non propagato al decode |
 | [x] | TB-02 | TB-01 | S | Opzioni provider `maxFeaturesPerTile`/`maxPointsPerGeometry` + passaggi ai limiti di decode; config live 16 MiB / 30k / 100k; fixture tile Parigi z14 + 2 regression test; gate 550 unit / 42 e2e + verifica live reale su Parigi. Result: `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
+
+## Visual Profile Service (VPS) — 2026-09-21
+
+Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`. ADR-015.
+Precondizione §1 soddisfatta (LVP + tokyo validati, gate 3 famiglie GO).
+
+| Stato | Task | Dipende da | S | Sintesi |
+| --- | --- | --- | --- | --- |
+| [x] | VPS-00 | LVP-08 | S | ADR-015 (strati OBSERVE/INTERPRET/COMPILE/SERVE mai fusi; core `src/vps/` puro TS; ponte contratto `GeneratedVisualProfile extends VisualProfile`; catalogo semiato dai 6 profili LVP; determinismo senza timestamp nel compiler; hook dev `?vps=`) + allineamento SPEC/plan/todo/handoff |
+| [x] | VPS-01 | VPS-00 | S | Tipi evidence provider-neutral (vocabolari chiusi §21-28, `Distribution`, `EvidenceCoverage`, `VisualEvidenceProfile`) + 3 fixture offline Rome/Paris/Tokyo-like (spec §97/§140); test di validità fixture — `src/vps/evidence/`, 6/6 test |
+| [x] | VPS-02 | VPS-01 | S | `VisualCatalog` minimum (spec §138: 4 facade, 4 roof, 4 sidewalk, 3 road, 3 vegetation, 3 furniture) semiato dai profili LVP; i colori veri vivono solo qui (§47) — `src/vps/catalog/`, 4/4 test, seed deep-equal da LVP |
+| [x] | VPS-03 | VPS-02 | S | `ProfileCompiler` puro (spec §43-44): evidence+context→`GeneratedVisualProfile`; famiglie pesate→palette concrete deterministiche (§50-51); low-confidence <0.35 → parent (§68); id versionato `vps:v1:<cell>:c<rev>` (§53); hook dev `?vps=<fixture>` + test puri (determinismo, completezza, fallback) — `src/vps/compiler/` + `src/app/bootstrap.ts`, 9/9 test. v1: roads/ground-base/typeStyles/outline/depth2d/markings ereditano il parent (decisione documentata, see result doc) |
+| [x] | VPS-GATE | VPS-03 | M | Gate slice (spec §140): 3 fixture compilate renderizzate su stessa geometria vs profili LVP rome/paris/tokyo — le 3 famiglie restano distinte e coerenti → **GO** verso VPS-04/05. Unit 569/569, typecheck, build, e2e 42+1 skip; screenshot + hash in `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md` |

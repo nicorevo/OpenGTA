@@ -309,3 +309,14 @@ Data: 2026-09-21. Baseline: `cd59f65`. Result:
 
 - [x] TB-01: Misura tile z14 reali (Roma/Parigi/Lecce) → root cause "Risposta geografica troppo grande": budget decode feature/punti + `maxTileBytes` non propagato al decode.
 - [x] TB-02: Opzioni provider `maxFeaturesPerTile`/`maxPointsPerGeometry` + config live 16 MiB/30k/100k; fixture Parigi z14 + 2 regression test; gate completa + verifica live reale su Parigi.
+
+## Visual Profile Service (VPS)
+
+Data: 2026-09-21. Spec:
+`docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`. ADR-015.
+
+- [x] VPS-00: ADR-015 + righe plan/todo/handoff/SPEC.
+- [x] VPS-01: tipi evidence (vocabolari chiusi, Distribution, VisualEvidenceProfile) + 3 fixture offline Rome/Paris/Tokyo-like (TDD).
+- [x] VPS-02: VisualCatalog minimum semiato dai 6 profili LVP (TDD).
+- [x] VPS-03: ProfileCompiler puro + test (determinismo, low-confidence→parent, completezza) + hook dev `?vps=` (TDD).
+- [x] VPS-GATE: gate completa + screenshot 3 profili generati vs LVP su stessa geometria; result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md` — **GO** (2026-09-21).

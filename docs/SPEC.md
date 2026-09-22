@@ -66,3 +66,5 @@ schede in `tasks/review/`, stato in [tasks/plan.md](../tasks/plan.md).
 ## Active Feature Specs
 
 - First-person renderer (OutRun-style perspective): `docs/specs/first-person-renderer-v0.md`
+- Location Visual Profiles v1 (LVP, implementato + validato): `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`
+- Visual Profile Service v1 (VPS, in avvio — slice offline VPS-00..03): `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`

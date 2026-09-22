@@ -15,6 +15,8 @@ import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapie
 import { createGeocodeClient } from "./geocode.ts";
 import { createPlaceTracker, type PlaceTracker } from "./place-status.ts";
 import { createVisualProfileResolver, knownThemeIds, themeOverrideFromSearch } from "../render/theme/index.ts";
+import { createProfileCompiler, COMPILER_REVISION, defaultCatalog, EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS, vpsFixtureFromSearch } from "../vps/index.ts";
+import type { VisualProfile } from "../render/theme/types.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
 import { switchView, type ViewLoop } from "./view-toggle.ts";
 import { advanceFixedStep } from "./fixed-step.ts";
@@ -101,7 +103,17 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       // read once (closed registry, invalid/auto fall back to resolution).
       const themeResolver = createVisualProfileResolver();
       const forcedThemeId = themeOverrideFromSearch(window.location.search, knownThemeIds);
-      const initialTheme = themeResolver.resolve(undefined, forcedThemeId).profile;
+      // Dev-only VPS hook (?vps=<fixture>): compile an offline evidence
+      // fixture on top of the LVP-resolved parent (spec 61/133). Same closed
+      // discipline as ?theme=; invalid/auto means "no VPS override".
+      const forcedVpsFixtureId = vpsFixtureFromSearch(window.location.search, EVIDENCE_FIXTURE_IDS);
+      const vpsCompiler = createProfileCompiler();
+      const applyVps = (parent: VisualProfile) =>
+        forcedVpsFixtureId
+          ? vpsCompiler.compile(EVIDENCE_FIXTURES[forcedVpsFixtureId], { parentProfile: parent, catalog: defaultCatalog, compilerRevision: COMPILER_REVISION })
+          : undefined;
+      const baseTheme = themeResolver.resolve(undefined, forcedThemeId).profile;
+      const initialTheme = applyVps(baseTheme) ?? baseTheme;
       let renderer;
       try { renderer = await createPixiRenderer(nextCanvas, { visualProfile: initialTheme }); }
       catch (error) { physics.dispose(); throw error; }
@@ -181,7 +193,11 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       // status tick and never refetches data.
       const syncVisualTheme = () => {
         const resolution = themeResolver.resolve(placeTracker?.location(), forcedThemeId);
-        if (resolution.profile.id !== renderer.visualProfileId()) renderer.setVisualProfile(resolution.profile);
+        // The VPS layer (when forced) compiles on top of whatever LVP parent
+        // the resolver just produced, so the generated profile keeps the
+        // fallback hierarchy: generated cell -> ... -> LVP -> default.
+        const profile = applyVps(resolution.profile) ?? resolution.profile;
+        if (profile.id !== renderer.visualProfileId()) renderer.setVisualProfile(profile);
       };
       const metrics = new RuntimeMetrics();
       Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), theme: () => ({ id: renderer.visualProfileId(), location: placeTracker?.location() ?? null }), firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });

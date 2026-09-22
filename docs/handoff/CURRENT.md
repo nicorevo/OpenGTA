@@ -38,7 +38,8 @@ Non rieseguirli come backlog corrente.
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
  | Location Visual Profiles (LVP) | Completato (base `cd59f65`, esteso con LVP-08) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..08 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`), 3 famiglie visuali rome/paris/tokyo validate |
- | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, working tree da commitare) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
+ | Visual Profile Service (VPS) | Slice offline VPS-00..03 completata (2026-09-21, gate §140 GO, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`) — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015; prossime: cell spaziale + contratto service, poi Mapillary (VPS-05) |
+ | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, committed) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
  | 3 Packager, AI, multiplayer | Non aperte |
 
 ## Gate di qualità corrente
@@ -258,7 +259,28 @@ anche con suite verde.
          tile reale Parigi z14 + 2 regression test; verifica live reale su
          Parigi centro (ready, zero errori). Risultato
          [DENSE-TILE-BUDGETS-RESULT](../results/DENSE-TILE-BUDGETS-RESULT.md).
-         Committed (commit del 2026-09-21).     - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
+         Committed (commit del 2026-09-21).
+         - Tranche **Visual Profile Service (VPS)** (spec
+           [OPEN-GTA-VISUAL-PROFILE-SERVICE-V1](../specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md),
+           ADR-015): i profili OpenGTA possono essere generati da
+           evidenza geografica reale (OSM + street imagery) con pipeline a
+           4 strati mai fusi (OBSERVE/INTERPRET/COMPILE/SERVE): il
+           vision/provider osserva (vocabolario chiuso + confidence), il
+           VisualCatalog decide i colori veri, il ProfileCompiler (funzione
+           pura, deterministica, senza timestamp/`Math.random()`) traduce
+           famiglie pesate in `GeneratedVisualProfile extends
+           VisualProfile`; catalogo semiato dai 6 profili LVP validati;
+           low-confidence < 0.35 → parent (mai inventare); cache evidence e
+           profile separate; il browser non parla mai ai provider. Slice
+           offline VPS-00..03 **completata il 2026-09-21**: ADR + tipi
+           evidence + 3 fixture Rome/Paris/Tokyo-like + catalogo minimum +
+           compiler puro (`src/vps/`, 19/19 test) + hook dev `?vps=`;
+           gate slice §140 **GO** (3 profili generati distinti e coerenti su
+           stessa geometria live Roma; unit 569/569, e2e 42+1 skip) —
+           [VISUAL-PROFILE-SERVICE-V1-RESULT](../results/VISUAL-PROFILE-SERVICE-V1-RESULT.md).
+           Prossime: cell spaziale + contratto service, poi Mapillary
+           (VPS-05, credenziali server-side). VPS enhances, LVP guarantees.
+     - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
     - Commits del 2026-09-21 (in ordine): `4e687b9` (feat WS), `0433da1`
       (feat ZP), `e2ccb41` (docs: result/log/spec/SECURITY delle due tranche),
