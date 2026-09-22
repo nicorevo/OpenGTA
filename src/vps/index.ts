@@ -23,6 +23,20 @@ export { vpsFixtureFromSearch } from "./compiler/override.ts";
 export type { ProfileCompiler, ProfileCompilationContext, GeneratedVisualProfile } from "./compiler/types.ts";
 export { EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS } from "./evidence/fixtures/index.ts";
 export type { EvidenceFixtureId } from "./evidence/fixtures/index.ts";
+export { ANALYZER_REVISION } from "./analysis/types.ts";
+export type { ClassificationResult, VisualObservation, VisualAnalyzer } from "./analysis/types.ts";
+export {
+  validateVisualObservation,
+  fallbackObservation,
+  MAX_ANALYZER_OUTPUT_BYTES,
+} from "./analysis/validate.ts";
+export { createTestVisualAnalyzer } from "./analysis/test-analyzer.ts";
+export {
+  OBSERVATION_FIXTURES,
+  romeHistoricObservations,
+  parisCentralObservations,
+  tokyoDenseObservations,
+} from "./analysis/fixtures/observations.ts";
 export {
   selectStreetSamples,
   MIN_POSITION_SPREAD_M,

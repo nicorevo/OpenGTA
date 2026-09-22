@@ -323,3 +323,4 @@ Data: 2026-09-21. Spec:
 - [x] VPS-04: `cellForCoordinates` (h3-js res 9) + `EvidenceCache`/`ProfileCache` separate con chiavi spec §55 + test pipeline (TDD).
 - [x] VPS-05: OSM evidence collector puro (mapping tag espliciti, confidenza classificati/osservati, densità, revisione deterministica) + 11 test end-to-end verso il compiler (TDD).
 - [x] VPS-06: provider street-imagery (contratto neutro + selezione deterministica §14 + TestImageryProvider + MapillaryImageryProvider dietro client iniettato, errors tipizzati §80, nessuna credenziale nel core §82-83) + 23 test (TDD).
+- [x] VPS-07: visual analyzer (contratto §18 + validatore stretto output modello §30/§78 + fallback unknown + TestVisualAnalyzer + fixture observations §115) + 19 test (TDD).

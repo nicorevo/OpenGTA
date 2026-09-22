@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..06 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..07 + gate (2026-09-21)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -49,6 +49,9 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   `StreetImageryProvider` + selezione immagini deterministica +
   `TestImageryProvider` + `MapillaryImageryProvider` (dietro client
   iniettato). Dettaglio nella sezione VPS-06 qui sotto.
+- **VPS-07** — `src/vps/analysis/`: contratto `VisualAnalyzer` +
+  validatore stretto dell'output modello + `TestVisualAnalyzer` + fixture
+  `VisualObservation[]`. Dettaglio nella sezione VPS-07 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -161,6 +164,49 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   verifica; il provider resta disattivabile (bastano `TestImageryProvider`
   o OSM-only).
 
+## VPS-07 — visual analyzer
+
+- **Contratto** (spec §18): `VisualAnalyzer.analyze(sample) →
+  Promise<VisualObservation>`; l'output principale è strutturato, mai testo
+  libero. `VisualObservation` (spec §19) + `ClassificationResult<T>` con
+  confidenza 0..1 (§20). **Scope v1 = 7 assi** (spec §103: facade color,
+  facade material, roof type, sidewalk type, road surface, vegetation
+  character, urban character) — `streetFurnitureCharacter` resta nello
+  schema ma è fuori scope v1 e il validatore la **rifiuta** se presente.
+- **Validatore stretto** (`validateVisualObservation`, spec §30/§78): il
+  modello non è mai accettato di fiducia —
+  - schema chiuso: campi extra → rifiuto dell'intero payload (niente
+    accettazione parziale); `streetFurnitureCharacter` in v1 = campo extra;
+  - vocabolari chiusi: un valore non presente nel vocabolario → rifiuto
+    (il modello non inventa categorie, §21);
+  - `sampleId` obbligatorio e **deve coincidere** con il `sourceId` del
+    campione analizzato (nessuna osservazione orfana o spostata);
+  - assi ben formati: esattamente `{value, confidence}`, confidence numero
+    finito → clippato 0..1 (§20); `quality` obbligatorio, clippato;
+  - limite di dimensione del payload serializzato (16 KB, §78);
+  - qualsiasi deviazione → **fallback `unknown`** (§30): nessun asse,
+    `quality: 0`, provenance del campione. Un'analisi fallita non inquina
+    l'aggregazione: l'aggregator (VPS-08) salta le osservazioni a quality 0.
+  - puro e deterministico: la provenance viene dal campione (mai orologio),
+    stesso raw + stesso sample → stessa osservazione.
+- **`TestVisualAnalyzer`**: analyzer offline deterministico (equivalente
+  analyzer del `TestImageryProvider`). Le osservazioni grezze per
+  `sampleId` sono conservate **non validate a scopo**: passano dallo stesso
+  validatore dell'output di un modello live, quindi la pipeline offline
+  esercita esattamente il path di validazione reale. Risoluzione: map
+  esplicita → funzione → fallback. `ANALYZER_REVISION = 1` (spec §57/§116:
+  l'analisi fa parte dell'identità dell'evidence, un nuovo analyzer cambia
+  le osservazioni e deve comparire in `evidenceRevision`).
+- **Fixture `VisualObservation[]`** (spec §115): provider-independent,
+  niente immagini (licensing), 2 osservazioni per famiglia (rome-historic /
+  paris-central / tokyo-dense) con dominanti coerenti con le evidence
+  fixture VPS-01 (ocra/terracotta/historic-dense; crema/zinc/historic-
+  medium; scuro/modern-dense). I `sampleId` sono valori di contratto
+  stabili che l'aggregator (VPS-08) e l'e2e (VPS-09) consumeranno.
+- **Modello vision reale**: fuori dal core, server-side in VPS-10 (come il
+  client Mapillary): qui esiste il contratto, il validatore e il test
+  analyzer — il modello HTTP/VLM non entra mai nel browser (§82).
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -193,8 +239,21 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   selezionati, per-image failure → no detections, errori tipizzati
   propagati/wrappati, `invalid-response` (non-array, tutti i ref invalidi),
   ref invalidi filtrati, cap maxSamples senza duplicati.
-- Gate completa (dopo VPS-06): `typecheck` pulito; unit **620/620**
-  (baseline 550 + 19 + 17 + 11 + 23); `build` ok (warning chunk size
+- VPS-07: **19** (validate 11, test-analyzer + fixtures + wiring 8):
+  payload completo accettato, clip confidence/quality, payload parziale
+  (assi assenti restano assenti), valore fuori vocabolario → rifiuto,
+  campo extra / `streetFurnitureCharacter` → rifiuto dell'intero payload,
+  `sampleId` mismatch → rifiuto, payload non-oggetto (stringa/array/null/
+  numero) → rifiuto, quality mancante / confidence non numerico / asse
+  malformato → rifiuto, payload oltre il limite di dimensione → rifiuto,
+  forma del fallback (nessun asse, quality 0, provenance campione),
+  determinismo; test-analyzer: clamp attraverso il validatore, fallback per
+  sample sconosciuto, raw invalido senza bypass, forma funzione +
+  determinismo; fixture: passano il validatore, dominanti coerenti con le
+  evidence fixture VPS-01, confidenze/quality in 0..1; wiring
+  TestImageryProvider→TestVisualAnalyzer con catena di provenance intatta.
+- Gate completa (dopo VPS-07): `typecheck` pulito; unit **639/639**
+  (baseline 550 + 19 + 17 + 11 + 23 + 19); `build` ok (warning chunk size
   preesistente); e2e **42 passed + 1 skipped** (canary) — identico alla
   baseline.
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
@@ -227,15 +286,18 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..06) è completa: evidence, catalogo,
-compiler, celle spaziali, le due cache, il collectore OSM e il layer
+**GO** — la slice offline (VPS-00..07) è completa: evidence, catalogo,
+compiler, celle spaziali, le due cache, il collectore OSM, il layer
 street-imagery (contratto + selezione + provider di test + adapter
-Mapillary) sono pronti e testati; la pipeline evidence→catalogo→profilo è
-dimostrata end-to-end con dati OSM sintetici e il lato imagery è pronto
-per l'analyzer. Prossime tranche (roadmap spec): VPS-07 visual analyzer
-(imageni/`StreetSample` → `VisualObservation`), VPS-08 aggregator con
-source trust (§130) e poi VPS-10 runtime API (`GET /v1/profile?lat&lon`
-sopra le cache qui definite, `MapillaryClient` HTTP server-side con
-credenziali, rate limit e verifica classi detection/licensing sull'API
-corrente, e2e del flow). Se un gate futuro fallisse: degrado a
-recommender paese/città (§110-111), mai blocco del client.
+Mapillary) e il layer di analisi (contratto + validatore stretto + test
+analyzer + fixture) sono pronti e testati; la pipeline
+evidence→catalogo→profilo è dimostrata end-to-end con dati OSM sintetici e
+il lato imagery è pronto per l'aggregazione. Prossime tranche (roadmap
+spec): VPS-08 aggregator (OSM + vision + detections → `VisualEvidenceProfile`
+con source trust e confidenza, spec §104/§130), VPS-09 end-to-end
+Rome/Paris/Tokyo (spec §105) e poi VPS-10 runtime API (`GET
+/v1/profile?lat&lon` sopra le cache qui definite, `MapillaryClient` HTTP
+server-side con credenziali, modello vision server-side, rate limit,
+verifica classi detection/licensing sull'API corrente, e2e del flow). Se un
+gate futuro fallisse: degrado a recommender paese/città (§110-111), mai
+blocco del client.
