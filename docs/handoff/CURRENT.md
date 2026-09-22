@@ -38,7 +38,7 @@ Non rieseguirli come backlog corrente.
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
  | Location Visual Profiles (LVP) | Completato (base `cd59f65`, esteso con LVP-08) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..08 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`), 3 famiglie visuali rome/paris/tokyo validate |
- | Visual Profile Service (VPS) | Slice offline VPS-00..08 completata (2026-09-21, gate §140 GO, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`) — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015; prossime: VPS-09 e2e (Roma/Parigi/Tokyo), VPS-10 runtime API (client Mapillary + modello vision server-side) |
+ | Visual Profile Service (VPS) | Slice offline VPS-00..09 completata (2026-09-21, gate §140 GO, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`) — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015; prossima: VPS-10 runtime API (client Mapillary + modello vision server-side, `GET /v1/profile`) |
  | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, committed) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
  | 3 Packager, AI, multiplayer | Non aperte |
 
@@ -293,13 +293,20 @@ anche con suite verde.
              esplicito > imagery > eredità §40, OSM non taggato mai priorità,
              tie esatto → fonte prioritaria; recency a bande §37, damping
              cluster spaziale 1/√k §38, densità union, coverage §39,
-             `evidenceRevision agg:v1:a<rev>:<hash>` versionata §57/§116)
-             (`src/vps/`, 105/105 test) + hook dev `?vps=`; gate slice §140
+             `evidenceRevision agg:v1:a<rev>:<hash>` versionata §57/§116) +
+             pipeline end-to-end offline `createVisualPipeline`
+             (collect OSM + imagery → analyze → aggregate → compile → cache
+             → serve; fixture OSM per città + pool campioni sulle fixture
+             observations; cache value-cached per revisione §55-57 con
+             no-shadowing; degrado per provider failure §80: OSM down →
+             vision-only, imagery down → OSM-only, tutto down → parent LVP,
+             mai throw; 3 città pairwise distinte e deterministiche)
+             (`src/vps/`, 117/117 test) + hook dev `?vps=`; gate slice §140
              **GO** (3 profili generati distinti e coerenti su stessa
-             geometria live Roma; unit 655/655, e2e 42+1 skip) —
+             geometria live Roma; unit 667/667, e2e 42+1 skip) —
              [VISUAL-PROFILE-SERVICE-V1-RESULT](../results/VISUAL-PROFILE-SERVICE-V1-RESULT.md).
-             Prossime: VPS-09 (e2e Rome/Paris/Tokyo), VPS-10 (runtime API +
-             client Mapillary e modello vision server-side con credenziali).
+             Prossima: VPS-10 (runtime API `GET /v1/profile` + client
+             Mapillary e modello vision server-side con credenziali).
             VPS enhances, LVP guarantees.
      - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
@@ -309,8 +316,9 @@ anche con suite verde.
        taxi + result doc G2D-01),        `f5594a8` (feat VPS-00..03 slice offline +
        gate), `c4505da` (feat VPS-04 celle spaziali + cache), `e8eec21`
         (feat VPS-05 OSM evidence collector), `70933ce` (feat VPS-06
-        provider street-imagery), `076ce41` (feat VPS-07 visual analyzer) +
-        commit VPS-08 (evidence aggregator, questo documento).
+        provider street-imagery), `076ce41` (feat VPS-07 visual analyzer),
+        `879dde1` (feat VPS-08 evidence aggregator) + commit VPS-09
+        (end-to-end offline Rome/Paris/Tokyo, questo documento).
     - Baseline stabile per test utente: commit `0433da1` (geocoding del form
       di avvio + luogo corrente nella barra di stato; su base `9ea0062`
       origine per nome del luogo, `15c5f68` nomi via leggibili + dedup,

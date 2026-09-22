@@ -325,3 +325,4 @@ Data: 2026-09-21. Spec:
 - [x] VPS-06: provider street-imagery (contratto neutro + selezione deterministica §14 + TestImageryProvider + MapillaryImageryProvider dietro client iniettato, errors tipizzati §80, nessuna credenziale nel core §82-83) + 23 test (TDD).
 - [x] VPS-07: visual analyzer (contratto §18 + validatore stretto output modello §30/§78 + fallback unknown + TestVisualAnalyzer + fixture observations §115) + 19 test (TDD).
 - [x] VPS-08: evidence aggregator (OSM+vision+detections → VisualEvidenceProfile, trust per asse §130, recency/spaziale §37-38, priorità fonte §40, revisione versionata) + 16 test (TDD).
+- [x] VPS-09: end-to-end offline Rome/Paris/Tokyo (pipeline collect→analyze→aggregate→compile→cache→serve, fixture OSM per città, degrado provider failure, cache no-shadowing, 3 profili distinti) + 12 test (TDD).

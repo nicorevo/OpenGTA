@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..08 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..09 + gate (2026-09-21)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -55,6 +55,11 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 - **VPS-08** — `src/vps/aggregate/`: `aggregateEvidence` (puro,
   OSM + vision + detections → `VisualEvidenceProfile`) + source trust per asse
   configurabile. Dettaglio nella sezione VPS-08 qui sotto.
+- **VPS-09** — `src/vps/pipeline/` + `src/vps/osm/city-fixtures.ts`:
+  pipeline offline end-to-end `createVisualPipeline` (collect → analyze →
+  aggregate → compile → cache → serve) su Rome/Paris/Tokyo con coordinate
+  note di test + fixture OSM sintetiche per città. Dettaglio nella sezione
+  VPS-09 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -262,6 +267,69 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   union densità, vehicle escluso, coverage direzionale, fallback zero,
   revisione deterministica/versionata/sensibile, provenance,
   order-independence, input vuoto ben formato, sum~1 su 3 città).
+
+## VPS-09 — end-to-end offline Rome/Paris/Tokyo
+
+- **Pipeline**: `src/vps/pipeline/pipeline.ts` — `createVisualPipeline(deps).run(cell, retrievedAt)`:
+  composizione pura delle layer già esistenti (nessun network/credenziale/
+  wall-clock nel core): `osmSource(cell) → OsmCellFeatures` (iniettato;
+  fixture offline qui, client Overpass server-side in VPS-10) →
+  `collectOsmEvidence`; `imagery.sample(cell, {radiusMeters: 400,
+  maxSamples: 24}, retrievedAt)` (§13) → `analyzer.analyze` per campione
+  (il contratto valida l'output: un analyzer che lancia degrada al fallback,
+  la pipeline mai); `aggregateEvidence`; le due cache §55;
+  `compiler.compile` sul parent LVP risolto (`resolveParent` iniettato).
+  `diagnostics` per run: stato delle fonti, campioni richiesti/analizzati,
+  hit delle due cache.
+- **Fixture per città** (`src/vps/osm/city-fixtures.ts`,
+  `OSM_CITY_FEATURES`): celle sintetiche plausibili — Roma: tegole su
+  muratura ocra/gialla + sampietrini (~4% verde, sopra la soglia di
+  sparsità); Parigi: tetti zincati (tag `metal`) su pietra crema, asfalto,
+  verde centrale < 2%; Tokyo: scatole flat-concrete grigie/scuri
+  (concrete/glass), asfalto, quasi zero verde → `sparse`. Coordinate note di
+  test §105: Roma 41.8992/12.4769, Parigi 48.8566/2.3522, Tokyo
+  35.6762/139.6503. I pool di campioni usano i `sampleId` delle fixture
+  observations VPS-07 (contratto stabile §115): 2 campioni matched (raw
+  senza `provenance` — il modello non la produce, §30) + 2 unmatched
+  (passo fallback §78), con detections su uno.
+- **Comportamenti verificati** (12 test, `pipeline.test.ts`):
+  - chain completa per città: Rome → roof `terracotta-tile` / facade
+    `ochre` / character `historic-dense` (OSM+vision d'accordo); Paris →
+    facade `cream` / roof `metal` / `historic-medium` / vegetation
+    `temperate-urban` (blend §40: tag OSM espliciti vincono, vision
+    concorda); Tokyo → roof `flat-concrete` / facade `cool-grey` /
+    `modern-dense` / vegetation `sparse` (vision 2 osservazioni in conflitto
+    → confidenza bassa, OSM vincente);
+  - profili generati **pairwise distinti** (spec 109.1) e deterministici
+    (deep-equal su due run fresche, stessa `evidenceRevision`);
+  - **cache** (spec 55-57): secondo run → `evidenceCacheHit` +
+    `profileCacheHit`, oggetti identici per riferimento; un'evidence run
+    nuova (input cambiato) → revisione diversa, recompile (ma mai
+    reanalyze), **no-shadowing** (entrambe le revisioni in cache);
+    un profilo in cache è servito solo se compilato dalla stessa
+    revisione evidence;
+  - **degrado provider** (spec 80, 110-111): OSM down → vision-only
+    (`providers: ["test-imagery"]`, `osmConfidence 0`, profilo comunque
+    generato); imagery down → OSM-only (`imageryConfidence 0`); tutto down →
+    `overall 0`, confidenza 0, profilo = parent LVP completo (facade/roof/
+    ground/roads ereditati), **mai throw**;
+  - fallback observations (quality 0) non inquinano: profilo identico (salvo
+    revisione run, che per definizione cambia con campioni diversi) a
+    quello senza i campioni unmatched; `usableSamples 2/4`.
+- **Decisioni documentate**:
+  - le cache restano value-cache chiavi revisione (spec 55); l'indice di
+    freschezza servizio-livello (cella → revisione corrente, TTL,
+    persistenza — livelli 2-3 di spec 54) è una responsabilità di VPS-10:
+    il core non decide "quando ri-collegire", solo cosa vale una data
+    revisione;
+  - `imageryConfidence` della coverage = confidenza della parte **vision**
+    dell'aggregazione (fix VPS-09: con l'aggregatore v1 usava la
+    confidenza blendata, e una cella OSM-only forte la riportava
+    erroneamente alta);
+  - il "render" della chain §105 è coperto dalla completezza del profilo
+    generato (niente `undefined` nei campi renderizzati) + il gate §140 già
+    eseguito con i profili compilati; l'hook `?vps=` passerà sulla pipeline
+    in VPS-10 quando arriverà il serve HTTP.
  
  ## Test
 
@@ -320,10 +388,19 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   `^agg:v1:a1:[0-9a-f]{8}$` + sensibile all'input, provenance summary
   (provider, count, finestra dai campioni), order-independence, input vuoto
   ben formato (non lancia, non inventa), sum~1 su 3 città.
-- Gate completa (dopo VPS-08): `typecheck` pulito; unit **655/655**
-  (baseline 550 + 19 + 17 + 11 + 23 + 19 + 16); `build` ok (warning chunk
-  size preesistente); e2e **42 passed + 1 skipped** (canary) — identico alla
-  baseline.
+- VPS-09: **12**: chain completa per città (dominanti attesi Rome/Paris/
+  Tokyo, provenance completa, `usableSamples 2/4`, id/revisioni corrette,
+  cache popolate), profili pairwise distinti (spec 109.1), determinismo
+  deep-equal su due run, secondo run dalle cache (oggetti identici per
+  riferimento), no-shadowing (2 revisioni in cache, recompile su revisione
+  nuova), OSM down → vision-only, imagery down → OSM-only, tutto down →
+  parent LVP completo (mai throw), fallback senza inquinamento (profilo
+  identico salvo revisione run), fixture observations = contratto stabile
+  §115.
+- Gate completa (dopo VPS-09): `typecheck` pulito; unit **667/667**
+  (baseline 550 + 19 + 17 + 11 + 23 + 19 + 16 + 12); `build` ok (warning
+  chunk size preesistente); e2e **42 passed + 1 skipped** (canary) —
+  identico alla baseline.
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
   nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
@@ -354,16 +431,17 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..08) è completa: evidence, catalogo,
+**GO** — la slice offline (VPS-00..09) è completa: evidence, catalogo,
 compiler, celle spaziali, le due cache, il collectore OSM, il layer
 street-imagery (contratto + selezione + provider di test + adapter
 Mapillary), il layer di analisi (contratto + validatore stretto + test
-analyzer + fixture) e l'aggregator (OSM + vision + detections →
-`VisualEvidenceProfile` con source trust per asse, spec §104/§130) sono
-pronti e testati; la pipeline evidence→catalogo→profilo è dimostrata
-end-to-end con dati OSM sintetici e il lato imagery è aggregabile
-offline. Prossime tranche (roadmap spec): VPS-09 end-to-end
-Rome/Paris/Tokyo (spec §105) e poi VPS-10 runtime API (`GET
+analyzer + fixture), l'aggregator (OSM + vision + detections →
+`VisualEvidenceProfile` con source trust per asse, spec §104/§130) e la
+pipeline end-to-end offline (collect → analyze → aggregate → compile →
+cache → serve su Rome/Paris/Tokyo, spec §105, con degrado per provider
+failure §80) sono pronti e testati: la chain completa è dimostrata
+offline con 3 città distinte, deterministiche e cacheabili. Prossima
+tranche (roadmap spec): VPS-10 runtime API (`GET
 /v1/profile?lat&lon` sopra le cache qui definite, `MapillaryClient` HTTP
 server-side con credenziali, modello vision server-side, rate limit,
 verifica classi detection/licensing sull'API corrente, e2e del flow). Se un

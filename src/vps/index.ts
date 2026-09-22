@@ -24,6 +24,18 @@ export type { ProfileCompiler, ProfileCompilationContext, GeneratedVisualProfile
 export { EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS } from "./evidence/fixtures/index.ts";
 export type { EvidenceFixtureId } from "./evidence/fixtures/index.ts";
 export {
+  createVisualPipeline,
+  DEFAULT_SAMPLING_OPTIONS,
+} from "./pipeline/pipeline.ts";
+export type {
+  VisualPipeline,
+  VisualPipelineDependencies,
+  PipelineResult,
+  PipelineDiagnostics,
+  SourceStatus,
+} from "./pipeline/pipeline.ts";
+export { OSM_CITY_FEATURES } from "./osm/city-fixtures.ts";
+export {
   aggregateEvidence,
   createEvidenceAggregator,
   AGGREGATOR_REVISION,

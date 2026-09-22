@@ -277,16 +277,20 @@ export function aggregateEvidence(input: AggregationInput, options: AggregatorOp
   const spatialOf = (obs: VisualObservation) => spatial.get(obs.sampleId) ?? 1.0;
 
   const distributions = {} as Record<AggregatorAxis, Distribution<string>>;
+  const visionConfidence: Partial<Record<AggregatorAxis, number>> = {};
   for (const axis of ALL_AXES) {
     const vision = VISION_AXES.includes(axis)
       ? aggregateVisionAxis(observations, axis, recencyOf, spatialOf)
       : { scores: {}, confidence: 0, contributing: 0 };
+    visionConfidence[axis] = vision.confidence;
     distributions[axis] = blendAxis(osm?.[axis] as Distribution<string> | undefined, vision, trust[axis]);
   }
 
   const usable = observations.filter((o) => o.quality > 0);
+  // imagery confidence is the VISION part only: with no imagery at all it
+  // must be 0 even when OSM evidence is strong
   const imageryConfidence = round4(
-    VISION_AXES.reduce<number>((sum, axis) => sum + (distributions[axis].confidence ?? 0), 0) / VISION_AXES.length,
+    VISION_AXES.reduce<number>((sum, axis) => sum + (visionConfidence[axis] ?? 0), 0) / VISION_AXES.length,
   );
   const osmConfidence = osm ? osm.coverage.osmConfidence : 0;
   const presentSources: number[] = [];
