@@ -13,3 +13,6 @@ secrets/
 *.local
 .serena
 resume.txt
+
+# VPS-10 service cache (persisted profiles/evidence, spec 54 levels 2-3)
+.vps-cache/

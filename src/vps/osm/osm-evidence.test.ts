@@ -87,6 +87,18 @@ describe("collectOsmEvidence (VPS-05, spec 7/40/41/101)", () => {
     expect(evidence.roofTypes.confidence).toBeCloseTo(23 / 27, 3);
   });
 
+  it("surface=sett (live Rome sampietrini tag, VPS-10) classifies as cobblestone", () => {
+    const features: OsmCellFeatures = {
+      areas: [],
+      ways: [way(400, { highway: "residential", surface: "sett" })],
+      nodes: [],
+    };
+    const evidence = collectOsmEvidence(features, CELL, RETRIEVED_AT);
+    expect(evidence.roadSurfaces.dominant).toBe("cobblestone");
+    expect(evidence.roadSurfaces.scores["cobblestone"]).toBeCloseTo(1, 5);
+    expect(evidence.roadSurfaces.confidence).toBeCloseTo(1, 5);
+  });
+
   it("untagged OSM gets no high priority (spec 40): confidence stays below the compiler threshold", () => {
     const features: OsmCellFeatures = {
       areas: [area(1000, { building: "yes" }), area(1000, { building: "yes" }), area(900, { building: "yes" })],

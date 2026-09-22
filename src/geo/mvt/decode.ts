@@ -147,14 +147,15 @@ function checkAborted(signal: AbortSignal | undefined): void {
 
 /** Reader over a protobuf byte range. Instances never leave this module. */
 class PbReader {
+  private bytes: Uint8Array;
+  private view: DataView;
+  private limit: number;
   private offset: number;
 
-  constructor(
-    private readonly bytes: Uint8Array,
-    private readonly view: DataView,
-    private readonly limit: number,
-    offset = 0,
-  ) {
+  constructor(bytes: Uint8Array, view: DataView, limit: number, offset = 0) {
+    this.bytes = bytes;
+    this.view = view;
+    this.limit = limit;
     this.offset = offset;
   }
 

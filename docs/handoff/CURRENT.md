@@ -38,7 +38,7 @@ Non rieseguirli come backlog corrente.
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
  | Location Visual Profiles (LVP) | Completato (base `cd59f65`, esteso con LVP-08) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..08 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`), 3 famiglie visuali rome/paris/tokyo validate |
- | Visual Profile Service (VPS) | Slice offline VPS-00..09 completata (2026-09-21, gate §140 GO, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`) — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015; prossima: VPS-10 runtime API (client Mapillary + modello vision server-side, `GET /v1/profile`) |
+  | Visual Profile Service (VPS) | Slice offline VPS-00..09 (2026-09-21, gate §140 GO) + **VPS-10 runtime API** (2026-09-22) completati — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`; servizio live `GET /v1/profile` (Overpass + Mapillary API correnti, cache file TTL, fallback LVP immediato) con smoke test live Roma; prossima: VPS-11 modello vision server-side |
  | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, committed) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
  | 3 Packager, AI, multiplayer | Non aperte |
 
@@ -300,14 +300,27 @@ anche con suite verde.
              observations; cache value-cached per revisione §55-57 con
              no-shadowing; degrado per provider failure §80: OSM down →
              vision-only, imagery down → OSM-only, tutto down → parent LVP,
-             mai throw; 3 città pairwise distinte e deterministiche)
-             (`src/vps/`, 117/117 test) + hook dev `?vps=`; gate slice §140
-             **GO** (3 profili generati distinti e coerenti su stessa
-             geometria live Roma; unit 667/667, e2e 42+1 skip) —
-             [VISUAL-PROFILE-SERVICE-V1-RESULT](../results/VISUAL-PROFILE-SERVICE-V1-RESULT.md).
-             Prossima: VPS-10 (runtime API `GET /v1/profile` + client
-             Mapillary e modello vision server-side con credenziali).
-            VPS enhances, LVP guarantees.
+              mai throw; 3 città pairwise distinte e deterministiche)
+              (`src/vps/`, 117/117 test) + hook dev `?vps=`; gate slice §140
+              **GO** (3 profili generati distinti e coerenti su stessa
+              geometria live Roma; unit 667/667, e2e 42+1 skip) + **VPS-10
+              runtime API** (2026-09-22): `GET /v1/profile?lat&lon` su
+              `service/` (Node TS nativo, zero dipendenze) — client
+              Overpass live + client Mapillary sulle **API correnti**
+              (`graph.mapillary.com`, Bearer, bbox; la v1 REST documentata
+              non esiste più, recon 2026-09-22), cache file JSON TTL
+              (§54 lvl 2-3, sopravvive al restart), token bucket rate
+              limit, parent LVP per cerchi città → `THEME_BY_ID`,
+              fallback LVP immediato (mai 5xx per provider), 400/404/CORS,
+              `.env` locale gitignored + `.env.example`, fix core
+              `surface=sett` (sampietrini live Roma); 36 test offline +
+              1 regressione, **smoke live Roma: 200 generated da OSM +
+              Mapillary reali, cobblestone 0.88**; gate: unit 704/704,
+              e2e 42+1 skip) —
+              [VISUAL-PROFILE-SERVICE-V1-RESULT](../results/VISUAL-PROFILE-SERVICE-V1-RESULT.md).
+              Prossima: VPS-11 (modello vision server-side dietro
+              `VisualAnalyzer`, scelta host vs locale; le credenziali sono
+              già server-side in `service/`). VPS enhances, LVP guarantees.
      - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
      - Commits del 2026-09-21 (in ordine): `4e687b9` (feat WS), `0433da1`
@@ -317,8 +330,9 @@ anche con suite verde.
        gate), `c4505da` (feat VPS-04 celle spaziali + cache), `e8eec21`
         (feat VPS-05 OSM evidence collector), `70933ce` (feat VPS-06
         provider street-imagery), `076ce41` (feat VPS-07 visual analyzer),
-        `879dde1` (feat VPS-08 evidence aggregator) + commit VPS-09
-        (end-to-end offline Rome/Paris/Tokyo, questo documento).
+        `879dde1` (feat VPS-08 evidence aggregator), `cb8b29d`
+        (feat VPS-09 end-to-end offline Rome/Paris/Tokyo) + commit VPS-10
+        (feat runtime API `GET /v1/profile`, questo documento).
     - Baseline stabile per test utente: commit `0433da1` (geocoding del form
       di avvio + luogo corrente nella barra di stato; su base `9ea0062`
       origine per nome del luogo, `15c5f68` nomi via leggibili + dedup,

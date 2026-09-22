@@ -54,6 +54,9 @@ const ROOF_MATERIAL_TAGS: Readonly<Record<string, RoofTypeClass>> = {
 const ROAD_SURFACE_TAGS: Readonly<Record<string, RoadSurfaceClass>> = {
   asphalt: "asphalt", concrete: "concrete", cobblestone: "cobblestone", paving_stones: "pavers",
   gravel: "gravel", dirt: "dirt", earth: "dirt", ground: "dirt",
+  // Verified against live Overpass data in central Rome (VPS-10): the historic
+  // sampietrini streets are mapped surface=sett, not surface=cobblestone.
+  sett: "cobblestone",
 };
 const SIDEWALK_SURFACE_TAGS: Readonly<Record<string, SidewalkTypeClass>> = {
   asphalt: "asphalt", concrete: "concrete", paving_stones: "pavers",

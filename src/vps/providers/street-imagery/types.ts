@@ -81,11 +81,11 @@ export interface StreetImageryProvider {
 
 /** Typed failure so the service degrades deterministically (spec 80). */
 export class StreetImageryProviderError extends Error {
-  constructor(
-    readonly kind: "rate-limited" | "unavailable" | "auth" | "invalid-response",
-    message: string,
-  ) {
+  readonly kind: "rate-limited" | "unavailable" | "auth" | "invalid-response";
+
+  constructor(kind: "rate-limited" | "unavailable" | "auth" | "invalid-response", message: string) {
     super(message);
     this.name = "StreetImageryProviderError";
+    this.kind = kind;
   }
 }

@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..09 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + gate (2026-09-21/22)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -60,6 +60,13 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   aggregate → compile → cache → serve) su Rome/Paris/Tokyo con coordinate
   note di test + fixture OSM sintetiche per città. Dettaglio nella sezione
   VPS-09 qui sotto.
+- **VPS-10** — `service/` (fuori dal bundle browser, §82-83): runtime API
+  `GET /v1/profile?lat&lon` su Node (TS nativo, zero dipendenze): client
+  Overpass live, client Mapillary sulle API correnti (recon 2026-09-22),
+  cache file JSON con TTL (§54 livelli 2-3), token bucket rate limit,
+  fallback LVP immediato, config da `.env` locale (gitignored) +
+  `.env.example`, script `npm run service`; fix core `surface=sett`
+  (sampietrini reali di Roma). Dettaglio nella sezione VPS-10 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -331,7 +338,93 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
     eseguito con i profili compilati; l'hook `?vps=` passerà sulla pipeline
     in VPS-10 quando arriverà il serve HTTP.
  
- ## Test
+## VPS-10 — runtime API `GET /v1/profile` (2026-09-22)
+
+- **Riconoscenza API live (bloccante, prima di scrivere il client)**: la v1
+  REST documentata nella spec **non esiste più** — `api.mapillary.com` è
+  NXDOMAIN (dominio ora su `ns.facebook.com`), e la nuova API è
+  `https://graph.mapillary.com` (infra Meta) **senza** prefisso `/v1`:
+  - auth: `Authorization: Bearer <credentiale>` (il `MLY|…` del pannello
+    funziona come token; il param `client_id` legacy non viene più accettato);
+  - ricerca: `GET /images?bbox=w,s,e,n&limit=N` (o `lat&lng&radius` con
+    **radius ≤ 50 m** — il bbox copre l'intera cella in una chiamata);
+  - item: `{ id, geometry: {type:"Point", coordinates:[lon,lat]},
+    compass_angle?, captured_at? (epoch ms), thumb_2048_url? }`;
+  - errori: JSON `{ error: { message, type:"MLYApiException", code } }`
+    (429 → rate-limited, 401/403 → auth, altro → unavailable);
+  - **detections**: l'API allega id di object ma non espone le label con i
+    campi sondati → per spec §31-32 (mai assumere classi) `fetchDetections`
+    risolve `[]`: degradazione a "no detections", da ri-verificare quando
+    uscirà la documentazione ufficiale della nuova API;
+  - i campi `camera_params`/`seq`/`tags` legacy sono ignorati silenziosamente.
+- **`service/`** (Node ≥ 23.6 con type stripping nativo, zero dipendenze,
+  nessun nuovo package):
+  - `env.ts` — `parseEnvFile` + `loadConfig` puri: default come
+    `.env.example`; client id mancante o placeholder → throw fail-fast
+    (mai chiamate non autenticate);
+  - `rate-limit.ts` — token bucket (burst = perMinute, refill lineare,
+    clock iniettabile);
+  - `file-cache.ts` — `createFileValueCache`: file JSON per chiave
+    (sha256 troncato), TTL con clock iniettabile, write atomiche
+    (tmp+rename), file corrotto → miss (mai crash);
+  - `overpass-source.ts` — `createOsmSource({endpoint, fetchImpl?,
+    rateLimiter?})`: query Overpass con il **vocabolario esatto del
+    collector** VPS-05 (highway/surface/lighting/parking; building ways e
+    relations; landuse/natural/leisure verdi; tree/bench/bollard), POST
+    form-URL `data=` + User-Agent; mapping elementi → `OsmCellFeatures`
+    con geometrie reali: lunghezza way (somma segmenti equirettangolare),
+    area edificio single-way chiuso e multipolygon (ring esterno, shoelace
+    equirettangolare; gli inner ring non contano); elementi senza tag
+    scartati; errore HTTP o corpo non-JSON → throw (la pipeline VPS-09
+    degrada la cella a vision-only, §80);
+  - `mapillary-client.ts` — `createMapillaryClient`: l'unico layer con la
+    credenziale (§82-83); bbox dall'area (fallback raggio se bounds
+    degeneri), mapping item live → `MapillaryImageRef` (geometry
+    `[lon,lat]`, `captured_at` ms → ISO), entry malformate scartate,
+    errori mappati su `StreetImageryProviderError` tipizzato (la
+    `MapillaryImageryProvider` VPS-06 consuma invariata);
+  - `server.ts` — `createProfileHandler`: `GET /v1/profile?lat&lon` →
+    400 coordinate, 404 path, altrimenti cella → **fast path §54 lvl 3**
+    (entry servizio con TTL su disco: profilo+evidence+diagnostics serviti
+    **senza rete** finché freschi) → pipeline VPS-09 con i client reali →
+    200 `{source:"generated"|"cache", profile, evidence, diagnostics}`;
+    eccezione → 200 `{source:"lvp", profile: parent}` (spec §106:
+    fallback LVP immediato, mai 5xx per un provider); parent = cerchio di
+    città (Roma 12 km / Parigi 12 km / Tokyo 20 km) → `THEME_BY_ID`
+    (approx v1 del geocoding LVP, che resta client-side); CORS
+    `access-control-allow-origin: *` per il dev browser;
+  - `startServer` + main (`node service/server.ts`, `.env` locale con
+    process-env vincente); `.env` gitignored, `.env.example` committed,
+    `.vps-cache/` gitignored.
+- **Fix core da dati live**: `surface=sett` → `cobblestone` nel collector
+  OSM (le strade storiche di Roma sono mappate `sett`, non
+  `cobblestone` — verificato su Overpass centrale Roma); regressione
+  dedicata. Refactor strip-compatibilità: `StreetImageryProviderError`,
+  `GeoDataSourceError`, `PbReader` da parameter-properties a campi
+  espliciti (identici nel comportamento; Node strip-only non supporta le
+  prime e il servizio importa il primo).
+- **Comportamenti verificati** (36 test offline, fetch finto, zero rete):
+  rate limit (burst + refill + clock logico), file cache (round-trip,
+  persistenza tra istanze, TTL, file corrotto → miss, clear), env
+  (parse, default, override, fail-fast su placeholder, non-numerici),
+  overpass (forma query + bounds 6dp + header, mapping nodes/ways/areas
+  con lunghezze/aree, 429/500 → throw, non-JSON → throw, rate limiter),
+  mapillary (URL bbox/limit/fields + Bearer + UA, mapping item live,
+  entry malformate, `[]`, 429/401/403/500 → kind tipizzati, fetch down /
+  non-JSON, `fetchDetections → []`, rate limiter), server (200 generated
+  con entrambe le fonti ok, cache senza re-fetch, **restart → cache da
+  disco con 0 fetch**, Mapillary 500 → OSM-only 200, Overpass+Mapillary
+  500 → parent LVP (facade/roof/ground/roads = LVP, Tokyo → tokyo),
+  pipeline che lancia → `lvp`, 400 coordinate, 404 path).
+- **Smoke test live (2026-09-22, quota free-plan minima)**: `npm run
+  service`, cella Roma 41.8992/12.4769 → **200 generated** in 17 s:
+  `osm: ok`, `imagery: ok` (7/24 campioni Mapillary reali, 2019-2025),
+  `roadSurfaces` dominante **cobblestone 0.88** (dai `sett` reali),
+  `osmConfidence 0.23`, `generation.confidence 0.43` (roads da OSM, resto
+  parent rome — OSM romano scarsamente taggato sui tetti, comportamento
+  corretto §40); seconda richiesta → `source:"cache"`; 400/404/CORS ok.
+
+## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
   minimi catalogo + seed deep-equal da LVP + risolvibilità dei dominanti
@@ -397,10 +490,18 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   parent LVP completo (mai throw), fallback senza inquinamento (profilo
   identico salvo revisione run), fixture observations = contratto stabile
   §115.
+- VPS-10: **36** (rate-limit 5, file-cache 5, env 5, overpass-source 6,
+  mapillary-client 8, server 7 — tutti offline con fetch finto) + **1**
+  regressione core (`sett` → cobblestone).
 - Gate completa (dopo VPS-09): `typecheck` pulito; unit **667/667**
   (baseline 550 + 19 + 17 + 11 + 23 + 19 + 16 + 12); `build` ok (warning
   chunk size preesistente); e2e **42 passed + 1 skipped** (canary) —
   identico alla baseline.
+- Gate completa (dopo VPS-10, 2026-09-22): `typecheck` pulito; unit
+  **704/704** (667 + 36 service + 1 regressione `sett`); `build` ok
+  (stesso warning preesistente); e2e **42 passed + 1 skipped** — invariato
+  (il servizio è fuori dal bundle browser; i refactors core strip-compat
+  non cambiano comportamento).
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
   nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
@@ -431,19 +532,24 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..09) è completa: evidence, catalogo,
-compiler, celle spaziali, le due cache, il collectore OSM, il layer
-street-imagery (contratto + selezione + provider di test + adapter
-Mapillary), il layer di analisi (contratto + validatore stretto + test
-analyzer + fixture), l'aggregator (OSM + vision + detections →
-`VisualEvidenceProfile` con source trust per asse, spec §104/§130) e la
-pipeline end-to-end offline (collect → analyze → aggregate → compile →
-cache → serve su Rome/Paris/Tokyo, spec §105, con degrado per provider
-failure §80) sono pronti e testati: la chain completa è dimostrata
-offline con 3 città distinte, deterministiche e cacheabili. Prossima
-tranche (roadmap spec): VPS-10 runtime API (`GET
-/v1/profile?lat&lon` sopra le cache qui definite, `MapillaryClient` HTTP
-server-side con credenziali, modello vision server-side, rate limit,
-verifica classi detection/licensing sull'API corrente, e2e del flow). Se un
-gate futuro fallisse: degrado a recommender paese/città (§110-111), mai
-blocco del client.
+**GO** — la slice offline (VPS-00..09) e la **runtime API (VPS-10)** sono
+completate: evidence, catalogo, compiler, celle spaziali, le due cache, il
+colletore OSM, il layer street-imagery (contratto + selezione + provider di
+test + adapter Mapillary), il layer di analisi (contratto + validatore
+stretto + test analyzer + fixture), l'aggregator (OSM + vision + detections
+→ `VisualEvidenceProfile` con source trust per asse, spec §104/§130), la
+pipeline end-to-end (spec §105, con degrado per provider failure §80) e il
+servizio `GET /v1/profile` (spec §106: client Overpass + Mapillary live con
+credenziali server-side §82-83, cache file TTL §54 livelli 2-3, rate limit,
+fallback LVP immediato, parent per cerchi città) sono pronti e testati, con
+smoke test live su Roma (200 generated da dati reali, cobblestone 0.88 da
+`surface=sett`). **Note operative VPS-10**: la Mapillary v1 REST non esiste
+più — il client parla la nuova API `graph.mapillary.com` (Bearer, bbox) e
+`fetchDetections` risolve `[]` (id object senza label) in attesa della
+documentazione ufficiale (spec §31-32: mai assumere classi); il modello
+vision server-side non è ancora attivo (l'analyzer è il test analyzer: i
+campi vision ereditano il parent, OSM reale attivo). Prossima tranche
+(roadmap spec): **VPS-11** — modello vision server-side dietro
+`VisualAnalyzer` (scelta host vs locale) + adapter + gate latenza/quota.
+Se un gate futuro fallisse: degrado a recommender paese/città
+(§110-111), mai blocco del client.

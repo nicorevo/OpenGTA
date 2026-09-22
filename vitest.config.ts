@@ -5,7 +5,7 @@ import { defineConfig } from "vitest/config";
 // run it explicitly with `npm run test:bench` (vitest.bench.config.ts).
 export default defineConfig({
   test: {
-    include: ["src/**/*.{test,spec}.ts", "tests/bench/**/*.test.ts"],
+    include: ["src/**/*.{test,spec}.ts", "service/**/*.{test,spec}.ts", "tests/bench/**/*.test.ts"],
     exclude: ["tests/bench/mvt-benchmark.test.ts"],
   },
 });
