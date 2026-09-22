@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..07 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..08 + gate (2026-09-21)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -52,6 +52,9 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 - **VPS-07** — `src/vps/analysis/`: contratto `VisualAnalyzer` +
   validatore stretto dell'output modello + `TestVisualAnalyzer` + fixture
   `VisualObservation[]`. Dettaglio nella sezione VPS-07 qui sotto.
+- **VPS-08** — `src/vps/aggregate/`: `aggregateEvidence` (puro,
+  OSM + vision + detections → `VisualEvidenceProfile`) + source trust per asse
+  configurabile. Dettaglio nella sezione VPS-08 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -202,12 +205,65 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   paris-central / tokyo-dense) con dominanti coerenti con le evidence
   fixture VPS-01 (ocra/terracotta/historic-dense; crema/zinc/historic-
   medium; scuro/modern-dense). I `sampleId` sono valori di contratto
-  stabili che l'aggregator (VPS-08) e l'e2e (VPS-09) consumeranno.
-- **Modello vision reale**: fuori dal core, server-side in VPS-10 (come il
-  client Mapillary): qui esiste il contratto, il validatore e il test
-  analyzer — il modello HTTP/VLM non entra mai nel browser (§82).
+   stabili che l'aggregator (VPS-08) e l'e2e (VPS-09) consumeranno.
+ - **Modello vision reale**: fuori dal core, server-side in VPS-10 (come il
+   client Mapillary): qui esiste il contratto, il validatore e il test
+   analyzer — il modello HTTP/VLM non entra mai nel browser (§82).
 
-## Test
+## VPS-08 — evidence aggregator
+
+- **Contratto**: `src/vps/aggregate/types.ts` — `AggregationInput` (cell,
+  `osmEvidence?`, `observations`, `samples?`, `requestedSamples`,
+  `retrievedAt` iniettato), `AggregatorOptions` (trust/recency/raggio
+  cluster sovrascrivibili), `DEFAULT_SOURCE_TRUST` per asse (spec §130:
+  OSM 1.0 su roof/material/facade-colour, imagery 0.8-0.9; vegetation OSM
+  0.6 vs imagery 0.8; streetFurniture 0.6/0.8 — v1: streetFurniture è
+  OSM-only), `DEFAULT_RECENCY_BANDS` (§37: <2y 1.0, 2-5y 0.85, 5-8y 0.65,
+  >8y 0.45; data mancante → 1.0 neutro, mai punire),
+  `DEFAULT_SPATIAL_CLUSTER_METERS=30`, `VISION_CONFIDENCE_SAMPLE_CAP=2`,
+  `AGGREGATOR_REVISION=1`. `aggregateEvidence` puro (nessun clock: recency
+  relativa a `retrievedAt` iniettato), `createEvidenceAggregator(options?)`
+  per la pipeline VPS-09/10.
+- **Aggregazione per asse** (spec §33-42):
+  - *vision*: weight = `confidenza × quality × recency × spaziale` per
+    osservazione (quelle a quality 0 — fallback — non contribuiscono); i pesi
+    per classe si normalizzano in una distribuzione; confidenza vision =
+    `dominanza² × min(1, n/CAP)`: un pareggio tra due classi è evidenza
+    debole e più foto concordi non rendono la classe più vera;
+  - *blend*: `W_osm = confidenza_OSM × trust.osm(asse)`,
+    `W_vis = confidenza_vision × trust.vision(asse)`; score e confidenza
+    combinati = media pesata. Conseguenze verificate: OSM-only e vision-only
+    passano invariati; OSM non taggato (conf 0) non ha mai priorità su una
+    foto chiara; tag OSM esplicito (conf 1.0) resta dominante anche contro
+    2 foto in conflitto (0.5556 > 0.5, spec §40-41); **tie esatto → vince la
+    fonte prioritaria (OSM, §40)**;
+  - *recency* §37: bande configurabili, vecchio ≠ invalido;
+  - *spaziale* §38: weight `1/√k` con k = numero di campioni a < raggio
+    cluster (30 m) — 8 foto nello stesso punto pesano come 1 isolata +
+    damping, mai 20 shot della stessa sequence.
+- **Densità** (spec §92-93): union OSM∪detections (`1-(1-a)(1-b)`), map
+  `{tree, bench, bollard, street-light}`; **decisione documentata: `vehicle`
+  non conta come parcheggio** (in un'immagine stradale le auto sono in
+  prevalenza in movimento).
+- **Coverage** §39: `usableSamples` (osservazioni quality > 0),
+  `spatialCoverage` = max(OSM, griglia 4×4 dei campioni),
+  `directionalCoverage` = 4 quadranti di 90°, `imageryConfidence` = media
+  delle confidenze vision sui 7 assi, `osmConfidence` da
+  `osmEvidence.coverage`, `overall` = media delle fonti presenti.
+- **Identità**: `evidenceRevision = agg:v1:a<ANALYZER_REVISION>:<hash8>` su
+  canonical deterministico (cell, revisione OSM, osservazioni e campioni
+  ordinati, requested, opzioni attive) — deterministico, sensibile
+  all'input, `retrievedAt` esclusa (spec §57/§116). `provenanceSummary`:
+  provider uniti ordinati (OSM + provider dei campioni), `sampleCount`,
+  finestra `earliest/latestCapturedAt` dai campioni, `retrievedAt` iniettato.
+- **Test**: 16 in `aggregate.test.ts` (vision-only §42, OSM-only passthrough,
+  OSM esplicito > vision §40/41, OSM non taggato mai priorità, recency,
+  damping cluster, trust per asse che capovolge un asse in conflitto,
+  union densità, vehicle escluso, coverage direzionale, fallback zero,
+  revisione deterministica/versionata/sensibile, provenance,
+  order-independence, input vuoto ben formato, sum~1 su 3 città).
+ 
+ ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
   minimi catalogo + seed deep-equal da LVP + risolvibilità dei dominanti
@@ -250,11 +306,23 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   determinismo; test-analyzer: clamp attraverso il validatore, fallback per
   sample sconosciuto, raw invalido senza bypass, forma funzione +
   determinismo; fixture: passano il validatore, dominanti coerenti con le
-  evidence fixture VPS-01, confidenze/quality in 0..1; wiring
-  TestImageryProvider→TestVisualAnalyzer con catena di provenance intatta.
-- Gate completa (dopo VPS-07): `typecheck` pulito; unit **639/639**
-  (baseline 550 + 19 + 17 + 11 + 23 + 19); `build` ok (warning chunk size
-  preesistente); e2e **42 passed + 1 skipped** (canary) — identico alla
+   evidence fixture VPS-01, confidenze/quality in 0..1; wiring
+   TestImageryProvider→TestVisualAnalyzer con catena di provenance intatta.
+- VPS-08: **16**: vision-only (dominanti dalle osservazioni, campi OSM
+  vuoti, §42), OSM-only passthrough invariato, OSM esplicito > vision in
+  conflitto (roof terracotta 0.5556 > 0.5, §40/41), OSM non taggato mai
+  priorità, recency (vecchia pesa meno, mai zero, §37), damping cluster
+  (8 co-located < 8 sparse, concorrente lontano visibile, §38), trust per
+  asse che capovolge un asse in conflitto (default mantiene OSM, §130),
+  union densità OSM∪detections (§92-93), vehicle escluso da parkedVehicle,
+  coverage (2 quadranti di 90° → 0.5, 1 quadrante → 0.25, §39), osservazioni
+  fallback (quality 0) nulle, `evidenceRevision` deterministica +
+  `^agg:v1:a1:[0-9a-f]{8}$` + sensibile all'input, provenance summary
+  (provider, count, finestra dai campioni), order-independence, input vuoto
+  ben formato (non lancia, non inventa), sum~1 su 3 città.
+- Gate completa (dopo VPS-08): `typecheck` pulito; unit **655/655**
+  (baseline 550 + 19 + 17 + 11 + 23 + 19 + 16); `build` ok (warning chunk
+  size preesistente); e2e **42 passed + 1 skipped** (canary) — identico alla
   baseline.
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
@@ -286,15 +354,15 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..07) è completa: evidence, catalogo,
+**GO** — la slice offline (VPS-00..08) è completa: evidence, catalogo,
 compiler, celle spaziali, le due cache, il collectore OSM, il layer
 street-imagery (contratto + selezione + provider di test + adapter
-Mapillary) e il layer di analisi (contratto + validatore stretto + test
-analyzer + fixture) sono pronti e testati; la pipeline
-evidence→catalogo→profilo è dimostrata end-to-end con dati OSM sintetici e
-il lato imagery è pronto per l'aggregazione. Prossime tranche (roadmap
-spec): VPS-08 aggregator (OSM + vision + detections → `VisualEvidenceProfile`
-con source trust e confidenza, spec §104/§130), VPS-09 end-to-end
+Mapillary), il layer di analisi (contratto + validatore stretto + test
+analyzer + fixture) e l'aggregator (OSM + vision + detections →
+`VisualEvidenceProfile` con source trust per asse, spec §104/§130) sono
+pronti e testati; la pipeline evidence→catalogo→profilo è dimostrata
+end-to-end con dati OSM sintetici e il lato imagery è aggregabile
+offline. Prossime tranche (roadmap spec): VPS-09 end-to-end
 Rome/Paris/Tokyo (spec §105) e poi VPS-10 runtime API (`GET
 /v1/profile?lat&lon` sopra le cache qui definite, `MapillaryClient` HTTP
 server-side con credenziali, modello vision server-side, rate limit,

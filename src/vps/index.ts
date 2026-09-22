@@ -23,6 +23,26 @@ export { vpsFixtureFromSearch } from "./compiler/override.ts";
 export type { ProfileCompiler, ProfileCompilationContext, GeneratedVisualProfile } from "./compiler/types.ts";
 export { EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS } from "./evidence/fixtures/index.ts";
 export type { EvidenceFixtureId } from "./evidence/fixtures/index.ts";
+export {
+  aggregateEvidence,
+  createEvidenceAggregator,
+  AGGREGATOR_REVISION,
+} from "./aggregate/aggregate.ts";
+export {
+  DEFAULT_SOURCE_TRUST,
+  DEFAULT_RECENCY_BANDS,
+  DEFAULT_SPATIAL_CLUSTER_METERS,
+  VISION_CONFIDENCE_SAMPLE_CAP,
+} from "./aggregate/types.ts";
+export type {
+  AggregatorAxis,
+  AxisSourceTrust,
+  SourceTrust,
+  RecencyBands,
+  AggregationInput,
+  AggregatorOptions,
+  EvidenceAggregator,
+} from "./aggregate/types.ts";
 export { ANALYZER_REVISION } from "./analysis/types.ts";
 export type { ClassificationResult, VisualObservation, VisualAnalyzer } from "./analysis/types.ts";
 export {
