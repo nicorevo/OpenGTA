@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..05 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..06 + gate (2026-09-21)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -45,6 +45,10 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   `ProfileCache`) con chiavi §55. Dettaglio nella sezione VPS-04 qui sotto.
 - **VPS-05** — `src/vps/osm/`: OSM evidence collector puro
   (`collectOsmEvidence`). Dettaglio nella sezione VPS-05 qui sotto.
+- **VPS-06** — `src/vps/providers/street-imagery/`: contratto
+  `StreetImageryProvider` + selezione immagini deterministica +
+  `TestImageryProvider` + `MapillaryImageryProvider` (dietro client
+  iniettato). Dettaglio nella sezione VPS-06 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -107,6 +111,56 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   `directionalCoverage` 0, `imageryConfidence` 0, `osmConfidence` = media
   delle 5 confidenze categorie, `overall` = media imagery+osm.
 
+## VPS-06 — provider street-imagery
+
+- **Contratto neutro** (spec §5): `StreetImageryProvider.sample(area,
+  options, retrievedAt) → StreetSampleBatch`; tutto il resto del VPS dipende
+  solo da questa interfaccia, mai da Mapillary. `retrievedAt` iniettato come
+  dappertutto: il core resta senza wall-clock. `StreetSample`/
+  `EvidenceProvenance`/`ProviderDetection` come da spec §15-16/§32.
+- **Selezione deterministica** (`selectStreetSamples`, spec §13-14): pura e
+  order-independent. Raggio di campionamento (baseline 400 m), dedup
+  (stesso `sourceId` una volta; posizione+heading quasi identici una volta,
+  vince il più recente), recency relativa al pool (nessun orologio: il
+  riferimento è la capture più recente del pool), poi due passate greedy:
+  (1) spread spaziale 30 m + spread heading 45° + cap **3 heading per
+  posizione** (baseline §14 "5-10 posizioni × 2-3 heading" — mai 20 shot
+  consecutivi della stessa sequence), (2) riempimento con le posizioni
+  migliori rimanenti (solo vincolo spaziale). Cap `maxSamples` (baseline
+  20-30). Costanti esportate: `MIN_POSITION_SPREAD_M`,
+  `DEFAULT_HEADING_SPREAD_DEG`, `MAX_HEADINGS_PER_POSITION`.
+- **`TestImageryProvider`** (spec §5/§82): pool sintetico deterministico
+  (anello di 12 campioni seedato da `area.id`, nessun `Math.random`, nessuna
+  immagine — solo dati, spec §17/§140) oppure pool iniettato; `pool`
+  undefined → ring, `pool` esplicito (anche vuoto) → campionato quel pool.
+  È il provider con cui il service (VPS-10) può far girare l'intera
+  pipeline offline.
+- **`MapillaryImageryProvider`** (spec §102): adapter `area → sample
+  batch`, nessun analyzer (ancora). Parla solo con un `MapillaryClient`
+  iniettato: il client è l'unico strato con credenziali/HTTP/rate limit
+  (spec §82-83, server-side in VPS-10; il browser non ci arriva mai).
+  L'adapter: valida i ref (id/coordinate finite; response non-array o tutti
+  i ref invalidi → `invalid-response`), li mappa in `StreetSample` con
+  provenance piena (§16: `sourceId`, `sourceUrl`, `capturedAt`,
+  `attribution` "Mapillary contributors", `retrievedAt`), applica
+  `selectStreetSamples`, e attacca le detections **solo sui campioni
+  selezionati** (mai download indiscriminato, §8). Le classi detection
+  provider-specific sono mappate su classi canonical con tabella documentata
+  e **passthrough delle classi ignote** (mai assunte, mai perse, spec
+  §31-32; la tabella va ri-verificata sull'API corrente in VPS-10).
+- **Degradazione** (spec §80): i failure noti escono come
+  `StreetImageryProviderError` tipizzato (`rate-limited` / `unavailable` /
+  `auth` / `invalid-response`) — il client li getta, l'adapter li
+  ri-getta; gli errori sconosciuti del client vengono wrappati in
+  `unavailable`. Un fallimento delle detections di una singola immagine
+  degrada a "nessuna detection" per quell'immagine (l'evidenza imagery
+  resta valida). Il service (VPS-10) tradurrà l'errore in OSM-only
+  evidence → parent LVP: il servizio risponde sempre.
+- **Nessuna assunzione legale codificata** (spec §17): il campo `license`
+  della provenance resta `undefined` — va fornito dal service dopo
+  verifica; il provider resta disattivabile (bastano `TestImageryProvider`
+  o OSM-only).
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -128,8 +182,19 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   determinismo + revisione sensibile all'input; coverage spec §39;
   validazione confini; end-to-end OSM→compiler: `roof_tiles` → famiglia
   `terracotta-urban` (spec §41) e cella non taggata → parent LVP (spec §42).
-- Gate completa (dopo VPS-05): `typecheck` pulito; unit **597/597**
-  (baseline 550 + 19 + 17 + 11); `build` ok (warning chunk size
+- VPS-06: **23** (sampling 8, test-provider 6, mapillary 9): raggio
+  maxSamples/dedup, "mai 20 shot della stessa sequence" (cap per posizione),
+  directional spread, recency nella finestra preferita, determinismo +
+  order-independence, pool vuoto; test-provider deterministico (due run →
+  stesso batch), radius filter, seed per area, pool iniettato; mapillary:
+  mapping ref→`StreetSample` con provenance piena e `license` undefined,
+  heading normalizzato 0-360, detection note→canonical + passthrough
+  classi ignote + score fuori range scartato, detections solo sui
+  selezionati, per-image failure → no detections, errori tipizzati
+  propagati/wrappati, `invalid-response` (non-array, tutti i ref invalidi),
+  ref invalidi filtrati, cap maxSamples senza duplicati.
+- Gate completa (dopo VPS-06): `typecheck` pulito; unit **620/620**
+  (baseline 550 + 19 + 17 + 11 + 23); `build` ok (warning chunk size
   preesistente); e2e **42 passed + 1 skipped** (canary) — identico alla
   baseline.
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
@@ -162,13 +227,15 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..05) è completa: evidence, catalogo,
-compiler, celle spaziali, le due cache e il primo collectore reale (OSM)
-sono pronti e testati; la pipeline evidence→catalogo→profilo è dimostrata
-end-to-end con dati OSM sintetici. Prossime tranche (roadmap spec):
-VPS-06 Mapillary provider (area → sample batch, rate limits, image
-selection, provenance — nessun analyzer ancora), VPS-07 visual analyzer,
-VPS-08 aggregator con source trust (§130) e poi VPS-10 runtime API
-(`GET /v1/profile?lat&lon` sopra le cache qui definite, credenziali
-server-side, e2e del flow). Se un gate futuro fallisse: degrado a
+**GO** — la slice offline (VPS-00..06) è completa: evidence, catalogo,
+compiler, celle spaziali, le due cache, il collectore OSM e il layer
+street-imagery (contratto + selezione + provider di test + adapter
+Mapillary) sono pronti e testati; la pipeline evidence→catalogo→profilo è
+dimostrata end-to-end con dati OSM sintetici e il lato imagery è pronto
+per l'analyzer. Prossime tranche (roadmap spec): VPS-07 visual analyzer
+(imageni/`StreetSample` → `VisualObservation`), VPS-08 aggregator con
+source trust (§130) e poi VPS-10 runtime API (`GET /v1/profile?lat&lon`
+sopra le cache qui definite, `MapillaryClient` HTTP server-side con
+credenziali, rate limit e verifica classi detection/licensing sull'API
+corrente, e2e del flow). Se un gate futuro fallisse: degrado a
 recommender paese/città (§110-111), mai blocco del client.

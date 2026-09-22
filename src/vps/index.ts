@@ -23,6 +23,25 @@ export { vpsFixtureFromSearch } from "./compiler/override.ts";
 export type { ProfileCompiler, ProfileCompilationContext, GeneratedVisualProfile } from "./compiler/types.ts";
 export { EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS } from "./evidence/fixtures/index.ts";
 export type { EvidenceFixtureId } from "./evidence/fixtures/index.ts";
+export {
+  selectStreetSamples,
+  MIN_POSITION_SPREAD_M,
+  DEFAULT_HEADING_SPREAD_DEG,
+  MAX_HEADINGS_PER_POSITION,
+} from "./providers/street-imagery/sampling.ts";
+export { createTestImageryProvider, TEST_PROVIDER_NAME } from "./providers/street-imagery/test-provider.ts";
+export { createMapillaryProvider, MAPILLARY_PROVIDER_NAME } from "./providers/street-imagery/mapillary.ts";
+export { StreetImageryProviderError } from "./providers/street-imagery/types.ts";
+export type {
+  GeoArea,
+  StreetSamplingOptions,
+  EvidenceProvenance,
+  ProviderDetection,
+  StreetSample,
+  StreetSampleBatch,
+  StreetImageryProvider,
+} from "./providers/street-imagery/types.ts";
+export type { MapillaryClient, MapillaryImageRef, MapillaryDetectionRef } from "./providers/street-imagery/mapillary.ts";
 export type {
   VisualEvidenceProfile,
   Distribution,
