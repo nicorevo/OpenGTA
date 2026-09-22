@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + gate (2026-09-21/22)
+# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + VPS-11 modello vision + gate (2026-09-21/22)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -67,6 +67,10 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   fallback LVP immediato, config da `.env` locale (gitignored) +
   `.env.example`, script `npm run service`; fix core `surface=sett`
   (sampietrini reali di Roma). Dettaglio nella sezione VPS-10 qui sotto.
+- **VPS-11** — `service/vision/`: modello vision server-side
+  (DeepSeek `deepseek-flash`) dietro il contratto `VisualAnalyzer` +
+  misurazione costo/latenza in response (spec §107). Dettaglio nella
+  sezione VPS-11 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -424,6 +428,79 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   parent rome — OSM romano scarsamente taggato sui tetti, comportamento
   corretto §40); seconda richiesta → `source:"cache"`; 400/404/CORS ok.
 
+## VPS-11 — modello vision server-side (DeepSeek) + misurazione §107 (2026-09-22)
+
+- **Scelta del modello (decisa con l'utente)**: DeepSeek
+  `deepseek-flash` — l'unico modello vision dell'API DeepSeek
+  (`deepseek-v4-pro` non supporta la visione), OpenAI-compatible su
+  `https://api.deepseek.com`, tassi ~$0.15/$0.60 per M token (off-peak)
+  → **~$0.005 per cella** (10-13 immagini). Alternativa locale
+  esclusa: nessuna GPU in locale (30 GB RAM/8 core → minuti per
+  immagine). La chiave va solo in `.env` (gitignored); senza chiave il
+  servizio resta OSM-only (comportamento VPS-10 invariato).
+- **`service/vision/deepseek-analyzer.ts`** — `createDeepSeekAnalyzer`
+  implementa `VisualAnalyzer` (contratto VPS-07): `thinking:
+  {type:"disabled"}` (vedi quirk 2), `temperature: 0`,
+  `response_format: {type:"json_object"}`, `detail: "low"` (512×512,
+  sufficiente per materiali/colori), system prompt con i 7 assi e i
+  vocabolari chiusi **importati da `AXIS_VOCABULARIES`** del validatore
+  (esportato a VPS-11: zero drift tra ciò che il modello è autorizzato a
+  dire e ciò che viene accettato, spec 21).
+- **Due quirk live verificati (bloccanti, scoperti allo smoke)**:
+  1. **L'egress dei server DeepSeek non scarica le URL della CDN
+     Mapillary** (400 "Failed to download image"; wikimedia anch'essa
+     inaffidabile, `gstatic` ok) → le thumbnail sono scaricate **dal
+     nostro servizio** (`fetch` con timeout 30 s, guardia
+     `content-type: image/*`, cap 8 MiB, memo in-memory 24 voci condivisa
+     tra generazioni: una via che attraversa due celle scarica ogni
+     immagine una volta) e inviate come **base64 data URL**. Niente
+     persistenza a disco delle immagini (spec 17: nessuna assunzione di
+     licenza codificata).
+  2. **Thinking mode ON di default**: `deepseek-flash` ragiona prima di
+     rispondere e bruciava l'intero budget di completion →
+     `content: null` → i 6/6 campioni del primo smoke morivano in
+     "malformed envelope". Con `thinking:{type:"disabled"}` il JSON esce
+     diretto (e `temperature` diventa efficace).
+- **Semantica errori (spec 30/78/80)**: risposta del modello malformata
+  (non-JSON, fuori vocabolario, campo extra, `sampleId` mismatch) →
+  **fallback observation** (quality 0, mai throw, mai inquinare
+  l'aggregazione); fallimento di servizio (rete, 4xx/5xx, immagine
+  irrecuperabile, envelope non valido) → **throw** → la pipeline VPS-09
+  degrada il campione/cella: modello morto = "no vision", mai "wrong
+  vision".
+- **Misurazione §107**: l'analyzer è creato per generazione (stats
+  per-request) con rate limiter e image memo condivisi; `VisionStats`
+  (`requests`, `analyzed`, `fallbacks`, `totalMs`, `promptTokens`,
+  `completionTokens`, `estimatedCostUsd` a tassi **peak** USD/M = 0.30/
+  1.20, upper bound conservativo) è nella response
+  (`body.vision`) e persistita nell'entry servizio → presente anche
+  sulla risposta `cache`.
+- **Comportamenti verificati** (15 test offline, fetch finto: immagine +
+  modello su un solo iniettato): forma request (Bearer, json mode,
+  thinking disabled, vocabolari nel prompt, data URL con detail low),
+  validazione (clamp confidenze, provenance dal campione, assi assenti),
+  memo (stessa URL → 1 download per N campioni), fallback (non-JSON,
+  fuori vocabolario, campi extra, `sampleId` mismatch, immagine
+  assente → zero rete), throw (immagine 404 → nessuna request contata,
+  content-type non-image, byte cap, 429/500, envelope malformato 4
+  forme), rate limiter (1 acquire per request), stats (tokens/durata/
+  costo), baseUrl/model custom.
+- **Smoke test live (2026-09-22)**:
+  - cella Colosseo (41.8902/12.4922, mai generata): **200 generated** in
+    38 s — `vision: 13 requests, 11 analyzed, 2 fallbacks, 10.5 s,
+    8194/1691 tokens, $0.0045`; `urbanCharacter` **historic-dense 0.927**
+    (confidenza 0.86) dalle 11 foto reali; palette facciate/tetti nella
+    famiglia ocra/terracotta (coerente col centro di Roma); in quella run
+    OSM è fallito (Overpass pubblico instabile) → degrado §80 corretto
+    (roads ereditate dal parent rome, `imageryConfidence 0.43`);
+  - cella Parigi (48.8566/2.3522): **200 generated** in 44 s — `vision:
+    10/7`, `osm: ok` + `imagery: ok`, `urbanCharacter historic-dense
+    0.21`, coverage overall 0.49;
+  - **cache**: seconda richiesta → `source:"cache"` in **19 ms, zero
+    scritture**, `vision` identico (persistito con l'entry);
+  - i 2/13 fallback del Colosseo = risposte del modello rifiutate dal
+    validatore stretto: comportamento by design (§30), mai accettate.
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -493,6 +570,9 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 - VPS-10: **36** (rate-limit 5, file-cache 5, env 5, overpass-source 6,
   mapillary-client 8, server 7 — tutti offline con fetch finto) + **1**
   regressione core (`sett` → cobblestone).
+- VPS-11: **21** (deepseek-analyzer 15, env deepseek 4, server vision
+  2 — tutti offline con fetch finto: download immagine + chiamata modello
+  sullo stesso iniettato).
 - Gate completa (dopo VPS-09): `typecheck` pulito; unit **667/667**
   (baseline 550 + 19 + 17 + 11 + 23 + 19 + 16 + 12); `build` ok (warning
   chunk size preesistente); e2e **42 passed + 1 skipped** (canary) —
@@ -502,6 +582,11 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   (stesso warning preesistente); e2e **42 passed + 1 skipped** — invariato
   (il servizio è fuori dal bundle browser; i refactors core strip-compat
   non cambiano comportamento).
+- Gate completa (dopo VPS-11, 2026-09-22): `typecheck` pulito; unit
+  **725/725** (704 + 21 VPS-11); `build` ok; e2e **42 passed + 1
+  skipped** — invariato (l'analyzer vive solo in `service/`, fuori dal
+  bundle browser; l'unica modifica core è l'export addittivo di
+  `AXIS_VOCABULARIES` da `validate.ts`).
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
   nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
@@ -532,24 +617,29 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..09) e la **runtime API (VPS-10)** sono
-completate: evidence, catalogo, compiler, celle spaziali, le due cache, il
-colletore OSM, il layer street-imagery (contratto + selezione + provider di
-test + adapter Mapillary), il layer di analisi (contratto + validatore
-stretto + test analyzer + fixture), l'aggregator (OSM + vision + detections
-→ `VisualEvidenceProfile` con source trust per asse, spec §104/§130), la
+**GO** — la slice offline (VPS-00..09), la **runtime API (VPS-10)** e il
+**modello vision server-side (VPS-11)** sono completati: evidence,
+catalogo, compiler, celle spaziali, le due cache, il collettore OSM, il
+layer street-imagery (contratto + selezione + provider di test + adapter
+Mapillary), il layer di analisi (contratto + validatore stretto + test
+analyzer + fixture), l'aggregator (OSM + vision + detections →
+`VisualEvidenceProfile` con source trust per asse, spec §104/§130), la
 pipeline end-to-end (spec §105, con degrado per provider failure §80) e il
-servizio `GET /v1/profile` (spec §106: client Overpass + Mapillary live con
-credenziali server-side §82-83, cache file TTL §54 livelli 2-3, rate limit,
-fallback LVP immediato, parent per cerchi città) sono pronti e testati, con
-smoke test live su Roma (200 generated da dati reali, cobblestone 0.88 da
-`surface=sett`). **Note operative VPS-10**: la Mapillary v1 REST non esiste
-più — il client parla la nuova API `graph.mapillary.com` (Bearer, bbox) e
+servizio `GET /v1/profile` (spec §106: client Overpass + Mapillary live +
+analyzer DeepSeek live con credenziali server-side §82-83, cache file TTL
+§54 livelli 2-3, rate limit, fallback LVP immediato, parent per cerchi
+città) sono pronti e testati, con smoke test live su Roma e Parigi
+(profili generati da OSM + foto reali: cobblestone 0.88 dai `sett`,
+`urbanCharacter historic-dense 0.927` da 11 foto del Colosseo,
+~$0.005/cella). **Note operative**: la Mapillary v1 REST non esiste più —
+il client parla la nuova API `graph.mapillary.com` (Bearer, bbox) e
 `fetchDetections` risolve `[]` (id object senza label) in attesa della
-documentazione ufficiale (spec §31-32: mai assumere classi); il modello
-vision server-side non è ancora attivo (l'analyzer è il test analyzer: i
-campi vision ereditano il parent, OSM reale attivo). Prossima tranche
-(roadmap spec): **VPS-11** — modello vision server-side dietro
-`VisualAnalyzer` (scelta host vs locale) + adapter + gate latenza/quota.
+documentazione ufficiale (spec §31-32: mai assumere classi); l'egress
+DeepSeek non raggiunge la CDN Mapillary → thumbnail in base64 scaricate
+dal servizio (guardie 8 MiB/content-type/30 s, memo in-memory); il
+thinking mode è disabilitato (bruciava il budget di completion).
+Prossima tranche (roadmap spec): **VPS-12** — coverage QA (centro
+città/periferia/industriale/suburbano/imagery scarsa, spec §108) +
+ri-verifica delle classi detection Mapillary quando esce la doc ufficiale.
 Se un gate futuro fallisse: degrado a recommender paese/città
 (§110-111), mai blocco del client.

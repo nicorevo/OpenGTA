@@ -197,6 +197,47 @@ describe("createProfileHandler (VPS-10, spec 106: GET /v1/profile, immediate LVP
     expect(body.profile).toEqual(romeProfile);
   });
 
+  it("exposes per-request vision stats from a custom analyzer (spec 107) on generated and cached responses", async () => {
+    const cacheDir = mkdtempSync(join(tmpdir(), "vps-srv-"));
+    let created = 0;
+    const stats = {
+      requests: 7,
+      analyzed: 5,
+      fallbacks: 2,
+      totalMs: 12_345,
+      promptTokens: 7_168,
+      completionTokens: 700,
+      estimatedCostUsd: 0.003_014_4,
+    };
+    const analyzerFactory = () => {
+      created += 1;
+      return {
+        analyze: async (sample: import("../src/vps/providers/street-imagery/types.ts").StreetSample) => ({
+          sampleId: sample.sourceId,
+          quality: 0.6,
+          roadSurface: { value: "cobblestone" as const, confidence: 0.8 },
+          provenance: sample.provenance,
+        }),
+        stats,
+      };
+    };
+    const { fetchImpl } = makeFakeFetch();
+    const handler = createProfileHandler({ config: CONFIG, fetchImpl, cacheDir, analyzerFactory });
+    const first = profileBody(await handler("/v1/profile", new URLSearchParams(ROME)));
+    expect(first.source).toBe("generated");
+    expect(first.vision).toEqual(stats);
+    const second = profileBody(await handler("/v1/profile", new URLSearchParams(ROME)));
+    expect(second.source).toBe("cache");
+    expect(second.vision).toEqual(stats); // persisted with the service entry
+    expect(created).toBe(1); // the analyzer is created per generation, not per cache hit
+  });
+
+  it("omits vision stats on the LVP fallback path", async () => {
+    const { handler } = handlerFor({ overpassStatus: 500, mapillaryStatus: 500 });
+    const res = await handler("/v1/profile", new URLSearchParams(ROME));
+    expect(profileBody(res).vision).toBeUndefined();
+  });
+
   it("rejects malformed coordinates with 400 and unknown paths with 404", async () => {
     const { handler } = handlerFor();
     expect((await handler("/v1/profile", new URLSearchParams({ lat: "abc", lon: "12.4" }))).status).toBe(400);

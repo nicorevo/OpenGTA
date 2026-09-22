@@ -11,7 +11,14 @@ import {
   cellForCoordinates,
   profileCacheKey,
 } from "../src/vps/index.ts";
-import type { EvidenceCache, GeneratedVisualProfile, PipelineResult, ProfileCache, VisualPipeline } from "../src/vps/index.ts";
+import type {
+  EvidenceCache,
+  GeneratedVisualProfile,
+  PipelineResult,
+  ProfileCache,
+  VisualAnalyzer,
+  VisualPipeline,
+} from "../src/vps/index.ts";
 import { THEME_BY_ID } from "../src/render/theme/resolver.ts";
 import type { VisualProfile } from "../src/render/theme/types.ts";
 import { createFileValueCache } from "./file-cache.ts";
@@ -22,6 +29,8 @@ import { createOsmSource } from "./overpass-source.ts";
 import { createMapillaryClient } from "./mapillary-client.ts";
 import { loadConfig, parseEnvFile } from "./env.ts";
 import type { VpsServiceConfig } from "./env.ts";
+import { createDeepSeekAnalyzer } from "./vision/deepseek-analyzer.ts";
+import type { VisionStats } from "./vision/deepseek-analyzer.ts";
 
 /**
  * VPS service (VPS-10, spec 106): GET /v1/profile?lat&lon -> a GeneratedVisual
@@ -126,6 +135,7 @@ interface ServiceEntry {
   readonly profile: GeneratedVisualProfile;
   readonly evidence: PipelineResult["evidence"];
   readonly diagnostics: PipelineResult["diagnostics"];
+  readonly vision?: VisionStats;
 }
 
 /** The JSON body of every /v1/profile response (spec 106). */
@@ -137,6 +147,8 @@ export interface ProfileResponseBody {
   readonly profile: GeneratedVisualProfile | VisualProfile;
   readonly evidence?: PipelineResult["evidence"];
   readonly diagnostics?: PipelineResult["diagnostics"];
+  /** Per-generation vision measurement (spec 107); absent when no vision model is configured or on the lvp path. */
+  readonly vision?: VisionStats;
   readonly error?: string;
 }
 
@@ -157,7 +169,13 @@ export interface ProfileHandlerDeps {
   readonly now?: () => number;
   /** Cache directory override (tests); defaults to config.cacheDir. */
   readonly cacheDir?: string;
-  /** Test/extension seam: replace the whole pipeline (e.g. a real vision analyzer later). */
+  /**
+   * Per-generation vision analyzer (VPS-11); the shared rate limiter is
+   * injected so the bucket outlives a single cell. Defaults to the offline
+   * test analyzer (OSM-only, deterministic).
+   */
+  readonly analyzerFactory?: (rateLimiter: RateLimiter) => VisualAnalyzer;
+  /** Test/extension seam: replace the whole pipeline. */
   readonly pipelineFactory?: (deps: PipelineWiring) => VisualPipeline;
 }
 
@@ -165,10 +183,16 @@ export interface ProfileHandlerDeps {
 export interface PipelineWiring {
   readonly osmSource: ReturnType<typeof createOsmSource>;
   readonly imagery: ReturnType<typeof createMapillaryProvider>;
-  readonly analyzer: ReturnType<typeof createTestVisualAnalyzer>;
+  readonly analyzer: VisualAnalyzer;
   readonly parent: VisualProfile;
   readonly evidenceCache: EvidenceCache;
   readonly profileCache: ProfileCache;
+}
+
+/** Snapshot of a live VisionStats counter, if the analyzer exposes one (duck-typed: the core test analyzer does not). */
+function readVisionStats(analyzer: VisualAnalyzer): VisionStats | undefined {
+  const stats = (analyzer as { stats?: VisionStats }).stats;
+  return stats === undefined ? undefined : { ...stats };
 }
 
 export type ProfileHandler = (path: string, search: URLSearchParams) => Promise<ProfileHandlerResponse>;
@@ -220,23 +244,27 @@ export function createProfileHandler(deps: ProfileHandlerDeps): ProfileHandler {
     if (fresh) {
       return {
         status: 200,
-        body: { source: "cache", cell: cellRef, servedAt, profile: fresh.profile, evidence: fresh.evidence, diagnostics: fresh.diagnostics },
+        body: { source: "cache", cell: cellRef, servedAt, profile: fresh.profile, evidence: fresh.evidence, diagnostics: fresh.diagnostics, vision: fresh.vision },
       };
     }
 
     try {
+      // The analyzer is created per generation so its stats are per-request
+      // (spec 107); the rate limiter is shared across generations.
+      const analyzer = (deps.analyzerFactory ?? (() => createTestVisualAnalyzer()))(rateLimiter);
       const wiring: PipelineWiring = {
         osmSource: createOsmSource({ endpoint: deps.config.overpass.endpoint, fetchImpl: doFetch, rateLimiter }),
         imagery: createMapillaryProvider(
           createMapillaryClient({ baseUrl: deps.config.mapillary.baseUrl, clientId: deps.config.mapillary.clientId, fetchImpl: doFetch, rateLimiter }),
         ),
-        analyzer: createTestVisualAnalyzer(), // vision model is a VPS-11 concern; OSM-only until then
+        analyzer,
         parent,
         evidenceCache,
         profileCache,
       };
       const result = await pipelineFactory(wiring).run(cell, servedAt);
-      const entry: ServiceEntry = { profile: result.profile, evidence: result.evidence, diagnostics: result.diagnostics };
+      const vision = readVisionStats(analyzer);
+      const entry: ServiceEntry = { profile: result.profile, evidence: result.evidence, diagnostics: result.diagnostics, vision };
       store.set(serviceKey, entry);
       return { status: 200, body: { source: "generated", cell: cellRef, servedAt, ...entry } };
     } catch {
@@ -289,6 +317,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     if (value !== undefined) env[key] = value;
   }
   const config = loadConfig(env);
-  startServer(config);
-  console.log(`VPS service listening on http://localhost:${config.port} (cache: ${config.cacheDir}, ttl: ${config.ttlMs}ms)`);
+  const handlerDeps: { analyzerFactory?: (rateLimiter: RateLimiter) => VisualAnalyzer } = {};
+  if (config.deepseek) {
+    const { baseUrl, apiKey, model } = config.deepseek;
+    // Shared across generations: a street crossing two cell boundaries
+    // downloads each thumbnail once, not once per cell (in-memory, spec 17).
+    const imageMemo = new Map<string, string>();
+    handlerDeps.analyzerFactory = (rateLimiter) => createDeepSeekAnalyzer({ apiKey, baseUrl, model, rateLimiter, imageMemo });
+  }
+  startServer(config, handlerDeps);
+  console.log(
+    `VPS service listening on http://localhost:${config.port} (cache: ${config.cacheDir}, ttl: ${config.ttlMs}ms, vision: ${config.deepseek ? `${config.deepseek.model}` : "off (OSM-only)"})`,
+  );
 }

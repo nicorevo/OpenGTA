@@ -52,6 +52,34 @@ describe("loadConfig (VPS-10, spec 82-83: credentials live in the service only)"
     expect(() => loadConfig({ MAPILLARY_CLIENT_ID: "MLY|YOUR_CLIENT_ID_HERE" })).toThrow(/placeholder/);
   });
 
+  it("omits the deepseek section when no key is provided (service stays OSM-only)", () => {
+    expect(loadConfig({ ...base }).deepseek).toBeUndefined();
+  });
+
+  it("applies deepseek defaults when a key is present (VPS-11: vision key is server-side only)", () => {
+    const config = loadConfig({ ...base, DEEPSEEK_API_KEY: "sk-test" });
+    expect(config.deepseek).toEqual({
+      baseUrl: "https://api.deepseek.com",
+      apiKey: "sk-test",
+      model: "deepseek-flash",
+    });
+  });
+
+  it("honors deepseek overrides and trims trailing slashes", () => {
+    const config = loadConfig({
+      ...base,
+      DEEPSEEK_API_KEY: "sk-test",
+      DEEPSEEK_BASE_URL: "https://example.test/",
+      DEEPSEEK_MODEL: "deepseek-flash-x",
+    });
+    expect(config.deepseek?.baseUrl).toBe("https://example.test");
+    expect(config.deepseek?.model).toBe("deepseek-flash-x");
+  });
+
+  it("refuses a placeholder deepseek key (fail fast, no silent test-mode in production)", () => {
+    expect(() => loadConfig({ ...base, DEEPSEEK_API_KEY: "sk-YOUR_DEEPSEEK_API_KEY_HERE" })).toThrow(/placeholder/);
+  });
+
   it("rejects non-numeric numeric values", () => {
     expect(() => loadConfig({ ...base, VPS_TTL_MS: "soon" })).toThrow(/VPS_TTL_MS/);
     expect(() => loadConfig({ ...base, VPS_PORT: "abc" })).toThrow(/VPS_PORT/);

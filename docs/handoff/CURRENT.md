@@ -38,7 +38,7 @@ Non rieseguirli come backlog corrente.
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
  | Location Visual Profiles (LVP) | Completato (base `cd59f65`, esteso con LVP-08) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..08 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`), 3 famiglie visuali rome/paris/tokyo validate |
-  | Visual Profile Service (VPS) | Slice offline VPS-00..09 (2026-09-21, gate §140 GO) + **VPS-10 runtime API** (2026-09-22) completati — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`; servizio live `GET /v1/profile` (Overpass + Mapillary API correnti, cache file TTL, fallback LVP immediato) con smoke test live Roma; prossima: VPS-11 modello vision server-side |
+  | Visual Profile Service (VPS) | Slice offline VPS-00..09 (2026-09-21, gate §140 GO) + **VPS-10 runtime API** + **VPS-11 modello vision** (2026-09-22) completati — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`; servizio live `GET /v1/profile` (Overpass + Mapillary API correnti + DeepSeek `deepseek-flash` con stats §107, cache file TTL, fallback LVP immediato) con smoke test live Roma/Parigi (vision: historic-dense 0.927 da 11 foto reali, ~$0.005/cella); prossima: VPS-12 coverage QA |
  | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, committed) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
  | 3 Packager, AI, multiplayer | Non aperte |
 
@@ -315,12 +315,26 @@ anche con suite verde.
               `.env` locale gitignored + `.env.example`, fix core
               `surface=sett` (sampietrini live Roma); 36 test offline +
               1 regressione, **smoke live Roma: 200 generated da OSM +
-              Mapillary reali, cobblestone 0.88**; gate: unit 704/704,
-              e2e 42+1 skip) —
+              Mapillary reali, cobblestone 0.88**) + **VPS-11 modello
+              vision** (2026-09-22): DeepSeek `deepseek-flash` dietro
+              `VisualAnalyzer` (scelta host: nessuna GPU locale, ~$0.005/
+              cella; `DEEPSEEK_API_KEY` opzionale, senza chiave resta
+              OSM-only); **due quirk live verificati**: egress DeepSeek
+              non raggiunge la CDN Mapillary → thumbnail scaricate dal
+              servizio (guardie 8 MiB/content-type/30 s, memo in-memory)
+              e inviate base64; thinking mode default ON →
+              `thinking:{type:"disabled"}`; output sempre attraverso il
+              validatore stretto §30 (malformata → fallback 0, servizio
+              down → throw → degrado §80); `VisionStats` §107 in response
+              (requests/analyzed/fallbacks/latenza/tokens/costo peak);
+              **smoke live Colosseo: urbanCharacter historic-dense 0.927
+              da 11/13 foto reali validate, 2 fallback validatore;
+              Parigi 10/7 + OSM ok; cache hit 19 ms zero scritture**;
+              gate: unit 725/725, e2e 42+1 skip) —
               [VISUAL-PROFILE-SERVICE-V1-RESULT](../results/VISUAL-PROFILE-SERVICE-V1-RESULT.md).
-              Prossima: VPS-11 (modello vision server-side dietro
-              `VisualAnalyzer`, scelta host vs locale; le credenziali sono
-              già server-side in `service/`). VPS enhances, LVP guarantees.
+              Prossima: VPS-12 (coverage QA spec §108 + ri-verifica classi
+              detection Mapillary con la doc ufficiale). VPS enhances,
+              LVP guarantees.
      - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
      - Commits del 2026-09-21 (in ordine): `4e687b9` (feat WS), `0433da1`
@@ -331,8 +345,9 @@ anche con suite verde.
         (feat VPS-05 OSM evidence collector), `70933ce` (feat VPS-06
         provider street-imagery), `076ce41` (feat VPS-07 visual analyzer),
         `879dde1` (feat VPS-08 evidence aggregator), `cb8b29d`
-        (feat VPS-09 end-to-end offline Rome/Paris/Tokyo) + commit VPS-10
-        (feat runtime API `GET /v1/profile`, questo documento).
+        (feat VPS-09 end-to-end offline Rome/Paris/Tokyo), `8f26607`
+        (feat VPS-10 runtime API `GET /v1/profile`) + commit VPS-11
+        (feat DeepSeek vision analyzer, questo documento).
     - Baseline stabile per test utente: commit `0433da1` (geocoding del form
       di avvio + luogo corrente nella barra di stato; su base `9ea0062`
       origine per nome del luogo, `15c5f68` nomi via leggibili + dedup,

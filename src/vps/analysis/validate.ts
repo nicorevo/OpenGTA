@@ -23,8 +23,13 @@ import type { ClassificationResult, VisualObservation } from "./types.ts";
 /** Max serialized bytes of a raw analyzer payload (spec 78 size limits). */
 export const MAX_ANALYZER_OUTPUT_BYTES = 16_384;
 
-/** v1 scope (spec 103): seven axes; streetFurnitureCharacter is not included. */
-const AXIS_VOCABULARIES = {
+/**
+ * v1 scope (spec 103): seven axes; streetFurnitureCharacter is not included.
+ * Exported so the server-side model prompt (VPS-11) can enumerate the same
+ * closed vocabularies the validator enforces — no drift between what the
+ * model is told and what is accepted (spec 21).
+ */
+export const AXIS_VOCABULARIES = {
   facadeColor: [
     "white", "cream", "sand", "ochre", "terracotta", "red", "brown",
     "warm-grey", "cool-grey", "dark", "mixed", "unknown",

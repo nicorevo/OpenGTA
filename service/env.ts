@@ -17,9 +17,20 @@ export interface VpsServiceConfig {
   readonly ttlMs: number;
   readonly rateLimitPerMin: number;
   readonly port: number;
+  /**
+   * Optional (VPS-11): without a key the service runs OSM-only (test
+   * analyzer). The vision key is server-side only, like the Mapillary one
+   * (spec 82-83).
+   */
+  readonly deepseek?: {
+    readonly baseUrl: string;
+    readonly apiKey: string;
+    readonly model: string;
+  };
 }
 
 const PLACEHOLDER = "YOUR_CLIENT_ID_HERE";
+const DEEPSEEK_PLACEHOLDER = "YOUR_DEEPSEEK_API_KEY_HERE";
 
 /** Minimal .env parser: KEY=VALUE lines, # comments, optional quotes. */
 export function parseEnvFile(text: string): Record<string, string> {
@@ -61,6 +72,11 @@ export function loadConfig(env: Record<string, string>): VpsServiceConfig {
     throw new Error("MAPILLARY_CLIENT_ID still holds the .env.example placeholder; set your real credential in .env");
   }
 
+  const deepseekKey = (env.DEEPSEEK_API_KEY ?? "").trim();
+  if (deepseekKey.includes(DEEPSEEK_PLACEHOLDER)) {
+    throw new Error("DEEPSEEK_API_KEY still holds the .env.example placeholder; set your real key in .env");
+  }
+
   return {
     mapillary: {
       baseUrl: (env.MAPILLARY_BASE_URL ?? "https://graph.mapillary.com").replace(/\/+$/, ""),
@@ -73,5 +89,13 @@ export function loadConfig(env: Record<string, string>): VpsServiceConfig {
     ttlMs: positiveNumber(env, "VPS_TTL_MS", 604_800_000),
     rateLimitPerMin: positiveNumber(env, "VPS_RATE_LIMIT_PER_MIN", 60),
     port: positiveNumber(env, "VPS_PORT", 8787),
+    deepseek:
+      deepseekKey.length > 0
+        ? {
+            baseUrl: (env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com").replace(/\/+$/, ""),
+            apiKey: deepseekKey,
+            model: env.DEEPSEEK_MODEL ?? "deepseek-flash",
+          }
+        : undefined,
   };
 }
