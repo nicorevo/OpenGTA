@@ -53,6 +53,8 @@ export interface VisionStats {
   analyzed: number;
   /** Fallback observations (bad model answer or missing image). */
   fallbacks: number;
+  /** Service-level failures (image download, network, non-2xx, non-JSON body, malformed envelope): these samples end up as pipeline fallbacks but the model never answered. */
+  errors: number;
   totalMs: number;
   promptTokens: number;
   completionTokens: number;
@@ -168,6 +170,7 @@ export function createDeepSeekAnalyzer(options: DeepSeekAnalyzerOptions): DeepSe
     requests: 0,
     analyzed: 0,
     fallbacks: 0,
+    errors: 0,
     totalMs: 0,
     promptTokens: 0,
     completionTokens: 0,
@@ -196,7 +199,13 @@ export function createDeepSeekAnalyzer(options: DeepSeekAnalyzerOptions): DeepSe
       await limiter.acquire();
       // The image must be downloadable by US, not by the model provider:
       // DeepSeek's egress cannot reach the Mapillary CDN (verified 2026-09-22).
-      const imageUrl = await toDataUrl(sample.imageUrl, doFetch, imageMemo);
+      let imageUrl: string;
+      try {
+        imageUrl = await toDataUrl(sample.imageUrl, doFetch, imageMemo);
+      } catch (error) {
+        stats.errors += 1;
+        throw error;
+      }
       stats.requests += 1;
       const started = Date.now();
       let response: Response;
@@ -225,21 +234,25 @@ export function createDeepSeekAnalyzer(options: DeepSeekAnalyzerOptions): DeepSe
           }),
         });
       } catch (error) {
+        stats.errors += 1;
         throw new Error(`deepseek request failed: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
         stats.totalMs += Date.now() - started;
       }
       if (!response.ok) {
+        stats.errors += 1;
         throw new Error(`deepseek responded ${response.status}${response.status === 429 ? " (rate limited)" : ""}`);
       }
       let data: unknown;
       try {
         data = await response.json();
       } catch {
+        stats.errors += 1;
         throw new Error("deepseek returned a non-JSON body");
       }
       const content = extractContent(data);
       if (content === undefined) {
+        stats.errors += 1;
         throw new Error("deepseek returned a malformed envelope (no choices[0].message.content)");
       }
       addUsage(data);

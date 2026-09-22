@@ -167,6 +167,7 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
     expect(observation.provenance).toBe(sample.provenance);
     expect(observation.roadSurface).toBeUndefined();
     expect(analyzer.stats.fallbacks).toBe(1);
+    expect(analyzer.stats.errors).toBe(0); // a bad ANSWER is not a service failure
   });
 
   it("falls back on out-of-vocabulary values (spec 21: never accept invented categories)", async () => {
@@ -204,6 +205,7 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
     const analyzer = createDeepSeekAnalyzer(options({ fetchImpl: fake.impl }));
     await expect(analyzer.analyze(makeSample())).rejects.toThrow(/image download responded 404/);
     expect(analyzer.stats.requests).toBe(0);
+    expect(analyzer.stats.errors).toBe(1); // service failure at the image stage is measured (spec 107)
     expect(fake.modelCalls()).toBe(0);
   });
 
@@ -211,6 +213,7 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
     const fake = makeFetch({ imageContentType: "text/html", model: { json: modelEnvelope(VALID_CONTENT) } });
     const analyzer = createDeepSeekAnalyzer(options({ fetchImpl: fake.impl }));
     await expect(analyzer.analyze(makeSample())).rejects.toThrow(/not an image/);
+    expect(analyzer.stats.errors).toBe(1);
   });
 
   it("throws when the image exceeds the byte cap (never an unbounded base64 request)", async () => {
@@ -218,6 +221,7 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
     const fake = makeFetch({ imageBody: oversize, model: { json: modelEnvelope(VALID_CONTENT) } });
     const analyzer = createDeepSeekAnalyzer(options({ fetchImpl: fake.impl }));
     await expect(analyzer.analyze(makeSample())).rejects.toThrow(/byte cap/);
+    expect(analyzer.stats.errors).toBe(1);
   });
 
   it("throws on 429 and 500 so the pipeline degrades the cell (spec 80)", async () => {
@@ -228,6 +232,11 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
     const downAnalyzer = createDeepSeekAnalyzer(options({ fetchImpl: down.impl }));
     await expect(downAnalyzer.analyze(makeSample())).rejects.toThrow(/500/);
     expect(limitedAnalyzer.stats.requests).toBe(1);
+    // a dead model is visible in the stats: requests made, nothing analyzed, errors counted
+    expect(limitedAnalyzer.stats.analyzed).toBe(0);
+    expect(limitedAnalyzer.stats.fallbacks).toBe(0);
+    expect(limitedAnalyzer.stats.errors).toBe(1);
+    expect(downAnalyzer.stats.errors).toBe(1);
   });
 
   it("throws on a malformed 200 envelope (no choices/message/content)", async () => {
@@ -235,6 +244,7 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
       const fake = makeFetch({ model: { json } });
       const analyzer = createDeepSeekAnalyzer(options({ fetchImpl: fake.impl }));
       await expect(analyzer.analyze(makeSample())).rejects.toThrow(/malformed envelope/);
+      expect(analyzer.stats.errors).toBe(1);
     }
   });
 
@@ -258,6 +268,7 @@ describe("createDeepSeekAnalyzer (VPS-11, spec 18-21/30/78/106-107: server-side 
     expect(analyzer.stats.requests).toBe(1);
     expect(analyzer.stats.analyzed).toBe(1);
     expect(analyzer.stats.fallbacks).toBe(0);
+    expect(analyzer.stats.errors).toBe(0);
     expect(analyzer.stats.totalMs).toBeGreaterThanOrEqual(0);
     expect(analyzer.stats.promptTokens).toBe(1024);
     expect(analyzer.stats.completionTokens).toBe(100);
