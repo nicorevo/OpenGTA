@@ -5,6 +5,8 @@
  */
 export { defaultCatalog } from "./catalog/catalog.ts";
 export { cellForCoordinates, URBAN_CELL_RESOLUTION } from "./cell/cell.ts";
+export { collectOsmEvidence, createOsmEvidenceCollector, OSM_COLLECTOR_VERSION, DENSITY_SATURATION } from "./osm/osm-evidence.ts";
+export type { OsmNode, OsmWay, OsmArea, OsmCellFeatures, OsmEvidenceCollector } from "./osm/types.ts";
 export { evidenceCacheKey, createEvidenceCache, type EvidenceCache } from "./cache/evidence-cache.ts";
 export { profileCacheKey, createProfileCache, type ProfileCache } from "./cache/profile-cache.ts";
 export type {

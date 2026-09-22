@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..04 + gate (2026-09-21)
+# Visual Profile Service — slice offline VPS-00..05 + gate (2026-09-21)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -43,6 +43,8 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 - **VPS-04** — `src/vps/cell/` + `src/vps/cache/`: `cellForCoordinates`
   (h3-js, res 9) e le due cache separate §56 (`EvidenceCache`,
   `ProfileCache`) con chiavi §55. Dettaglio nella sezione VPS-04 qui sotto.
+- **VPS-05** — `src/vps/osm/`: OSM evidence collector puro
+  (`collectOsmEvidence`). Dettaglio nella sezione VPS-05 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -72,6 +74,39 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 - Niente cambio bootstrap/hook: `?vps=` resta fixture-based; le celle
   servono il service (VPS-10) quando arriverà l'evidence reale per cella.
 
+## VPS-05 — OSM evidence collector
+
+- **Input neutro** (`OsmNode`/`OsmWay`/`OsmArea` = tags + size): il core
+  non vede payload di provider; il service (VPS-10) trasforma i risultati
+  Overpass/query in queste feature minime. Validazione al confine
+  (`RangeError` su size non finiti/negativi).
+- **Mapping solo tag espliciti** (spec §7/§40): `building:material` →
+  materiali, `building:colour` → classi colore (mappa ristretta
+  conservativa), `roof:material` + `roof:shape=flat` → tipi tetto
+  (roof_tiles → terracotta-tile, come nell'esempio spec §41),
+  `surface` su highway → asfalto/cotto/pavé/ghiaia/terra, `surface` su
+  footway → pavimentazioni pedonali. Valori tag non riconosciuti: non
+  classificati, mai tirati a indovinare.
+- **Confidenza = classificati/osservati per categoria**: OSM non taggato
+  (caso reale più comune) → confidenza 0 < 0.35 → il compiler ricade sul
+  parent LVP (spec §40/§42). Pesi geometrici (area edificio, lunghezza
+  via): un grande edificio taggato prevale su tanti piccoli non taggati.
+- **Cosa OSM non asserisce mai** (documentato): vegetazione climatica
+  (mediterranean/temperate/… → vision, spec §130), carattere urbano
+  historic/modern, stile del furniture — quelle distribuzioni restano a
+  confidenza 0. OSM asserisce solo la PRESENZA/ASSENZA di verde: cella con
+  dati OSM ma < 2% di area verde → `sparse`.
+- **Densità osservate** (spec §92-93): alberi/panchine/bloccacarri/luci/
+  parcheggi contati dai tag (`natural=tree`, `amenity=bench`,
+  `barrier=bollard`, `lighting=street`, `parking=*`) con saturazione
+  `1 - exp(-count/10)` (guida stilizzata, non conteggio 1:1).
+- **Determinismo/provenance** (spec §57/§116/§117): `evidenceRevision` =
+  `osm:v1:<hash-canonical(input)>` (stesso input → stessa revisione →
+  stesso profilo); `retrievedAt` iniettato dal service, mai generato dal
+  core; `coverage` riporta requested/usable samples, copertura spaziale,
+  `directionalCoverage` 0, `imageryConfidence` 0, `osmConfidence` = media
+  delle 5 confidenze categorie, `overall` = media imagery+osm.
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -85,9 +120,18 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   banda 300-700 m, altre risoluzioni, validazione coordinate; formato chiavi
   §55, round-trip cache, miss su nuovo compiler/catalogo (recompile senza
   reanalyze), no-shadowing revisioni evidence, pipeline lat/lon→cell→cache.
-- Gate completa (dopo VPS-04): `typecheck` pulito; unit **586/586**
-  (baseline 550 + 19 + 17); `build` ok (warning chunk size preesistente);
-  e2e **42 passed + 1 skipped** (canary) — identico alla baseline.
+- VPS-05: **11**: cella vuota → tutto a confidenza 0; cella "rome-like" →
+  dominanti attesi (terracotta-tile/ochre/brick/cobblestone/pavers) e
+  pesi geometrici (0.8/0.2 tiles/flat, confidenza 23/27); OSM non taggato
+  → confidenza 0 (no priorità alta, spec §40); verde < 2% → sparse, verde
+  alto → nessun claim di carattere; densità saturate e bounded;
+  determinismo + revisione sensibile all'input; coverage spec §39;
+  validazione confini; end-to-end OSM→compiler: `roof_tiles` → famiglia
+  `terracotta-urban` (spec §41) e cella non taggata → parent LVP (spec §42).
+- Gate completa (dopo VPS-05): `typecheck` pulito; unit **597/597**
+  (baseline 550 + 19 + 17 + 11); `build` ok (warning chunk size
+  preesistente); e2e **42 passed + 1 skipped** (canary) — identico alla
+  baseline.
   Nota: `runtime-session.test.ts > drives a long looped route…` è un flake
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
   nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
@@ -118,11 +162,13 @@ dell'endpoint OSM sul caso rome-lvp (fallback mirror, stato `ready`).
 
 ## Esito
 
-**GO** — la slice offline (VPS-00..04) è completa: evidence, catalogo,
-compiler, celle spaziali e le due cache sono pronti e testati. Prossime
-tranche (roadmap spec): VPS-05 OSM evidence collector (statistiche materiali
-tetti/superfici/land-use "quando disponibili"), poi VPS-06 Mapillary provider
-(area → sample batch, rate limits, provenance) e VPS-10 runtime API
+**GO** — la slice offline (VPS-00..05) è completa: evidence, catalogo,
+compiler, celle spaziali, le due cache e il primo collectore reale (OSM)
+sono pronti e testati; la pipeline evidence→catalogo→profilo è dimostrata
+end-to-end con dati OSM sintetici. Prossime tranche (roadmap spec):
+VPS-06 Mapillary provider (area → sample batch, rate limits, image
+selection, provenance — nessun analyzer ancora), VPS-07 visual analyzer,
+VPS-08 aggregator con source trust (§130) e poi VPS-10 runtime API
 (`GET /v1/profile?lat&lon` sopra le cache qui definite, credenziali
-server-side, e2e del flow). E2E del flow VPS in VPS-10. Se un gate futuro
-fallisse: degrado a recommender paese/città (§110-111), mai blocco del client.
+server-side, e2e del flow). Se un gate futuro fallisse: degrado a
+recommender paese/città (§110-111), mai blocco del client.
