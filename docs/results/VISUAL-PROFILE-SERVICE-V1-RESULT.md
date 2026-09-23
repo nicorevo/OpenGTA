@@ -1,4 +1,4 @@
-# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + VPS-11 modello vision + VPS-12 coverage QA + gate (2026-09-21/22)
+# Visual Profile Service — slice offline VPS-00..09 + VPS-10 runtime API + VPS-11 modello vision + VPS-12 coverage QA + gate GO + VPS-13 integrazione client (2026-09-21/23)
 
 Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
 (§140: primo esperimento = 3 profili evidence manuali → compiler → rendering;
@@ -80,6 +80,10 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   dedicato) + campionatura statistica della copertura Mapillary (§110:
   68,7% delle celle urbane con evidenza, NO-GO non innescato). Verdetto:
   **GO**. Dettaglio nella sezione VPS-GATE-V1 qui sotto.
+- **VPS-13** — integrazione client OpenGTA (spec §106): il browser
+  consuma ora il servizio — `?vpsService=` opzionale (registry chiuso),
+  fetch di background per cella h3 con fallback LVP immediato, switch al
+  profilo generato quando arriva. Dettaglio nella sezione VPS-13 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -642,6 +646,65 @@ v2 (non bloccanti): campionamento stabile delle immagini Mapillary per
 cella; ri-verifica delle classi di detection quando esce la doc ufficiale
 della nuova API.
 
+## VPS-13 — Integrazione client OpenGTA (spec §106) (2026-09-23)
+
+Il client consuma ora il servizio: in modalità open-world, se è presente
+`?vpsService=<url>`, l'app fetcha `GET /v1/profile` in **background** per
+cella h3 (res 9, la stessa cella del servizio) e applica il profilo
+generato quando arriva. Il rendering LVP non è mai bloccato: "fallback LVP
+immediato, switch a generated profile quando disponibile" (§106).
+
+**Codice** (zero dipendenze nuove):
+
+- `src/vps/client/profile-client.ts` — `createVpsProfileClient({fetch,
+  baseUrl, now?, timeoutMs?, cacheTtlMs?, cooldownMs?})` (fetch e clock
+  iniettati: il modulo resta puro). `sync(location)` fire-and-forget
+  (chiamato dal tick 200 ms, non blocca mai): dedup in-flight per cella,
+  cache client per cella con TTL 10 min, **cooldown 60 s sul fallimento**
+  (mai hammering del servizio malato), timeout fetch 60 s (copre la
+  generazione fredda osservata 29-36 s). Applica il profilo solo per
+  `source: generated|cache`; per `source: lvp` mantiene la propria
+  risoluzione LVP (più granulare: il parent del servizio è solo
+  cerchio-città→tema, altrimenti default). Cella nuova ≠ cella applicata
+  → profilo scartato subito (nessun bleed cross-città: LVP finché la nuova
+  cella non è pronta). `diagnostics()` (idle/loading/applied/failed,
+  cellId, profileId, source, error).
+- `src/vps/client/validate.ts` — runtime guard stretta sul body del
+  servizio (input non attendibile al confine): `isVisualProfile` verifica
+  ogni campo che il renderer legge; `parseVpsProfileResponse` accetta solo
+  `source ∈ {generated, cache, lvp}` + profilo valido, altrimenti
+  undefined → degrado LVP, mai throw.
+- `src/vps/client/service-url.ts` — `?vpsService=` a **registry chiuso**
+  (stessa disciplina dei endpoint geo live): dev → solo origini locali
+  (127.0.0.1/localhost/[::1], la porta del servizio dev); prod → https
+  only; credenziali/query/hash mai ammessi; parametro assente → VPS spento
+  (zero impatto su offline e flussi esistenti). URL malformata = errore di
+  config (stessa via degli endpoint live), mai default silenzioso.
+- `src/app/bootstrap.ts` (~20 righe) — il client esiste solo se
+  open-world + `?vpsService=` presente + **nessuno** hook `?vps=` (il dev
+  fixture ha precedenza: un solo source alla volta, e2e deterministiche).
+  `syncVisualTheme`: `serviceProfile ?? fixture ?? LVP`. `__opengtaV0Debug`
+  guadagna `vps()` (diagnostics). Detail trovata in e2e: il `fetch` va
+  avvolto in una closure, non destrutturato nei deps (riferimento nudo →
+  `Illegal invocation` per perdita del receiver window).
+
+**Verifiche**:
+
+- **19 unit** (client 11: no-fetch senza location, apply generated/cache,
+  dedup in-flight, cache TTL + expiry, drop su cella nuova, lvp ignorato,
+  HTTP 500 → cooldown + retry dopo 61 s, body malformato/non-JSON →
+  failure, timeout → failure; service-url 8: assente/locale/remoto/
+  https/credenziali/normalizzazione).
+- **e2e** `tests/e2e/vps-client-integration.spec.ts` (servizio mockato,
+  3 test): generated → tema `vps:v1:e2e-cell:c1` applicato + diagnostics;
+  500 → tema LVP intatto + state failed + **esattamente 1 attempt** nel
+  cooldown; senza `vpsService` → layer off, zero richieste, debug null.
+- **Smoke con servizio reale** (cache fredda, Colosseo, OSM+Mapillary+
+  DeepSeek reali): tema `rome` (LVP) → `vps:v1:h3:891e8052a6bffff:c1` a
+  ~30 s (source `generated`), zero pageerror; seconda visita → cache hit
+  1,5 ms. La generazione fredda arriva in background: l'utente gioca con
+  il LVP e il tema si commuta quando il profilo è pronto.
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -742,6 +805,10 @@ della nuova API.
   `build` ok; e2e **43 passed + 1 skipped** — aggiunto
   `tests/e2e/vps-visual-profiles.spec.ts` (QA visuale gate §112), resto
   invariato (il dev hook `?vps=` è già nel bundle dalla slice offline).
+- Gate completa (dopo VPS-13, 2026-09-23): `typecheck` pulito; unit
+  **744/744** (725 + 19 del client VPS); `build` ok; e2e **46 passed + 1
+  skipped** — aggiunti i 3 test di
+  `tests/e2e/vps-client-integration.spec.ts`, resto invariato.
 
 ## Gate della slice (spec §140)
 
@@ -795,8 +862,14 @@ Il **Gate VPS v1 (spec §109)** è stato eseguito il 2026-09-22:
 Tokyo), QA visuale §112 in-browser via e2e dedicato e campionatura
 statistica §110 (68,7% delle celle urbane con evidenza; NO-GO non
 innescato, degrado by design). Dettaglio nella sezione VPS-GATE-V1 sopra.
-Punti aperti per v2 (non bloccanti): campionamento stabile delle immagini
-Mapillary per cella (l'API restituisce set diversi a ogni chiamata, VPS-12
-/ gate punto 3); ri-verifica delle classi di detection quando esce la doc
-ufficiale della nuova API. Se un gate fosse fallito: degrado a
-recommender paese/città (§110-111), mai blocco del client.
+L'**integrazione client (VPS-13, spec §106)** è stata completata il
+2026-09-23: l'app in open-world consuma ora il servizio via
+`?vpsService=` (fetch di background per cella, fallback LVP immediato,
+switch al generato quando disponibile), verificata con e2e e smoke su
+servizio reale. **Il feature VPS v1 è completo end-to-end**: evidence →
+catalogo → compiler → API → client. Punti aperti per v2 (non bloccanti):
+campionamento stabile delle immagini Mapillary per cella (l'API
+restituisce set diversi a ogni chiamata, VPS-12 / gate punto 3);
+ri-verifica delle classi di detection quando esce la doc ufficiale della
+nuova API. Se un gate fosse fallito: degrado a recommender
+paese/città (§110-111), mai blocco del client.

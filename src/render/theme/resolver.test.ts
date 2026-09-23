@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { LocationContext } from "../../app/location-context.ts";
 import { stableStringHash } from "./hash.ts";
 import { buildingStyle, defaultProfile, franceProfile, groundFill, italyProfile, parisProfile, roadStyle, romeProfile, tokyoProfile } from "./index.ts";
-import { createVisualProfileResolver, knownThemeIds, normalizeLocationToken } from "./resolver.ts";
+import { createVisualProfileResolver, knownThemeIds, normalizeLocationToken, themeIdOfProfile, THEME_BY_ID } from "./resolver.ts";
 
 const resolver = createVisualProfileResolver();
 
@@ -32,6 +32,10 @@ describe("VisualProfileResolver.resolve", () => {
     expect(resolver.resolve(loc({ countryCode: "FR", locality: "Parigi" })).profile.id).toBe("paris");
     expect(resolver.resolve(loc({ countryCode: "JP", locality: "Tokyo" })).profile.id).toBe("tokyo");
     expect(resolver.resolve(loc({ countryCode: "JP", locality: "Tokyo" })).matchedBy).toBe("locality");
+    expect(resolver.resolve(loc({ countryCode: "CL", locality: "Santiago" })).profile.id).toBe("santiago");
+    expect(resolver.resolve(loc({ countryCode: "CL", locality: "Santiago" })).matchedBy).toBe("locality");
+    expect(resolver.resolve(loc({ countryCode: "GR", locality: "Athens" })).profile.id).toBe("athens");
+    expect(resolver.resolve(loc({ countryCode: "GR", locality: "Atene" })).profile.id).toBe("athens");
   });
 
   it("does not select a city theme when the country contradicts", () => {
@@ -77,8 +81,14 @@ describe("normalizeLocationToken", () => {
 });
 
 describe("theme registry", () => {
-  it("exposes exactly the LVP theme ids (v1 + LVP-2 tokyo)", () => {
-    expect([...knownThemeIds].sort()).toEqual(["default", "france", "italy", "paris", "rome", "tokyo"]);
+  it("exposes exactly the LVP theme ids (v1 + LVP-2 tokyo + v1.1 santiago/athens)", () => {
+    expect([...knownThemeIds].sort()).toEqual(["athens", "default", "france", "italy", "paris", "rome", "santiago", "tokyo"]);
+  });
+
+  it("exposes the theme id of every registered profile as its city key", () => {
+    for (const [id, profile] of THEME_BY_ID) {
+      expect(themeIdOfProfile(profile)).toBe(id);
+    }
   });
 
   it("keeps the inheritance chain default -> italy/france -> rome/paris", () => {

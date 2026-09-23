@@ -6,7 +6,7 @@ export type { VisualProfilePatch } from "./merge.ts";
 export { mergeVisualProfile } from "./merge.ts";
 export { stableStringHash } from "./hash.ts";
 export { themeOverrideFromSearch } from "./override.ts";
-export { createVisualProfileResolver, knownThemeIds, normalizeLocationToken, THEME_BY_ID } from "./resolver.ts";
+export { createVisualProfileResolver, knownThemeIds, normalizeLocationToken, themeIdOfProfile, THEME_BY_ID } from "./resolver.ts";
 export type { ThemeMatchedBy, ThemeResolution, VisualProfileResolver } from "./resolver.ts";
 export { defaultProfile } from "./profiles/default.ts";
 export { italyProfile } from "./profiles/italy.ts";
@@ -14,6 +14,8 @@ export { romeProfile } from "./profiles/rome.ts";
 export { franceProfile } from "./profiles/france.ts";
 export { parisProfile } from "./profiles/paris.ts";
 export { tokyoProfile } from "./profiles/tokyo.ts";
+export { santiagoProfile } from "./profiles/santiago.ts";
+export { athensProfile } from "./profiles/athens.ts";
 
 export interface BuildingStyle {
   readonly roof: ThemeColor;

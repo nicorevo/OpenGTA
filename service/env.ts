@@ -22,7 +22,7 @@ export interface VpsServiceConfig {
    * analyzer). The vision key is server-side only, like the Mapillary one
    * (spec 82-83).
    */
-  readonly deepseek?: {
+  readonly gemini?: {
     readonly baseUrl: string;
     readonly apiKey: string;
     readonly model: string;
@@ -30,7 +30,7 @@ export interface VpsServiceConfig {
 }
 
 const PLACEHOLDER = "YOUR_CLIENT_ID_HERE";
-const DEEPSEEK_PLACEHOLDER = "YOUR_DEEPSEEK_API_KEY_HERE";
+const GEMINI_PLACEHOLDER = "YOUR_GEMINI_API_KEY_HERE";
 
 /** Minimal .env parser: KEY=VALUE lines, # comments, optional quotes. */
 export function parseEnvFile(text: string): Record<string, string> {
@@ -72,9 +72,9 @@ export function loadConfig(env: Record<string, string>): VpsServiceConfig {
     throw new Error("MAPILLARY_CLIENT_ID still holds the .env.example placeholder; set your real credential in .env");
   }
 
-  const deepseekKey = (env.DEEPSEEK_API_KEY ?? "").trim();
-  if (deepseekKey.includes(DEEPSEEK_PLACEHOLDER)) {
-    throw new Error("DEEPSEEK_API_KEY still holds the .env.example placeholder; set your real key in .env");
+  const geminiKey = (env.GEMINI_API_KEY ?? "").trim();
+  if (geminiKey.includes(GEMINI_PLACEHOLDER)) {
+    throw new Error("GEMINI_API_KEY still holds the .env.example placeholder; set your real key in .env");
   }
 
   return {
@@ -89,12 +89,12 @@ export function loadConfig(env: Record<string, string>): VpsServiceConfig {
     ttlMs: positiveNumber(env, "VPS_TTL_MS", 604_800_000),
     rateLimitPerMin: positiveNumber(env, "VPS_RATE_LIMIT_PER_MIN", 60),
     port: positiveNumber(env, "VPS_PORT", 8787),
-    deepseek:
-      deepseekKey.length > 0
+    gemini:
+      geminiKey.length > 0
         ? {
-            baseUrl: (env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com").replace(/\/+$/, ""),
-            apiKey: deepseekKey,
-            model: env.DEEPSEEK_MODEL ?? "deepseek-flash",
+            baseUrl: (env.GEMINI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta").replace(/\/+$/, ""),
+            apiKey: geminiKey,
+            model: env.GEMINI_MODEL ?? "gemini-3.6-flash",
           }
         : undefined,
   };

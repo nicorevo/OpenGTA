@@ -29,8 +29,8 @@ import { createOsmSource } from "./overpass-source.ts";
 import { createMapillaryClient } from "./mapillary-client.ts";
 import { loadConfig, parseEnvFile } from "./env.ts";
 import type { VpsServiceConfig } from "./env.ts";
-import { createDeepSeekAnalyzer } from "./vision/deepseek-analyzer.ts";
-import type { VisionStats } from "./vision/deepseek-analyzer.ts";
+import { createGeminiAnalyzer } from "./vision/gemini-analyzer.ts";
+import type { VisionStats } from "./vision/gemini-analyzer.ts";
 
 /**
  * VPS service (VPS-10, spec 106): GET /v1/profile?lat&lon -> a GeneratedVisual
@@ -60,6 +60,8 @@ const CITY_CIRCLES: readonly CityCircle[] = [
   { themeId: "rome", latitude: 41.9028, longitude: 12.4964, radiusKm: 12 },
   { themeId: "paris", latitude: 48.8566, longitude: 2.3522, radiusKm: 12 },
   { themeId: "tokyo", latitude: 35.6762, longitude: 139.6503, radiusKm: 20 },
+  { themeId: "santiago", latitude: -33.4489, longitude: -70.6693, radiusKm: 15 },
+  { themeId: "athens", latitude: 37.9838, longitude: 23.7275, radiusKm: 12 },
 ];
 
 function haversineKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
@@ -318,15 +320,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   }
   const config = loadConfig(env);
   const handlerDeps: { analyzerFactory?: (rateLimiter: RateLimiter) => VisualAnalyzer } = {};
-  if (config.deepseek) {
-    const { baseUrl, apiKey, model } = config.deepseek;
+  if (config.gemini) {
+    const { baseUrl, apiKey, model } = config.gemini;
     // Shared across generations: a street crossing two cell boundaries
     // downloads each thumbnail once, not once per cell (in-memory, spec 17).
-    const imageMemo = new Map<string, string>();
-    handlerDeps.analyzerFactory = (rateLimiter) => createDeepSeekAnalyzer({ apiKey, baseUrl, model, rateLimiter, imageMemo });
+    const imageMemo = new Map<string, import("./vision/gemini-analyzer.ts").DownloadedImage>();
+    handlerDeps.analyzerFactory = (rateLimiter) => createGeminiAnalyzer({ apiKey, baseUrl, model, rateLimiter, imageMemo });
   }
   startServer(config, handlerDeps);
   console.log(
-    `VPS service listening on http://localhost:${config.port} (cache: ${config.cacheDir}, ttl: ${config.ttlMs}ms, vision: ${config.deepseek ? `${config.deepseek.model}` : "off (OSM-only)"})`,
+    `VPS service listening on http://localhost:${config.port} (cache: ${config.cacheDir}, ttl: ${config.ttlMs}ms, vision: ${config.gemini ? `${config.gemini.model}` : "off (OSM-only)"})`,
   );
 }

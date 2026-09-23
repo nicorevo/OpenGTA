@@ -30,6 +30,7 @@ const VPS_BODY = {
 
 interface VpsDebug {
   readonly cellId: string | null;
+  readonly cityKey?: string;
   readonly state: "idle" | "loading" | "applied" | "failed";
   readonly profileId?: string;
   readonly source?: string;
@@ -86,6 +87,7 @@ test("open world switches to the VPS generated profile from the service (spec 10
   await expect.poll(() => themeId(page), { timeout: 20000 }).toBe("vps:v1:e2e-cell:c1");
   const vps = await vpsDebug(page);
   expect(vps).toMatchObject({ state: "applied", source: "generated", profileId: "vps:v1:e2e-cell:c1" });
+  expect(vps?.cityKey).toBe("rome"); // city key from the LVP resolution (sticky v1.1)
   expect(vps?.cellId ?? "").toMatch(/^89/); // h3 res-9 cell index
   expect(profileCalls.length).toBeGreaterThanOrEqual(1);
   expect(profileCalls[0]).toContain("/v1/profile?lat=");

@@ -52,32 +52,32 @@ describe("loadConfig (VPS-10, spec 82-83: credentials live in the service only)"
     expect(() => loadConfig({ MAPILLARY_CLIENT_ID: "MLY|YOUR_CLIENT_ID_HERE" })).toThrow(/placeholder/);
   });
 
-  it("omits the deepseek section when no key is provided (service stays OSM-only)", () => {
-    expect(loadConfig({ ...base }).deepseek).toBeUndefined();
+  it("omits the gemini section when no key is provided (service stays OSM-only)", () => {
+    expect(loadConfig({ ...base }).gemini).toBeUndefined();
   });
 
-  it("applies deepseek defaults when a key is present (VPS-11: vision key is server-side only)", () => {
-    const config = loadConfig({ ...base, DEEPSEEK_API_KEY: "sk-test" });
-    expect(config.deepseek).toEqual({
-      baseUrl: "https://api.deepseek.com",
-      apiKey: "sk-test",
-      model: "deepseek-flash",
+  it("applies gemini defaults when a key is present (VPS-11: vision key is server-side only)", () => {
+    const config = loadConfig({ ...base, GEMINI_API_KEY: "gm-test" });
+    expect(config.gemini).toEqual({
+      baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+      apiKey: "gm-test",
+      model: "gemini-3.6-flash",
     });
   });
 
-  it("honors deepseek overrides and trims trailing slashes", () => {
+  it("honors gemini overrides and trims trailing slashes", () => {
     const config = loadConfig({
       ...base,
-      DEEPSEEK_API_KEY: "sk-test",
-      DEEPSEEK_BASE_URL: "https://example.test/",
-      DEEPSEEK_MODEL: "deepseek-flash-x",
+      GEMINI_API_KEY: "gm-test",
+      GEMINI_BASE_URL: "https://example.test/",
+      GEMINI_MODEL: "gemini-3.6-flash-x",
     });
-    expect(config.deepseek?.baseUrl).toBe("https://example.test");
-    expect(config.deepseek?.model).toBe("deepseek-flash-x");
+    expect(config.gemini?.baseUrl).toBe("https://example.test");
+    expect(config.gemini?.model).toBe("gemini-3.6-flash-x");
   });
 
-  it("refuses a placeholder deepseek key (fail fast, no silent test-mode in production)", () => {
-    expect(() => loadConfig({ ...base, DEEPSEEK_API_KEY: "sk-YOUR_DEEPSEEK_API_KEY_HERE" })).toThrow(/placeholder/);
+  it("refuses a placeholder gemini key (fail fast, no silent test-mode in production)", () => {
+    expect(() => loadConfig({ ...base, GEMINI_API_KEY: "gm-YOUR_GEMINI_API_KEY_HERE" })).toThrow(/placeholder/);
   });
 
   it("rejects non-numeric numeric values", () => {

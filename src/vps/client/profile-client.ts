@@ -18,12 +18,22 @@ export interface VpsProfileClientDeps {
   readonly cacheTtlMs?: number;
   /** How long a failed (or lvp-only) cell stays quiet before retrying. */
   readonly cooldownMs?: number;
+  /**
+   * How long an applied profile keeps rendering after it stopped matching
+   * the current cell, as long as the location stays in the same city theme
+   * (sticky, v1.1): a cold generation takes 20-40 s while a driven cell
+   * boundary is crossed every 20-50 s, so dropping to LVP on every cell
+   * change would keep the player on the fallback almost forever.
+   */
+  readonly stickyMaxMs?: number;
 }
 
 export type VpsClientState = "idle" | "loading" | "applied" | "failed";
 
 export interface VpsClientDiagnostics {
   readonly cellId: string | undefined;
+  /** LVP theme id of the last synced location. */
+  readonly cityKey?: string;
   readonly state: VpsClientState;
   readonly profileId?: string;
   readonly source?: "generated" | "cache" | "lvp";
@@ -32,6 +42,9 @@ export interface VpsClientDiagnostics {
 
 interface AppliedEntry {
   readonly cellId: string;
+  /** City theme the profile was requested for; a late response from another
+   * city is never applied (no cross-city bleed). */
+  readonly cityKey: string;
   readonly profile: VisualProfile;
   readonly source: "generated" | "cache";
   readonly at: number;
@@ -58,9 +71,11 @@ export function createVpsProfileClient(deps: VpsProfileClientDeps) {
   const timeoutMs = deps.timeoutMs ?? 60_000;
   const cacheTtlMs = deps.cacheTtlMs ?? 10 * 60_000;
   const cooldownMs = deps.cooldownMs ?? 60_000;
+  const stickyMaxMs = deps.stickyMaxMs ?? 120_000;
 
   let applied: AppliedEntry | undefined;
   let lastCell: string | undefined;
+  let lastCityKey: string | undefined;
   let lastSource: "generated" | "cache" | "lvp" | undefined;
   let lastError: string | undefined;
   const inflight = new Map<string, Promise<void>>();
@@ -69,7 +84,7 @@ export function createVpsProfileClient(deps: VpsProfileClientDeps) {
   const state = (): VpsClientState =>
     inflight.size > 0 ? "loading" : applied ? "applied" : lastError ? "failed" : "idle";
 
-  async function request(cellId: string, location: { readonly latitude: number; readonly longitude: number }): Promise<void> {
+  async function request(cellId: string, location: { readonly latitude: number; readonly longitude: number }, cityKey: string): Promise<void> {
     try {
       const url = `${deps.baseUrl}/v1/profile?lat=${location.latitude}&lon=${location.longitude}`;
       const response = await deps.fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
@@ -82,8 +97,11 @@ export function createVpsProfileClient(deps: VpsProfileClientDeps) {
         applied = undefined;
         lastSource = "lvp";
         lastError = undefined;
-      } else {
-        applied = { cellId, profile: parsed.profile, source: parsed.source, at: now() };
+      } else if (cityKey === lastCityKey) {
+        // A response is only authoritative while the player stayed in the
+        // city it was requested for: stamping at request time, not resolve
+        // time, is what makes a late cross-city response inert.
+        applied = { cellId, cityKey, profile: parsed.profile, source: parsed.source, at: now() };
         lastSource = parsed.source;
         lastError = undefined;
       }
@@ -97,18 +115,29 @@ export function createVpsProfileClient(deps: VpsProfileClientDeps) {
   return {
     /**
      * Call from the UI tick: ensure a background fetch for the location's
-     * cell and return the applied profile (undefined = keep LVP).
+     * cell and return the profile to render (undefined = keep LVP).
+     *
+     * `cityKey` is the LVP theme id resolved for the location (the same
+     * city identity the service's parent resolver approximates). Sticky
+     * rendering: an applied profile keeps rendering across cell boundaries
+     * inside the same city and is dropped on city change or after
+     * stickyMaxMs, so driving never flickers back to LVP.
      */
-    sync(location: { readonly latitude: number; readonly longitude: number } | undefined): VisualProfile | undefined {
+    sync(location: { readonly latitude: number; readonly longitude: number } | undefined, cityKey: string): VisualProfile | undefined {
       if (location !== undefined) {
+        lastCityKey = cityKey;
         const cellId = latLngToCell(location.latitude, location.longitude, 9);
         lastCell = cellId;
-        if (applied?.cellId !== cellId) applied = undefined;
+        const stale = applied !== undefined && (applied.cityKey !== cityKey || now() - applied.at > stickyMaxMs);
+        if (stale) applied = undefined;
         const attempt = attempts.get(cellId);
+        const fresh = applied !== undefined && applied.cellId === cellId && now() - applied.at <= stickyMaxMs;
         const elapsed = now() - (attempt?.at ?? -Infinity);
-        const retryDelay = attempt?.applied ? cacheTtlMs : cooldownMs;
+        // A fresh applied cell is authoritative for the whole TTL; anything
+        // else (stale, failed, never seen) retries only after the cooldown.
+        const retryDelay = attempt !== undefined && attempt.applied && fresh ? cacheTtlMs : cooldownMs;
         if (!inflight.has(cellId) && elapsed >= retryDelay) {
-          inflight.set(cellId, request(cellId, location).finally(() => {
+          inflight.set(cellId, request(cellId, location, cityKey).finally(() => {
             inflight.delete(cellId);
           }));
         }
@@ -118,6 +147,7 @@ export function createVpsProfileClient(deps: VpsProfileClientDeps) {
     diagnostics(): VpsClientDiagnostics {
       return {
         cellId: lastCell,
+        ...(lastCityKey !== undefined ? { cityKey: lastCityKey } : {}),
         state: state(),
         ...(applied
           ? { profileId: applied.profile.id, source: applied.source }

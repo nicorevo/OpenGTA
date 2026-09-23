@@ -1,6 +1,6 @@
 import type { LocationContext } from "../../app/location-context.ts";
 import type { VisualProfile } from "./types.ts";
-import { defaultProfile, franceProfile, italyProfile, parisProfile, romeProfile, tokyoProfile } from "./profiles/index.ts";
+import { athensProfile, defaultProfile, franceProfile, italyProfile, parisProfile, romeProfile, santiagoProfile, tokyoProfile } from "./profiles/index.ts";
 
 /**
  * Closed, in-repo theme registry. Adding a theme means adding a profile +
@@ -13,9 +13,21 @@ export const THEME_BY_ID: ReadonlyMap<string, VisualProfile> = new Map<string, V
   ["france", franceProfile],
   ["paris", parisProfile],
   ["tokyo", tokyoProfile],
+  ["santiago", santiagoProfile],
+  ["athens", athensProfile],
 ]);
 
 export const knownThemeIds: ReadonlySet<string> = new Set(THEME_BY_ID.keys());
+
+/**
+ * City key of a resolved LVP profile (v1.1): every registered profile is
+ * named after its theme id, which is the same city identity the service's
+ * parent resolver approximates. The VPS client uses it to keep generated
+ * profiles sticky within a city (spec 106).
+ */
+export function themeIdOfProfile(profile: VisualProfile): string {
+  return profile.id;
+}
 
 export type ThemeMatchedBy = "forced" | "locality" | "region" | "country" | "default";
 
@@ -43,6 +55,8 @@ const LOCALITY_RULES: readonly PlaceRule[] = [
   { countryCode: "IT", aliases: ["roma", "rome"], themeId: "rome" },
   { countryCode: "FR", aliases: ["paris", "parigi"], themeId: "paris" },
   { countryCode: "JP", aliases: ["tokyo"], themeId: "tokyo" },
+  { countryCode: "CL", aliases: ["santiago", "santiago de chile"], themeId: "santiago" },
+  { countryCode: "GR", aliases: ["athens", "atene"], themeId: "athens" },
 ] as const;
 
 /** Region-level registry: empty in LVP, ready for future regional themes. */

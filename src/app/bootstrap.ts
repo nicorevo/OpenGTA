@@ -14,7 +14,7 @@ import { createFirstPersonRenderer } from "../render/pixi/first-person-renderer.
 import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapier/adapter.ts";
 import { createGeocodeClient } from "./geocode.ts";
 import { createPlaceTracker, type PlaceTracker } from "./place-status.ts";
-import { createVisualProfileResolver, knownThemeIds, themeOverrideFromSearch } from "../render/theme/index.ts";
+import { createVisualProfileResolver, knownThemeIds, themeIdOfProfile, themeOverrideFromSearch } from "../render/theme/index.ts";
 import { createProfileCompiler, createVpsProfileClient, readVpsServiceUrl, COMPILER_REVISION, defaultCatalog, EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS, vpsFixtureFromSearch } from "../vps/index.ts";
 import type { VisualProfile } from "../render/theme/types.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
@@ -208,8 +208,10 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
         const location = placeTracker?.location();
         const resolution = themeResolver.resolve(location, forcedThemeId);
         // VPS service profile (spec 106): applied when generated/cached,
-        // otherwise the LVP resolution is kept as-is.
-        const serviceProfile = vpsClient?.sync(location);
+        // otherwise the LVP resolution is kept as-is. The city key is the
+        // resolved LVP theme id: it keeps the generated profile sticky
+        // across cell boundaries inside the same city.
+        const serviceProfile = vpsClient?.sync(location, themeIdOfProfile(resolution.profile));
         // The VPS layer (when forced) compiles on top of whatever LVP parent
         // the resolver just produced, so the generated profile keeps the
         // fallback hierarchy: generated cell -> ... -> LVP -> default.

@@ -6,7 +6,7 @@ import { createProfileHandler } from "./server.ts";
 import type { VpsServiceConfig } from "./env.ts";
 import { cellForCoordinates } from "../src/vps/index.ts";
 import type { GeneratedVisualProfile } from "../src/vps/index.ts";
-import { romeProfile, tokyoProfile } from "../src/render/theme/profiles/index.ts";
+import { athensProfile, romeProfile, santiagoProfile, tokyoProfile } from "../src/render/theme/profiles/index.ts";
 
 const CONFIG: VpsServiceConfig = {
   mapillary: { baseUrl: "https://graph.mapillary.com", clientId: "MLY|test|token" },
@@ -182,6 +182,24 @@ describe("createProfileHandler (VPS-10, spec 106: GET /v1/profile, immediate LVP
     const profile = generatedProfile(profileBody(res));
     expect(profile.buildings.facadePalette).toEqual(tokyoProfile.buildings.facadePalette);
     expect(profile.buildings.roofPalette).toEqual(tokyoProfile.buildings.roofPalette);
+  });
+
+  it("resolves the Santiago cell to the santiago LVP parent on total failure (v1.1 circles)", async () => {
+    const { handler } = handlerFor({ overpassStatus: 500, mapillaryStatus: 500 });
+    const res = await handler("/v1/profile", new URLSearchParams({ lat: "-33.4489", lon: "-70.6693" }));
+    expect(res.status).toBe(200);
+    const profile = generatedProfile(profileBody(res));
+    expect(profile.buildings.facadePalette).toEqual(santiagoProfile.buildings.facadePalette);
+    expect(profile.buildings.roofPalette).toEqual(santiagoProfile.buildings.roofPalette);
+  });
+
+  it("resolves the Athens cell to the athens LVP parent on total failure (v1.1 circles)", async () => {
+    const { handler } = handlerFor({ overpassStatus: 500, mapillaryStatus: 500 });
+    const res = await handler("/v1/profile", new URLSearchParams({ lat: "37.9838", lon: "23.7275" }));
+    expect(res.status).toBe(200);
+    const profile = generatedProfile(profileBody(res));
+    expect(profile.buildings.facadePalette).toEqual(athensProfile.buildings.facadePalette);
+    expect(profile.buildings.roofPalette).toEqual(athensProfile.buildings.roofPalette);
   });
 
   it("falls back to the LVP profile at the handler level when the pipeline throws", async () => {
