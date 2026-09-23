@@ -1,265 +1,115 @@
 # OpenGTA Web
 
-OpenGTA Web è un motore e una sandbox geospaziale browser-first che trasforma
-zone urbane reali, descritte principalmente da dati OpenStreetMap, in un mondo
-di gioco **2D top-down** riconoscibile, esplorabile e guidabile, con effetti
-fake-2.5D leggeri.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](./package.json)
+[![Node.js](https://img.shields.io/badge/Node.js-%E2%89%A523.6-brightgreen.svg)](https://nodejs.org/)
+[![Playwright E2E](https://img.shields.io/badge/E2E-Playwright-6C5FC7.svg)](./playwright.config.ts)
 
-## Visione finale
+> Un GTA **top-down nel browser**: prende zone urbane reali (dati
+> OpenStreetMap) e le trasforma in mondi **guidabili in 2D** con effetti
+> fake-2.5D — senza installazioni.
 
-Due modalità, un solo core:
+![OpenGTA Web in modalità offline: Lecce centro, guida top-down su dati reali OpenStreetMap](docs/images/opengta-lecce-offline.png)
 
-1. **Preprocessed World Mode** — zone già elaborate/ottimizzate e distribuite
-   come pacchetti statici, adatte anche a client meno potenti.
-2. **Open World Runtime Mode** — coordinate arbitrarie, acquisizione e
-   compilazione progressiva nel browser, con AI visiva opzionale
-   preferibilmente client-side.
+**TypeScript · Vite · PixiJS/WebGL · Rapier 2D · dati OpenStreetMap (ODbL)**
 
-## Stato del repository
+---
 
-Fase 0 (documentazione e contratti) chiusa:
+## Due modalità, un solo core
 
-`docs/results/PHASE-0-COMPLETE.md`
+- **Open World Runtime** *(default)* — parti da qualsiasi lat/lon: il mondo
+  viene acquisito e compilato **in streaming nel browser** da vettoriali reali
+  (MVT pinnati a un dataset versionato), con AI visiva opzionale.
+- **Preprocessed World** — zone già ottimizzate in **pacchetti statici**, per
+  client meno potenti o per giocare offline.
 
-Slice V0 eseguibile (Lecce centro, guida top-down, collisioni 2D):
+---
 
-`docs/results/V0-RESULT.md`
+## Quick start
 
-Ripristino online e streaming Open World (ONLINE-01..16, checkpoint C1..C6):
-
-`docs/results/ONLINE-RUNTIME-RESULT.md`
-
-**Baseline stabile per test utente:** commit `0433da1` sul ramo `opcl3D`
-(2026-09-21, geocoding del luogo nel form di avvio + luogo corrente nella
-barra di stato; auto = taxi GTA-style con proporzioni calibrate in G2D-01
-`df5be7b`; su base velocità -20% + muri acqua `4e687b9`, nomi via leggibili +
-dedup `15c5f68`, zoom intermedio `e2fc332`, look GTA `bc635c6` + label acque
-`475dbae`, fisica veicolo `28fe0ee`). Verificata con 491 test unitari (59
-file), 38 E2E non-flaky (+ 1 canary live esclusa dalla suite), typecheck e
-build. Vedi
-[Prova della baseline](#prova-della-baseline).
-
-Tranche First-Person Renderer (vista prospettiva OutRun-style, MVP; toggle
-`V`; strade in prospettiva vera + edifici box 3D; guard e2e
-`first-person-view`):
-
-`docs/specs/first-person-renderer-v0.md` · `tasks/first-person/`
-
-Tranche Review Remediation (RV-01..12, checkpoint R-A/R-B/R-C; robustezza e
-performance del runtime, dettagli in `tasks/plan.md`):
-
-`tasks/review/` · `tasks/executions/2026-09-17-RV-*.md`
-
-Tranche City Drive Stable (solidità, zoom a livelli discreti con LOD 2D,
-cache persistente, gate su Lecce):
-
-`docs/results/CITY-DRIVE-STABLE-RESULT.md` · `docs/specs/city-drive-stable.md` ·
-`docs/adr/ADR-010-discrete-zoom-lod.md` · `docs/architecture/zoom-and-lod.md`
-
-Tranche Provider-Neutral World Streaming (migrazione Overpass → Vector
-Tiles con Overpass come reference/fallback, ADR-011; decisione parity
-GO VISUAL ONLY, flag `provider=openfreemap-mvt` sperimentale):
-
-`docs/results/PROVIDER-NEUTRAL-WORLD-STREAMING-RESULT.md` ·
-`docs/specs/provider-neutral-world-streaming.md` ·
-`docs/analysis/MVT-LECCE-PARITY.md` · `docs/OpenGTA-DATA-SOURCE-MIGRATION.md` ·
-`tasks/plan.md` · `tasks/data/README.md`
-
-Tranche Location Visual Profiles (identità visiva locale automatica:
-reverse geocoding strutturato → resolver → profili default/italy/rome/
-france/paris applicati al renderer come solo-presentazione; override di
-sviluppo `?theme=...`; ADR-014):
-
-`docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md` ·
-`docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md` ·
-`docs/adr/ADR-014-location-visual-profiles.md`
-
-Avvio di sessione per agenti:
-
-`docs/handoff/CURRENT.md`
-
-Specifica corrente indicizzata:
-
-`docs/SPEC.md`
-
-I file `docs/handoff/CODEX-START-HERE.md`, `docs/handoff/CODEX-EXECUTION-QUEUE.md`
-e `docs/execution/` sono archivio della coda V0: non rieseguirli come backlog
-attivo.
-
-## Decisioni
-
-Vista sintetica:
-
-`docs/DECISIONS.md`
-
-## Fonte di verità
-
-Ordine:
-
-```text
-AGENTS.md
-→ relevant .opencode instructions
-→ docs/SPEC.md
-→ docs/intent/open-gta-web.md
-→ docs/architecture/
-→ docs/adr/
-→ docs/specs/
-→ docs/handoff/CURRENT.md
-→ tasks/
-→ implementation
-```
-
-La vecchia bozza tecnica è conservata come ipotesi storica:
-
-`docs/idea/OpenGTA Web City Scale Idea.md`
-
-## V0 già definito
-
-V0 usa:
-
-- fixture reale fissa: Lecce centro, ~600 × 600 m;
-- WGS84 + piano metrico locale validato;
-- TypeScript strict;
-- Vite 8-class tooling;
-- Vitest 4-class tests;
-- PixiJS v8 / WebGL;
-- Rapier 2D;
-- un veicolo arcade;
-- collisioni 2D;
-- fake-2.5D;
-- nessuna AI, streaming o multiplayer.
-
-Le tecnologie sono accettate **per il prototipo** e rimangono sostituibili dopo
-evidenza misurata.
-
-## Documentazione chiave
-
-### Architecture
-
-- `docs/architecture/README.md`
-- `docs/architecture/product-architecture-principles.md`
-- `docs/architecture/dual-world-pipeline.md`
-- `docs/architecture/2d-rendering-model.md`
-- `docs/architecture/world-model.md`
-- `docs/architecture/coordinate-system.md`
-- `docs/architecture/world-compiler.md`
-- `docs/architecture/data-acquisition-strategy.md`
-
-### Specs
-
-- `docs/specs/canonical-world-v0-contract.md`
-- `docs/specs/osm-normalization-v0.md`
-- `docs/specs/road-generation-v0.md`
-- `docs/specs/building-fake-2_5d-v0.md`
-- `docs/specs/compiled-chunk-v0-contract.md`
-- `docs/specs/vehicle-controller-v0.md`
-- `docs/specs/debug-overlay-v0.md`
-
-### Testing
-
-- `docs/testing/v0-test-strategy.md`
-- `docs/testing/benchmark-protocol-v0.md`
-
-### Handoff
-
-- `docs/handoff/CURRENT.md`
-- `docs/results/PHASE-0-COMPLETE.md`
-- `docs/handoff/PRE-CODE-COMPLETE.md` (storico)
-- `docs/handoff/CODEX-START-HERE.md` (storico)
-- `docs/handoff/CODEX-EXECUTION-QUEUE.md` (storico)
-
-### Tasks
-
-- `tasks/plan.md`
-- `tasks/todo.md`
-- `tasks/executions/`
-
-## Comandi di sviluppo
-
-Installazione e verifiche:
+**Prerequisito:** Node.js ≥ 23.6.
 
 ```bash
+git clone <repo>
+cd OpenGTA
 npm install
-npm run dev
-npm run typecheck
-npm run test:run
-npm run test:e2e
-npm run build
 ```
 
-### Modalità live (online di default)
+### 1. Gioca subito (base, senza visione)
 
-La modalità live è attiva di default al load e usa la sorgente vettoriale
-OpenFreeMap (MVT) pinnata a un dataset versionato: l'endpoint è una costante
-di compile-time (mai input utente), il consenso è implicito e l'unico dato
-inviato al provider è l'origine della mappa. L'opt-out dalla rete è la
-modalità offline.
-
-Provider Overpass (OpenStreetMap, opt-in via URL) e endpoint autorizzato in
-produzione:
-
-```text
-http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17
+```bash
+npm run dev        # → http://127.0.0.1:5173/
 ```
 
-L'endpoint Overpass predefinito è `https://overpass-api.de/api/interpreter`.
-Per un ambiente di produzione usare un endpoint autorizzato o un'istanza
-Overpass gestita; non incorporare chiavi o credenziali nel client.
+Al load parte la modalità **online** su origine predefinita. Per giocare
+offline (fixture Lecce, nessuna rete) usa `?mode=offline` o il pannello
+**OpenGTA / Area di gioco**.
 
-### Prova della baseline
+### 2. Configura la visione (opzionale)
 
-Avvio: `npm install && npm run dev`, poi aprire `http://127.0.0.1:5173/`.
-Il default è la **modalità online** (sorgente MVT OpenFreeMap pinnata): l'app
-avvia subito una sessione live con l'origine predefinita; guida con W,
-retromarcia con S, F3 per la diagnostica, L per le etichette. Su dispositivi
-con touch compaiono pulsanti on-screen ingranditi (accelerazione, retromarcia,
-sterza sinistra/destra) che guidano il veicolo alla pari della tastiera; la
-barra zoom in alto a destra è anch'essa ingrandita e aggiunge il tasto
-"street" per mostrare i nomi delle vie (stesso effetto del tasto L).
+La generazione dei **profili visivi** (Mapillary + Gemini) gira in un servizio
+lato server che legge le chiavi da un file `.env` (mai da commit, già in
+`.gitignore`). Copia il template e compila i valori:
 
-Per giocare offline (fixture Lecce, nessuna rete) selezionare "Offline" dal
-pannello **"OpenGTA / Area di gioco"** (in alto a sinistra), oppure usare
-`http://127.0.0.1:5173/?mode=offline`. Il pannello consente di impostare
-l'origine (lat/lon), di scegliere la modalità e di riavviare la sessione con
-**Avvia**; provider e endpoint sono fissi alla sorgente MVT (non
-configurabili dall'interfaccia).
-
-Provider Overpass (OpenStreetMap) via URL esplicito:
-
-```text
-http://127.0.0.1:5173/?mode=open-world-live&provider=osm&lat=40.35&lon=18.17
+```bash
+cp .env.example .env
 ```
 
-Cosa verificare durante la prova:
+```dotenv
+# obbligatorio — credential Mapillary (pannello → developers)
+MAPILLARY_CLIENT_ID=MLY|...
+# opzionale — senza chiave il servizio resta OSM-only (no vision)
+GEMINI_API_KEY=
+```
 
-- stato sotto la scena: `Area pronta`, `Area parziale` (neighbor falliti),
-  `Nessuna strada percorribile`, `Caricamento non riuscito` — con `Riprova`
-  senza ricaricare la pagina;
-- l'auto parte appena la prima area è applicata, senza attendere i neighbor;
-- guidando si attraversano i confini dei chunk: i dati arrivano e i settori
-  lontani vengono rilasciati;
-- se il settore davanti non è ancora disponibile l'auto si ferma con
-  "Settore davanti non disponibile" e riparte quando i dati arrivano;
-- `Interrompi` ferma la sessione;
-- l'attribuzione OpenStreetMap resta sempre visibile.
+### 3. Lancia tutto in un colpo (VPS + client)
 
-Limiti noti della baseline (dettagli in `docs/results/ONLINE-RUNTIME-RESULT.md`):
+Lo script `scripts/dev-vps.sh` avvia **servizio VPS** (porta `8787`) e
+**client web** (porta `5173`) insieme e stampa l'URL pronto:
 
-- con il provider reale la finestra completa arriva in ~14 s (spaziatura
-  minima Overpass di 2 s per cella); il primo chunk giocabile è pronto in
-  ~100 ms;
-- la copertura dipende dal provider pubblico: un'area senza strade o un
-  servizio occupato producono `empty`/`error` espliciti, non un mondo finto;
-- le misure di prestazione sono headless con GPU software: non promettono
-  FPS dell'hardware dell'utente;
-- lo zoom `+/−` (pulsanti in alto a destra o tasti `+`/`-`) ha 6 livelli,
-  dall'overview (×0.7) alla vista "auto grande" tipo GTA 1 (×24), con livello
-  intermedio ×2.25 tra overview e guida e default sul preset di guida (×6);
-  LOD near/medium/far; da vicino compaiono i marciapiedi e la striscia
-  centrale bianca sulle strade; il dettaglio si riduce allontanandosi e la
-  domanda di streaming segue la camera;
-- un reload della pagina riusa i chunk compilati dalla cache persistente
-  (IndexedDB) senza nuove richieste al provider;
-- la porta E2E è configurabile con `OPENGTA_E2E_PORT` (default 5180);
-  lo smoke degli asset costruiti con `OPENGTA_E2E_PREVIEW=1`; la canary live
-  reale si esegue con `npm run test:canary` (mai nella CI).
+```bash
+bash scripts/dev-vps.sh
+# → http://localhost:5173/?vpsService=http://localhost:8787
+# Stop: Ctrl+C (ferma entrambi i processi)
+```
+
+La prima visita a una cella mostra il profilo locale immediato; dopo ~20–40 s
+il client passa al profilo generato da Gemini (le celle già generate sono in
+cache).
+
+---
+
+## Comandi
+
+| Comando | Descrizione |
+| :--- | :--- |
+| `npm run dev` | client Vite in dev → `http://127.0.0.1:5173` |
+| `npm run service` | solo il servizio VPS (porta `8787`, legge `.env`) |
+| `npm run typecheck` | verifica TypeScript |
+| `npm run test:run` | test unitari (Vitest) |
+| `npm run test:e2e` | test end-to-end (Playwright) |
+| `npm run build` | build di produzione |
+
+## Controlli
+
+- **W / S** accelera / retromarcia · **← →** sterza
+- **V** alterna vista top-down / first-person
+- **+ / −** zoom (6 livelli) · **L** etichette delle vie
+- **F3** diagnostica
+- **Touch** — pulsanti on-screen (accelera, retromarcia, sterza)
+
+---
+
+## Documentazione
+
+- **Specifiche correnti** — [`docs/SPEC.md`](docs/SPEC.md)
+- **Architettura** — [`docs/architecture/`](docs/architecture/)
+- **Decisioni (ADR)** — [`docs/adr/`](docs/adr/) · sintesi in [`docs/DECISIONS.md`](docs/DECISIONS.md)
+- **Stato & risultati** — [`docs/results/`](docs/results/)
+- **Piano & backlog operativo** — [`tasks/plan.md`](tasks/plan.md) · [`tasks/todo.md`](tasks/todo.md)
+- **Avvio di sessione per agenti** — [`docs/handoff/CURRENT.md`](docs/handoff/CURRENT.md)
+
+## Licenza
+
+[MIT](./LICENSE) — © 2026 nicorevo. Dati mappa © OpenStreetMap contributors
+(ODbL).

@@ -1,0 +1,17 @@
+# gitleaks configuration for OpenGTA
+#
+# Allowlists known false positives so that a full-history scan
+#   gitleaks detect --source . --log-opts="--all" --config .gitleaks.toml
+# returns zero findings on this repo. Add new exclusions here (with a reason)
+# rather than running with ad-hoc flags.
+
+title = "gitleaks OpenGTA"
+
+[allowlist]
+description = "Known false positives in this repository"
+# manifest.json stores SHA-256 integrity checksums of documentation files.
+# gitleaks' generic-api-key rule flags 64-hex-char strings; these are file
+# hashes, not credentials.
+paths = [
+  '''(^|/)manifest\.json$''',
+]
