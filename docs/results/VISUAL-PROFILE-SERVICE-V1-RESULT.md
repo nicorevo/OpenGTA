@@ -75,6 +75,11 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   fallback verificate; finding copertura patchy a granularità di cella;
   `VisionStats.errors` in `service/vision/`. Dettaglio nella sezione
   VPS-12 qui sotto.
+- **VPS-GATE-V1** — gate formale VPS v1 (spec §109): 7 punti su 3
+  generazioni live (Roma/Parigi/Tokyo) + QA visuale §112 in-browser (e2e
+  dedicato) + campionatura statistica della copertura Mapillary (§110:
+  68,7% delle celle urbane con evidenza, NO-GO non innescato). Verdetto:
+  **GO**. Dettaglio nella sezione VPS-GATE-V1 qui sotto.
 
 ## VPS-04 — celle spaziali + cache
 
@@ -558,6 +563,85 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   test esistenti (nessun nuovo test: il contatore entra nei casi già
   coperti). Unit 725/725, typecheck, build ok.
 
+## VPS-GATE-V1 — Gate VPS v1 (spec §109) + QA visuale §112 (2026-09-22)
+
+Gate formale del servizio: i 7 punti del §109 + la QA visuale in-browser
+(§112) + la campionatura statistica di copertura chiesta da VPS-12 per il
+punto §110 "imagery insufficiente".
+
+**Run di gate**: istanza dedicata del servizio (cache fresh), 3
+generazioni live su celle urbane di 3 città:
+
+| Città | Cella | Durata | Vision | OSM | Costo | Identità |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| Roma (Colosseo) | `h3:891e8052a6bffff` | 29,2 s | 9/8, 1 fb | failed (degrado §80) | $0,00314 | historic-dense, intonaco, terracotta |
+| Parigi | `h3:891fb466257ffff` | 27,8 s | 8/8 | ok | $0,00300 | historic-dense, pietra, tetti zincati |
+| Tokyo (Shinjuku) | `h3:892f5a363bbffff` | 36,5 s | 8/5, 3 fb | ok | $0,00292 | suburban, cemento |
+
+**I 7 punti del §109**:
+
+1. **Città distinte — PASS.** Tra i profili generati, pairwise, differiscono
+   45-48 dei 51 campi numerici (distanza euclidea 0,51 roma–paris,
+   0,51 paris–tokyo, 1,01 roma–tokyo); identità semanticamente plausibili
+   e distinte a colpo d'occhio (terracotta/intonaco caldo /
+   zincato/crema / cemento scuro).
+2. **Utile rispetto al tema di paese — PASS (conservativo).** Rispetto al
+   parent LVP della stessa città ogni profilo differisce solo per 6-8
+   campi, tutti evidence-driven: l'asse `vegetation` (sparse conf
+   0,48-0,91 per roma/paris vs **temperate-urban conf 1,0** per tokyo)
+   sposta la famiglia dei verdi `ground.land.*`; i marciapiedi di paris
+   (asfalto 0,72). Gli assi deboli (roma sidewalk 0,05) restano pinnati
+   sul parent: VPS enhances, LVP guarantees.
+3. **Determinismo — PASS (con caveat documentato).** Due rigenerazioni
+   fresh della stessa cella (cache azzerata tra le due): 50/53 campi
+   identici, 3 diversi (`roads.sidewalk.curb/fill`,
+   `generation.confidence`). Causa radice: l'API Mapillary restituisce un
+   *set di campioni diverso* a ogni chiamata per la stessa cella (10 vs 6
+   immagini) → i dominanti possono flippare (cobblestone ↔ asfalto) ma
+   l'identità resta stabile (entrambe historic-dense). In produzione è
+   mitigato dalla cache TTL 7 giorni (seconda richiesta: 1,5 ms, zero
+   scritture). Follow-up v2: campionamento stabile lato provider.
+4. **Costo — PASS.** $0,0022-0,0034/cella con vision (5 generazioni di
+   gate = $0,01467); $0 senza imagery; $0 con vision down.
+5. **Cache — PASS.** Hit 1,5 ms vs 29-36 s di generazione, zero scritture,
+   corpo identico (VPS-11/VPS-12, ribadito in gate).
+6. **Provider failure — PASS.** Matrice VPS-12 (OSM down / imagery assente
+   / vision down / tutto assente → sempre 200) + la run di gate stessa con
+   `osm: failed` sulla cella roma → 200 con degrado corretto.
+7. **QA visuale §112 — PASS.** E2E dedicato
+   `tests/e2e/vps-visual-profiles.spec.ts`: stessa scena offline, stessa
+   camera e posa. Il rendering è deterministico in questo ambiente (due
+   load dello stesso URL: 0,00% di differenza pixel), quindi le soglie
+   cross-load sono significative:
+   - `?theme=rome` (senza VPS, la scena fallback) → id `rome`;
+   - `?theme=rome&vps=rome` → id `vps:v1:vps-fixture-rome…` e frame
+     visibilmente diverso (**9,1%** dei pixel campionati, soglia > 4%): la
+     roof palette del catalogo (6/8 colori) + le identity families guidano
+     il rendering;
+   - `?theme=rome&vps=paris` → id `vps:v1:vps-fixture-paris…` e differenza
+     ancora maggiore (**12,9%**, soglia > 7%): il layer VPS cross-city
+     distingue chiaramente la scena.
+
+   I tre frame sono in `test-results/` (screenshot con la % misurata nel
+   nome).
+
+**§110 "imagery insufficiente" — campionatura statistica (chiude il punto
+aperto di VPS-12):** griglia h3 res 9 a 8 anelli dal Colosseo (217 celle,
+raggio ~5 km, Roma urbana), presenza di ≥1 immagine per cella via API
+Mapillary: **149/217 = 68,7% di copertura**, in calo verso gli anelli
+esterni (1/1 al centro, 32/48 nell'anello a ~5 km). La condizione NO-GO
+"imagery insufficiente in gran parte delle aree" **non è innescata**: la
+maggioranza delle celle urbane ha evidenza diretta e nelle celle senza
+dati il servizio restituisce un profilo strutturalmente identico al
+parent (verificato cella-mare in VPS-12) — il degrado è by design e non
+peggiora mai l'esperienza rispetto al fallback.
+
+**Verdetto del gate: GO** — i 7 punti passano (punto 3 con caveat
+documentato), il punto §110 è misurato e non innescato. Punti aperti per
+v2 (non bloccanti): campionamento stabile delle immagini Mapillary per
+cella; ri-verifica delle classi di detection quando esce la doc ufficiale
+della nuova API.
+
 ## Test
 
 - VPS-00..03: **19** (evidence 6, catalog 4, compiler 9): validità fixture,
@@ -653,6 +737,11 @@ Branch `opcl-location`. Spec: `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`
   preesistente sotto carico della suite piena (test di timing ~5,7 s):
   nessun riferimento a vps/h3, 3/3 verde in isolamento, ricorre solo a suite
   completa (stesso pattern del flake 549/550 già documentato).
+- Gate completa (dopo VPS-GATE-V1, 2026-09-22): `typecheck` pulito; unit
+  **725/725** (nessun codice in `service/` o `src/` cambiato dopo VPS-12);
+  `build` ok; e2e **43 passed + 1 skipped** — aggiunto
+  `tests/e2e/vps-visual-profiles.spec.ts` (QA visuale gate §112), resto
+  invariato (il dev hook `?vps=` è già nel bundle dalla slice offline).
 
 ## Gate della slice (spec §140)
 
@@ -701,11 +790,13 @@ documentazione ufficiale (spec §31-32: mai assumere classi); l'egress
 DeepSeek non raggiunge la CDN Mapillary → thumbnail in base64 scaricate
 dal servizio (guardie 8 MiB/content-type/30 s, memo in-memory); il
 thinking mode è disabilitato (bruciava il budget di completion).
-Prossima tranche (roadmap spec): **Gate VPS v1 (spec §109)** —
-validazione formale dei 7 punti + QA visuale §112 in-browser; resta
-aperto il re-verify delle classi detection Mapillary quando esce la doc
-ufficiale della nuova API. **Attenzione al gate**: la copertura Mapillary
-è patchy a granularità di cella (VPS-12) — il punto §110 "imagery
-insufficiente in gran parte delle aree" va misurato con una campionatura
-statistica prima di dichiarare GO. Se un gate fallisse: degrado a
+Il **Gate VPS v1 (spec §109)** è stato eseguito il 2026-09-22:
+**verdetto GO** — 7 punti passati su 3 generazioni live (Roma/Parigi/
+Tokyo), QA visuale §112 in-browser via e2e dedicato e campionatura
+statistica §110 (68,7% delle celle urbane con evidenza; NO-GO non
+innescato, degrado by design). Dettaglio nella sezione VPS-GATE-V1 sopra.
+Punti aperti per v2 (non bloccanti): campionamento stabile delle immagini
+Mapillary per cella (l'API restituisce set diversi a ogni chiamata, VPS-12
+/ gate punto 3); ri-verifica delle classi di detection quando esce la doc
+ufficiale della nuova API. Se un gate fosse fallito: degrado a
 recommender paese/città (§110-111), mai blocco del client.

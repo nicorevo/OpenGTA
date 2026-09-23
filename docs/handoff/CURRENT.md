@@ -38,7 +38,7 @@ Non rieseguirli come backlog corrente.
  | Origine per nome del luogo (geocoding form) | Completata (commit `9ea0062`) — PN-01..04: campo "Cerca un luogo" tra Modalità e coordinate (Nominatim pinnato, debounce 400 ms, ≤ 5 candidati, 1 in-flight con abort, cache LRU 32, validazione per-candidato, selezione click/tastiera → valorizza lat/lon editabili, offline disabilitato); spec `docs/specs/place-name-origin-v1.md`, risultato in `docs/results/PLACE-NAME-ORIGIN-RESULT.md` |
  | Luogo corrente nella barra di stato | Completata (commit `0433da1`) — ZP-01..04: nello stato `ready` la scritta "Area pronta" diventa il luogo corrente via reverse geocoding Nominatim al cambio di zona 1000 m (intervallo min 5 s, 1 in-flight, a riposo zero richieste; errore/`{error}` → "Area pronta"; offline invariato); spec `docs/specs/current-place-name-v1.md`, risultato in `docs/results/CURRENT-PLACE-NAME-RESULT.md` |
  | Location Visual Profiles (LVP) | Completato (base `cd59f65`, esteso con LVP-08) — spec `docs/specs/OPEN-GTA-LOCATION-VISUAL-PROFILES-V1.md`, ADR-014, result `docs/results/LOCATION-VISUAL-PROFILES-V1-RESULT.md`; LVP-00..08 fatti, gate visuale utente GO (`docs/results/LVP-VALIDATION-RESULT.md`), 3 famiglie visuali rome/paris/tokyo validate |
-  | Visual Profile Service (VPS) | Slice offline VPS-00..09 (2026-09-21, gate §140 GO) + **VPS-10 runtime API** + **VPS-11 modello vision** + **VPS-12 coverage QA** (2026-09-22) completati — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`; servizio live `GET /v1/profile` (Overpass + Mapillary API correnti + DeepSeek `deepseek-flash` con stats §107, cache file TTL, fallback LVP immediato) con QA live su 5 tipi di area + matrice fallback (mai 5xx; $0.0014-0.0045/cella); **finding: copertura Mapillary patchy a granularità di cella** — prossima: Gate VPS v1 (spec §109) |
+  | Visual Profile Service (VPS) | Slice offline VPS-00..09 (2026-09-21, gate §140 GO) + **VPS-10 runtime API** + **VPS-11 modello vision** + **VPS-12 coverage QA** (2026-09-22) + **Gate VPS v1 GO** (2026-09-22) completati — spec `docs/specs/OPEN-GTA-VISUAL-PROFILE-SERVICE-V1.md`, ADR-015, result doc `docs/results/VISUAL-PROFILE-SERVICE-V1-RESULT.md`; servizio live `GET /v1/profile` (Overpass + Mapillary API correnti + DeepSeek `deepseek-flash` con stats §107, cache file TTL, fallback LVP immediato); gate formale §109: 7/7 punti (3 città live, $0.0022-0.0034/cella, cache hit 1,5 ms, mai 5xx, caveat determinismo documentato) + QA visuale §112 in e2e + campionatura §110 (68,7% celle urbane coperte, NO-GO non innescato); resta aperto per v2: campionamento stabile Mapillary + classi detection |
  | Tile Budgets Live (città dense) | Completata (baseline `cd59f65`, committed) — TB-01..02: budget decode 30k feature/100k punti + fetch/decode coerenti (16 MiB), fixture tile Parigi z14; risultato in `docs/results/DENSE-TILE-BUDGETS-RESULT.md` |
  | 3 Packager, AI, multiplayer | Non aperte |
 
@@ -346,10 +346,21 @@ anche con suite verde.
               misurati: {8 req/0 analyzed/8 errors/$0} col model down);
               gate: unit 725/725, build ok) —
               [VISUAL-PROFILE-SERVICE-V1-RESULT](../results/VISUAL-PROFILE-SERVICE-V1-RESULT.md).
-              Prossima: **Gate VPS v1 (spec §109)** — 7 punti + QA visuale
-              §112 in-browser; attenzione al punto "imagery insufficiente"
-              (copertura patchy, VPS-12). Resta aperto: ri-verifica classi
-              detection Mapillary con la doc ufficiale. VPS enhances, LVP
+              **Gate VPS v1 (spec §109)** (2026-09-22): **verdetto GO** —
+              7/7 punti su 3 generazioni live (Roma/Parigi/Tokyo:
+              45-48/51 campi distinti, 6-8 campi evidence-driven vs
+              country theme, determinismo 50/53 con caveat documentato,
+              $0,0022-0,0034/cella, cache hit 1,5 ms, mai 5xx) + QA
+              visuale §112 in e2e dedicato (rendering visibilmente guidato
+              dal layer VPS: 9,1%/12,9% vs soglie 4%/7%, rumore 0,00%) +
+              campionatura §110 (griglia h3 217 celle raggio ~5 km:
+              **68,7%** copertura, in calo verso l'anello esterno; NO-GO
+              "imagery insufficiente" non innescato: celle senza dati →
+              profilo identico al parent, by design). Caveat: l'API
+              Mapillary restituisce set di campioni diversi a ogni
+              chiamata (mitigato dalla cache TTL 7 gg; v2: campionamento
+              stabile). Resta aperto: ri-verifica classi detection
+              Mapillary con la doc ufficiale. VPS enhances, LVP
               guarantees.
      - Resto aperto (fuori scope RV, da dettagliare): DATA-15..18 (PMTiles PoC,
     custom tile schema ADR, riuso cache compilata, curated region package).
@@ -363,8 +374,10 @@ anche con suite verde.
         `879dde1` (feat VPS-08 evidence aggregator), `cb8b29d`
         (feat VPS-09 end-to-end offline Rome/Paris/Tokyo), `8f26607`
         (feat VPS-10 runtime API `GET /v1/profile`), `1a64b08`
-        (feat VPS-11 DeepSeek vision analyzer) + commit VPS-12
-        (coverage QA + `VisionStats.errors`, questo documento).
+        (feat VPS-11 DeepSeek vision analyzer), `4575347`
+        (feat VPS-12 `VisionStats.errors`), `c003d43` (docs VPS-12
+        coverage QA) + commit VPS-GATE-V1 (e2e QA visuale §112 + docs gate
+        GO, questo documento).
     - Baseline stabile per test utente: commit `0433da1` (geocoding del form
       di avvio + luogo corrente nella barra di stato; su base `9ea0062`
       origine per nome del luogo, `15c5f68` nomi via leggibili + dedup,
