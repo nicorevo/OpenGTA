@@ -19,6 +19,9 @@ export type {
   StreetFurnitureFamilyDefinition,
 } from "./catalog/types.ts";
 export { createProfileCompiler, COMPILER_REVISION, MIN_GENERATED_CONFIDENCE } from "./compiler/compiler.ts";
+export { createVpsProfileClient, type VpsProfileClientDeps, type VpsClientDiagnostics, type VpsClientState } from "./client/profile-client.ts";
+export { readVpsServiceUrl } from "./client/service-url.ts";
+export { isVisualProfile, parseVpsProfileResponse, type ParsedVpsProfileResponse } from "./client/validate.ts";
 export { vpsFixtureFromSearch } from "./compiler/override.ts";
 export type { ProfileCompiler, ProfileCompilationContext, GeneratedVisualProfile } from "./compiler/types.ts";
 export { EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS } from "./evidence/fixtures/index.ts";

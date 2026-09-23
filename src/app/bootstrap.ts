@@ -15,7 +15,7 @@ import { createPhysicsAdapter, type PhysicsVehicleState } from "../physics/rapie
 import { createGeocodeClient } from "./geocode.ts";
 import { createPlaceTracker, type PlaceTracker } from "./place-status.ts";
 import { createVisualProfileResolver, knownThemeIds, themeOverrideFromSearch } from "../render/theme/index.ts";
-import { createProfileCompiler, COMPILER_REVISION, defaultCatalog, EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS, vpsFixtureFromSearch } from "../vps/index.ts";
+import { createProfileCompiler, createVpsProfileClient, readVpsServiceUrl, COMPILER_REVISION, defaultCatalog, EVIDENCE_FIXTURES, EVIDENCE_FIXTURE_IDS, vpsFixtureFromSearch } from "../vps/index.ts";
 import type { VisualProfile } from "../render/theme/types.ts";
 import { createRuntimeSession, type RuntimeSession } from "./runtime-session.ts";
 import { switchView, type ViewLoop } from "./view-toggle.ts";
@@ -81,6 +81,11 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
   let initialError: string | undefined;
   try { config = readRuntimeConfig(params, policy); }
   catch (error) { config = readRuntimeConfig(new URLSearchParams()); initialError = error instanceof Error ? error.message : "Configurazione non valida"; }
+  // Optional VPS service (spec 106): off unless ?vpsService= is present; a
+  // malformed URL is a config error like any other, never a silent default.
+  let vpsServiceUrl: string | undefined;
+  try { vpsServiceUrl = readVpsServiceUrl(params, { developmentOrigin: import.meta.env.DEV ? window.location.origin : undefined }); }
+  catch (error) { if (initialError === undefined) initialError = error instanceof Error ? error.message : "Configurazione non valida"; }
   // Source and warm cache outlive retries, so restarting cannot bypass cooldown.
   const sources = new Map<string, ReturnType<typeof createGeoDataSource>>();
   const cache = createChunkCache<CompiledChunkV0>(9);
@@ -153,6 +158,14 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       const openWorld = config.mode !== "offline";
       const sourceIdentity = liveConfig ? liveConfig.provider + ":" + liveConfig.endpoint : "fixture:lecce-v0";
       const mvt = liveConfig?.provider === "openfreemap-mvt";
+      // VPS generated-profile client (spec 106): background fetch per h3 cell
+      // with LVP fallback; the dev-only ?vps= fixture hook takes precedence
+      // (when set, the service client stays off: one source at a time).
+      const vpsClient = openWorld && forcedVpsFixtureId === undefined && vpsServiceUrl !== undefined
+        // fetch needs its window receiver: a bare reference is an illegal
+        // invocation, so wrap it instead of destructuring it into deps.
+        ? createVpsProfileClient({ fetch: (url, init) => window.fetch(url, init), baseUrl: vpsServiceUrl })
+        : undefined;
       if (!mvt && !sources.has(sourceIdentity)) sources.set(sourceIdentity, liveConfig ? liveConfig.provider === "osm-overpass" ? createOverpassGeoDataSource(liveConfig.endpoint, undefined, { fallbackEndpoints: import.meta.env.DEV ? ["https://maps.mail.ru/osm/tools/overpass/api/interpreter"] : undefined }) : createHttpGeoDataSource(liveConfig.endpoint) : createGeoDataSource(async () => rawFixture));
       const source = mvt ? undefined : sources.get(sourceIdentity)!;
       let offlineVehicle: PhysicsVehicleState | undefined;
@@ -192,15 +205,19 @@ export async function bootstrap(root: HTMLElement): Promise<void> {
       // Same profile id is a renderer no-op, so this is safe to run on every
       // status tick and never refetches data.
       const syncVisualTheme = () => {
-        const resolution = themeResolver.resolve(placeTracker?.location(), forcedThemeId);
+        const location = placeTracker?.location();
+        const resolution = themeResolver.resolve(location, forcedThemeId);
+        // VPS service profile (spec 106): applied when generated/cached,
+        // otherwise the LVP resolution is kept as-is.
+        const serviceProfile = vpsClient?.sync(location);
         // The VPS layer (when forced) compiles on top of whatever LVP parent
         // the resolver just produced, so the generated profile keeps the
         // fallback hierarchy: generated cell -> ... -> LVP -> default.
-        const profile = applyVps(resolution.profile) ?? resolution.profile;
+        const profile = serviceProfile ?? applyVps(resolution.profile) ?? resolution.profile;
         if (profile.id !== renderer.visualProfileId()) renderer.setVisualProfile(profile);
       };
       const metrics = new RuntimeMetrics();
-      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), theme: () => ({ id: renderer.visualProfileId(), location: placeTracker?.location() ?? null }), firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });
+      Object.defineProperty(window, "__opengtaV0Debug", { configurable: true, value: Object.freeze({ vehicle: vehicleSnapshot, session: () => session?.snapshot(), chunks: () => session?.getActiveChunks() ?? [], presentation: () => renderer.presentationCounts(), theme: () => ({ id: renderer.visualProfileId(), location: placeTracker?.location() ?? null }), vps: () => vpsClient?.diagnostics() ?? null, firstPerson: () => firstPerson.diagnostics(), viewLoops: () => ({ topDown: topLoop.started, firstPerson: fpLoop.started }) }) });
       Object.defineProperty(window, "__opengtaV0Metrics", { configurable: true, value: Object.freeze({ snapshot: () => metrics.snapshot() }) });
       const updateStatus = () => {
         const snapshot = session?.snapshot(); if (!snapshot) return;
